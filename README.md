@@ -1,0 +1,2 @@
+# EPA Content Ingestion Services
+This repository contains the content ingestion services (CIS) which are used by EPA to upload files into ECMS. It also contains code for training record schedule classification models.
