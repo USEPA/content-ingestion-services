@@ -1,7 +1,8 @@
 from flask import Flask, request
-from cis.cis_requests import *
-from cis.config import *
+from cis_requests import *
+from config import *
 from waitress import serve
+from gensim.summarization import summarize
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
@@ -17,9 +18,11 @@ def record_schedule_prediction():
         text = tika(file, c)
         if extension == 'pdf' and len(text) < XTIKA_CUTOFF:
             text = xtika(file, c)
-        text = nlp_buddy_analyze(text, c)['summary']
+        summary = summarize(text)
+        if summary != '':
+            text = summary
         prediction = deep_detect_classify(text, c)
-        return {'prediction': prediction}
+        return prediction
     else:
         return {'error': 'No file found.'}
 

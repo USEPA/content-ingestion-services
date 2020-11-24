@@ -16,7 +16,8 @@ def deep_detect_classify(text, config, threshold=0.4):
         }
     server = config.deep_detect_api_server + '/predict'
     r = requests.post(server,json=data)
-    return r.json()['body']['predictions'][0]['classes'][0]
+    #return r.json()['body']['predictions'][0]['classes'][0]
+    return r.json()
 
 def nlp_buddy_analyze(text, config):
     data = { "text":  text }

@@ -1,0 +1,203 @@
+swagger: "2.0"
+info:
+  description: "The content ingestion services (CIS) are used by EPA to power the EZDesktop application."
+  version: "0.0.1"
+  title: "EPA Content Ingestion Services"
+  contact:
+    email: "kreisel.michael@epa.gov"
+host: "localhost:8000"
+basePath: "/"
+tags:
+- name: "schedules"
+  description: "Record schedule recommendations"
+- name: "favorites"
+  description: "User favorites"
+- name: "history"
+  description: "User upload history"
+schemes:
+- "http"
+paths:
+  /record_schedule_classification:
+    post:
+      tags:
+      - "schedules"
+      summary: "Gets record schedule recommendations for a document."
+      consumes:
+        - "multipart/form-data"
+      parameters:
+        - in: "formData"
+          name: "file"
+          type: "file"
+          description: "The file to get recommendations for."
+      responses:
+        "200":
+          description: "Recommendations were able to be given."
+          schema:
+            type: "array"
+            items:
+              $ref: "#/definitions/Recommendation"
+  /get_favorites:
+    post:
+      tags:
+      - "favorites"
+      summary: "Get record schedules favorited by user."
+      consumes:
+        - "application/json"
+      parameters:
+        - in: "body"
+          name: "lan_id"
+          description: "Lan ID for the user whose favorites are to be fetched."
+          schema:
+            $ref: "#/definitions/GetFavoritesRequest"
+      responses:
+        "200":
+          description: "Favorites were found."
+          schema:
+            type: "array"
+            items:
+              type: "number"
+  /add_favorites:
+    post:
+      tags:
+      - "favorites"
+      summary: "Add favorites for user."
+      consumes:
+        - "application/json"
+      parameters:
+        - in: "body"
+          name: "favs"
+          description: "Lan ID for the user whose favorites are to be added and the IDs of the new favs."
+          schema:
+            $ref: "#/definitions/ChangeFavoritesRequest"
+      responses:
+        "200":
+          description: "Favorites were added."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        "500":
+          description: "Server side failure with explanation."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+  /remove_favorites:
+    post:
+      tags:
+      - "favorites"
+      summary: "Remove favorites for user."
+      consumes:
+        - "application/json"
+      parameters:
+        - in: "body"
+          name: "favs"
+          description: "Lan ID for the user whose favorites are to be removed and the IDs of the favs."
+          schema:
+            $ref: "#/definitions/ChangeFavoritesRequest"
+      responses:
+        "200":
+          description: "Favorites were removed."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        "500":
+          description: "Server side failure with explanation."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+  /get_history:
+    post:
+      tags:
+      - "history"
+      summary: "Get user's submission history."
+      consumes:
+        - "application/json"
+      parameters:
+        - in: "body"
+          name: "lan_id"
+          description: "Lan ID for the user whose history is to be fetched."
+          schema:
+            $ref: "#/definitions/GetHistoryRequest"
+      responses:
+        "200":
+          description: "Submission history found."
+          schema:
+            type: "array"
+            items:
+              $ref: "#/definitions/HistoryItem"
+  /add_history:
+    post:
+      tags:
+      - "history"
+      summary: "Add submission history for user."
+      consumes:
+        - "application/json"
+      parameters:
+        - in: "body"
+          name: "favs"
+          description: "Lan ID for the user and data about the historical submissions to be added."
+          schema:
+            $ref: "#/definitions/AddHistoryRequest"
+      responses:
+        "200":
+          description: "Submission history was updated."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        "500":
+          description: "Server side failure with explanation."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+definitions:
+  Recommendation:
+    type: "object"
+    properties:
+      schedule:
+        type: "string"
+      probability:
+        type: "number"
+  GetFavoritesRequest:
+    type: "object"
+    properties:
+      lan_id:
+        type: "string"
+  GetHistoryRequest:
+    type: "object"
+    properties:
+      lan_id:
+        type: "string"
+  ChangeFavoritesRequest:
+    type: "object"
+    properties:
+      lan_id:
+        type: "string"
+      record_schedule_ids:
+        type: "array"
+        items: 
+          type: "number"
+  StatusResponse:
+    type: "object"
+    properties:
+      status:
+        type: "string"
+      reason: 
+        type: "string"
+  HistoryItem:
+    type: "object"
+    properties:
+      path:
+        type: "string"
+      file_size: 
+        type: "string"
+      record_schedule_name:
+        type: "string"
+      submitted_date:
+        type: "string"
+  AddHistoryRequest:
+    type: "object"
+    properties:
+      lan_id: 
+        type: "string"
+      submissions:
+        type: "array"
+        items:
+          $ref: "#/definitions/HistoryItem"
+      
+      
+  
+  
+  
