@@ -3,6 +3,7 @@
 *.ipynb
 cis/*.ipynb 
 models/*.ipynb
+models/*-*-*
 *.xlsx
 __pycache__
 models/env
