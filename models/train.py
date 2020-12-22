@@ -102,6 +102,7 @@ trainer = Trainer(
 
 trainer.train()
 trainer.save_model('distilbert_10_epochs')
+tokenizer.save_pretrained('distilbert_10_epochs')
 _eval = trainer.evaluate()
 with open('distilbert_final_eval.json', 'w') as f:
     f.write(json.dumps(_eval))

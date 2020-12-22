@@ -2,12 +2,15 @@ from flask import Flask, request
 from cis_requests import *
 from config import *
 from waitress import serve
-from gensim.summarization import summarize
 from werkzeug.utils import secure_filename
+from hf_model import HuggingFaceModel
+import argparse
 
 app = Flask(__name__)
 XTIKA_CUTOFF = 10
-c = config_from_file('dev_config.json')
+c = None
+model = None
+
 
 @app.route('/record_schedule_prediction', methods=['POST'])
 def record_schedule_prediction():
@@ -18,13 +21,21 @@ def record_schedule_prediction():
         text = tika(file, c)
         if extension == 'pdf' and len(text) < XTIKA_CUTOFF:
             text = xtika(file, c)
-        summary = summarize(text)
-        if summary != '':
-            text = summary
-        prediction = deep_detect_classify(text, c)
-        return prediction
+        prediction = model.predict(text)
+        return {'predictions': prediction}
     else:
         return {'error': 'No file found.'}
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='The CIS backend server provides APIs which power the EZDesktop application.')
+    parser.add_argument('--model_path', 
+                    help='Path to HuggingFace classifier model.')
+    parser.add_argument('--label_mapping_path', 
+                    help='Path to mapping between prediction indices and corresponding record schedules.')
+    parser.add_argument('--config_path', default='dev_config.json',
+                    help='Path to config file with environment dependent variables.')
+    args = parser.parse_args()
+    model = HuggingFaceModel(args.model_path, args.label_mapping_path)
+    c = config_from_file(args.config_path)
     serve(app, host='0.0.0.0', port=8000)
+
