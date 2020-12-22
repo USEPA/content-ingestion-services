@@ -5,5 +5,6 @@ cis/*.ipynb
 models/*.ipynb
 models/*-*-*
 *.xlsx
+ez-email
 __pycache__
 models/env
