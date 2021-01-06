@@ -183,7 +183,7 @@ definitions:
         type: "string"
       file_size: 
         type: "string"
-      record_schedule_name:
+      record_schedule:
         type: "string"
       submitted_date:
         type: "string"

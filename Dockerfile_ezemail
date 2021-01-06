@@ -1,3 +1,0 @@
-FROM jboss/wildfly:11.0.0.Final
-
-ADD ez-email/ezemail.war /opt/jboss/wildfly/standalone/deployments/

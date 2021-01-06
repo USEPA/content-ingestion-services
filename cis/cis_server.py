@@ -5,6 +5,7 @@ from waitress import serve
 from werkzeug.utils import secure_filename
 from hf_model import HuggingFaceModel
 import argparse
+from data_classes import * 
 
 app = Flask(__name__)
 XTIKA_CUTOFF = 10
@@ -25,6 +26,14 @@ def record_schedule_prediction():
         return {'predictions': prediction}
     else:
         return {'error': 'No file found.'}
+
+@app.route('/get_favorites', methods=['POST'])
+def get_favorites():
+    data = request.json()
+    lan_id = data['lan_id']
+    return ["108-1035-b"]
+
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='The CIS backend server provides APIs which power the EZDesktop application.')
