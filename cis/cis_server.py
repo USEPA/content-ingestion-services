@@ -6,15 +6,24 @@ from werkzeug.utils import secure_filename
 from hf_model import HuggingFaceModel
 import argparse
 from data_classes import * 
+from flask_swagger_ui import get_swaggerui_blueprint
+from yaml import Loader, load
+import json
 
 app = Flask(__name__)
+SWAGGER_URL = ''  # URL for exposing Swagger UI
+SWAGGER_PATH = 'swagger.yaml'
+swagger_yml = load(open(SWAGGER_PATH, 'r'), Loader=Loader)
+blueprint = get_swaggerui_blueprint(SWAGGER_URL, SWAGGER_PATH, config={'spec': swagger_yml})
+app.register_blueprint(blueprint)
+
 XTIKA_CUTOFF = 10
 c = None
 model = None
 
 
-@app.route('/record_schedule_prediction', methods=['POST'])
-def record_schedule_prediction():
+@app.route('/file_metadata_prediction', methods=['POST'])
+def file_metadata_prediction():
     file = request.files.get('file')
     if file:
         filename = secure_filename(file.filename)
@@ -22,17 +31,94 @@ def record_schedule_prediction():
         text = tika(file, c)
         if extension == 'pdf' and len(text) < XTIKA_CUTOFF:
             text = xtika(file, c)
-        prediction = model.predict(text)
-        return {'predictions': prediction}
+        predicted_schedules = model.predict(text)
+        predicted_title = mock_prediction_with_explanation
+        predicted_description = mock_prediction_with_explanation
+        prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description)
+        return prediction.to_json()
     else:
         return {'error': 'No file found.'}
 
+@app.route('/text_metadata_prediction', methods=['POST'])
+def text_metadata_prediction():
+    req = request.json
+    req = TextPredictionRequest(**req)
+    predicted_schedules = model.predict(req.text)
+    predicted_title = mock_prediction_with_explanation
+    predicted_description = mock_prediction_with_explanation
+    prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description)
+    return prediction.to_json()
+
+@app.route('/email_metadata_prediction', methods=['POST'])
+def email_metadata_prediction():
+    req = request.json
+    req = EmailPredictionRequest(**req)
+    prediction = mock_metadata_prediction
+    return prediction.to_json()
+
+@app.route('/upload_file', methods=['POST'])
+def upload_file():
+    file = request.files.get('file')
+    metadata = ECMSMetadata(**json.loads(request.form['metadata']))
+    if file:
+        return mock_status_response.to_json()
+    else:
+        return {'error': 'No file found.'}
+
+@app.route('/get_mailboxes', methods=['POST'])
+def get_mailboxes():
+    req = request.json
+    req = GetMailboxesRequest(**req)
+    return mock_get_mailboxes_response.to_json()
+
+@app.route('/get_emails', methods=['POST'])
+def get_emails():
+    req = request.json
+    req = GetEmailRequest(**req)
+    return mock_get_email_response.to_json()
+
+@app.route('/upload_email', methods=['POST'])
+def upload_email():
+    req = request.json
+    req = UploadEmailRequest(**req)
+    return mock_status_response.to_json()
+
+## TODO: Make this return a real EML file.
+@app.route('/download_email', methods=['POST'])
+def download_email():
+    req = request.json
+    req = DownloadEmailRequest(**req)
+    return mock_status_response.to_json()
+
+@app.route('/mark_email_saved', methods=['POST'])
+def mark_email_saved():
+    req = request.json
+    req = MarkSavedRequest(**req)
+    return mock_status_response.to_json()
+
+@app.route('/untag_email', methods=['POST'])
+def untag_email():
+    req = request.json
+    req = UntagRequest(**req)
+    return mock_status_response.to_json()
+
 @app.route('/get_favorites', methods=['POST'])
 def get_favorites():
-    data = request.json()
-    lan_id = data['lan_id']
-    return ["108-1035-b"]
+    req = request.json
+    req = GetFavoritesRequest(**req)
+    return mock_get_favorites_response.to_json()
 
+@app.route('/add_favorites', methods=['POST'])
+def add_favorites():
+    req = request.json
+    req = AddFavoritesRequest(**req)
+    return mock_status_response.to_json()
+
+@app.route('/remove_favorites', methods=['POST'])
+def remove_favorites():
+    req = request.json
+    req = RemoveFavoritesRequest(**req)
+    return mock_status_response.to_json()
 
 
 if __name__ == "__main__":

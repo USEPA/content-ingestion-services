@@ -1,27 +1,32 @@
 swagger: "2.0"
 info:
-  description: "The content ingestion services (CIS) are used by EPA to power the EZDesktop application."
+  description: "The content ingestion services (CIS) are used by EPA to power records management applications."
   version: "0.0.1"
   title: "EPA Content Ingestion Services"
   contact:
-    email: "kreisel.michael@epa.gov"
+    email: "yuen.andrew@epa.gov"
 host: "localhost:8000"
 basePath: "/"
 tags:
+- name: "desktop"
+  description: "Desktop file upload"
+- name: "email"
+  description: "Email file upload"
 - name: "schedules"
   description: "Record schedule recommendations"
-- name: "favorites"
-  description: "User favorites"
-- name: "history"
-  description: "User upload history"
+- name: "settings"
+  description: "User settings"
+- name: "my_records"
+  description: "APIs for users to access their records"
 schemes:
 - "http"
 paths:
-  /record_schedule_classification:
+  /file_metadata_prediction:
     post:
       tags:
       - "schedules"
-      summary: "Gets record schedule recommendations for a document."
+      - "desktop"
+      summary: "Gets record schedule, title, and description recommendations for a document."
       consumes:
         - "multipart/form-data"
       parameters:
@@ -31,35 +36,189 @@ paths:
           description: "The file to get recommendations for."
       responses:
         "200":
-          description: "Recommendations were able to be given."
+          description: "Recommendations were successfully given."
           schema:
-            type: "array"
-            items:
-              $ref: "#/definitions/Recommendation"
+            $ref: "#/definitions/MetadataPrediction"
+  /text_metadata_prediction:
+    post:
+      tags:
+      - "schedules"
+      summary: "Gets record schedule recommendation for given text."
+      consumes:
+        - "application/json"
+      parameters:
+        - in: "body"
+          name: "TextPredictionRequest"
+          schema: 
+            $ref: "#/definitions/TextPredictionRequest"
+      responses:
+        "200":
+          description: "Recommendations were successfully given."
+          schema:
+            $ref: "#/definitions/MetadataPrediction"
+  /email_metadata_prediction:
+    post:
+      tags:
+      - "schedules"
+      - "email"
+      summary: "Gets metadata recommendations for given email."
+      consumes:
+        - "application/json"
+      parameters:
+        - in: "body"
+          name: "EmailPredictionRequest"
+          schema: 
+            $ref: "#/definitions/EmailPredictionRequest"
+      responses:
+        "200":
+          description: "Recommendations were successfully given."
+          schema:
+            $ref: "#/definitions/MetadataPrediction"
+  /upload_file:
+    post:
+      tags:
+      - "desktop"
+      summary: "Upload a file to ECMS with metadata."
+      consumes:
+        - "multipart/form-data"
+      parameters:
+        - in: "formData"
+          name: "file"
+          type: "file"
+          description: "The file to get recommendations for."
+        - in: "formData"
+          name: "metadata"
+          type: "string"
+          description: "String of serialized JSON with ECMS metadata."
+      responses:
+        "200":
+          description: "File was successfully uploaded."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+  /get_mailboxes:
+    post:
+      tags:
+      - "email"
+      summary: "List the mailboxes to which the user has access."
+      consumes:
+        - "application/json"
+      parameters:
+        - in: "body"
+          name: "GetMailBoxesRequest"
+          schema: 
+            $ref: "#/definitions/GetMailboxesRequest"
+      responses:
+        "200":
+          description: "Mailboxes successfully listed."
+          schema:
+            $ref: "#/definitions/GetMailboxesResponse"
+  /get_emails:
+    post:
+      tags:
+      - "email"
+      summary: "List the emails in a given mailbox."
+      consumes:
+        - "application/json"
+      parameters:
+        - in: "body"
+          name: "GetEmailRequest"
+          schema: 
+            $ref: "#/definitions/GetEmailRequest"
+      responses:
+        "200":
+          description: "Emails successfully retrieved."
+          schema:
+            $ref: "#/definitions/GetEmailResponse"
+  /upload_email:
+    post:
+      tags:
+        - "email"
+      summary: "Upload email to ECMS with metadata."
+      consumes:
+        - "application/json"
+      parameters:
+        - in: "body"
+          name: "upload_request"
+          schema: 
+            $ref: "#/definitions/UploadEmailRequest"
+      responses:
+        "200":
+          description: "Email successfully uploaded."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+  /download_email:
+    post:
+      tags:
+      - "email"
+      summary: "Download an email as an EML file."
+      consumes:
+        - "application/json"
+      parameters:
+        - in: "body"
+          name: "DownloadEmailRequest"
+          schema: 
+            $ref: "#/definitions/DownloadEmailRequest"
+      responses:
+        "200":
+          description: "EML file downloaded."
+          schema:
+            type: "file"
+  /mark_email_saved:
+    post:
+      tags:
+      - "email"
+      summary: "Mark an email with the saved tag in Outlook."
+      consumes:
+        - "application/json"
+      parameters:
+        - in: "body"
+          name: "MarkSavedRequest"
+          schema: 
+            $ref: "#/definitions/MarkSavedRequest"
+      responses:
+        "200":
+          description: "Email marked as saved."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+  /untag_email:
+    post:
+      tags:
+      - "email"
+      summary: "Remove record tag in Outlook."
+      consumes:
+        - "application/json"
+      parameters:
+        - in: "body"
+          name: "UntagRequest"
+          schema: 
+            $ref: "#/definitions/UntagRequest"
+      responses:
+        "200":
+          description: "Record tag for email has been removed."
+          schema:
+            $ref: "#/definitions/StatusResponse"
   /get_favorites:
     post:
       tags:
-      - "favorites"
+      - "settings"
       summary: "Get record schedules favorited by user."
       consumes:
         - "application/json"
       parameters:
         - in: "body"
-          name: "lan_id"
+          name: "GetFavoritesRequest"
           description: "Lan ID for the user whose favorites are to be fetched."
           schema:
             $ref: "#/definitions/GetFavoritesRequest"
       responses:
         "200":
-          description: "Favorites were found."
+          description: "Favorites were added."
           schema:
-            type: "array"
-            items:
-              type: "string"
+            $ref: "#/definitions/GetFavoritesResponse"
   /add_favorites:
     post:
       tags:
-      - "favorites"
+      - "settings"
       summary: "Add favorites for user."
       consumes:
         - "application/json"
@@ -68,7 +227,7 @@ paths:
           name: "favs"
           description: "Lan ID for the user whose favorites are to be added and the IDs of the new favs."
           schema:
-            $ref: "#/definitions/ChangeFavoritesRequest"
+            $ref: "#/definitions/AddFavoritesRequest"
       responses:
         "200":
           description: "Favorites were added."
@@ -81,16 +240,16 @@ paths:
   /remove_favorites:
     post:
       tags:
-      - "favorites"
+      - "settings"
       summary: "Remove favorites for user."
       consumes:
         - "application/json"
       parameters:
         - in: "body"
-          name: "favs"
+          name: "RemoveFavoritesRequest"
           description: "Lan ID for the user whose favorites are to be removed and the IDs of the favs."
           schema:
-            $ref: "#/definitions/ChangeFavoritesRequest"
+            $ref: "#/definitions/RemoveFavoritesRequest"
       responses:
         "200":
           description: "Favorites were removed."
@@ -100,75 +259,61 @@ paths:
           description: "Server side failure with explanation."
           schema:
             $ref: "#/definitions/StatusResponse"
-  /get_history:
-    post:
-      tags:
-      - "history"
-      summary: "Get user's submission history."
-      consumes:
-        - "application/json"
-      parameters:
-        - in: "body"
-          name: "lan_id"
-          description: "Lan ID for the user whose history is to be fetched."
-          schema:
-            $ref: "#/definitions/GetHistoryRequest"
-      responses:
-        "200":
-          description: "Submission history found."
-          schema:
-            type: "array"
-            items:
-              $ref: "#/definitions/HistoryItem"
-  /add_history:
-    post:
-      tags:
-      - "history"
-      summary: "Add submission history for user."
-      consumes:
-        - "application/json"
-      parameters:
-        - in: "body"
-          name: "favs"
-          description: "Lan ID for the user and data about the historical submissions to be added."
-          schema:
-            $ref: "#/definitions/AddHistoryRequest"
-      responses:
-        "200":
-          description: "Submission history was updated."
-          schema:
-            $ref: "#/definitions/StatusResponse"
-        "500":
-          description: "Server side failure with explanation."
-          schema:
-            $ref: "#/definitions/StatusResponse"
 definitions:
-  Recommendation:
+  MetadataPrediction:
     type: "object"
     properties:
-      schedule:
+      predicted_schedules:
+        type: "array"
+        items: 
+          type: "object"
+          properties:
+            schedule: 
+              type: "string"
+            probability:
+              type: "number"
+      title:
+        type: "object"
+        properties:
+          value: 
+            type: "string"
+          prediction_type:
+            type: "string"
+      description:
+        type: "object"
+        properties:
+          value: 
+            type: "string"
+          prediction_type:
+            type: "string"
+  GetMailboxesRequest:
+    type: "object"
+    properties:
+      lan_id:
         type: "string"
-      probability:
-        type: "number"
   GetFavoritesRequest:
     type: "object"
     properties:
       lan_id:
         type: "string"
-  GetHistoryRequest:
+  AddFavoritesRequest:
     type: "object"
     properties:
       lan_id:
         type: "string"
-  ChangeFavoritesRequest:
-    type: "object"
-    properties:
-      lan_id:
-        type: "string"
-      record_schedule_ids:
+      record_schedules:
         type: "array"
         items: 
-          type: "string"
+          $ref: "#/definitions/RecordSchedule"
+  RemoveFavoritesRequest:
+    type: "object"
+    properties:
+      lan_id:
+        type: "string"
+      record_schedules:
+        type: "array"
+        items: 
+          $ref: "#/definitions/RecordSchedule"
   StatusResponse:
     type: "object"
     properties:
@@ -176,27 +321,117 @@ definitions:
         type: "string"
       reason: 
         type: "string"
-  HistoryItem:
+  TextPredictionRequest:
     type: "object"
     properties:
-      path:
+      text:
         type: "string"
-      file_size: 
-        type: "string"
-      record_schedule:
-        type: "string"
-      submitted_date:
-        type: "string"
-  AddHistoryRequest:
+  EmailPredictionRequest:
     type: "object"
     properties:
-      lan_id: 
+      email_id:
         type: "string"
-      submissions:
+  GetMailboxesResponse:
+    type: "object"
+    properties:
+      mailboxes:
+        type: "array"
+        items: 
+          type: "string"
+  GetEmailResponse:
+    type: "object"
+    properties:
+      total_count: 
+        type: "integer"
+      emails:
         type: "array"
         items:
-          $ref: "#/definitions/HistoryItem"
-      
+          type: "object"
+          properties:
+            unid:
+              type: "string"
+            email_id: 
+              type: "string"
+            _from:
+              type: "string"
+            to:
+              type: "string"
+            subject:
+              type: "string"
+            sent:
+              type: "string"
+            received:
+              type: "string"
+  GetEmailRequest:
+    type: "object"
+    properties:
+      mailbox:
+        type: "string"
+      count:
+        type: "integer"
+  DownloadEmailRequest:
+    type: "object"
+    properties:
+      filename:
+        type: "string"
+      email_id:
+        type: "string"
+  UploadEmailRequest:
+    type: "object"
+    properties:
+      email_id:
+        type: "string"
+      metadata:
+        $ref: "#/definitions/ECMSMetadata"
+  MarkSavedRequest:
+    type: "object"
+    properties:
+      email_id:
+        type: "string"
+      sensitivity:
+        type: "string"
+        enum: ["shared", "private"]
+  UntagRequest:
+    type: "object"
+    properties:
+      email_id:
+        type: "string"
+  ECMSMetadata:
+    type: "object"
+    properties:
+      title: 
+        type: "string"
+      description:
+        type: "string"
+      record_schedule:
+        $ref: "#/definitions/RecordSchedule"
+      creator: 
+        type: "string"
+      creation_date: 
+        type: "string"
+      sensitivity:
+        type: "string"
+        enum: ["shared", "private"]
+      rights:
+        type: "string"
+      coverage:
+        type: "string"
+  RecordSchedule:
+    type: "object"
+    properties:
+      function_number: 
+        type: "string"
+      schedule_number: 
+        type: "string"
+      disposition_number: 
+        type: "string"
+  GetFavoritesResponse:
+    type: "object"
+    properties:
+      favorites:
+        type: "array"
+        items:
+          $ref: "#/definitions/RecordSchedule"
       
   
   
