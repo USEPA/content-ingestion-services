@@ -135,6 +135,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
     model = HuggingFaceModel(args.model_path, args.label_mapping_path)
     c = config_from_file(args.config_path)
+    if args.tika_server:
+        c.tika_server = args.tika_server
+    if args.cis_server:
+        c.cis_server = args.cis_server
     swagger_yml['host'] = c.cis_server
     blueprint = get_swaggerui_blueprint(SWAGGER_URL, SWAGGER_PATH, config={'spec': swagger_yml})
     app.register_blueprint(blueprint)

@@ -8,6 +8,7 @@ RUN pip install -r /home/requirements.txt
 COPY cis /home/cis
 COPY models /home/models
 COPY dev_config.json /home/config.json 
+COPY swagger.yaml /home/swagger.yaml 
 
 # Run server
-CMD cd /home && python cis/cis_server.py --model_path /home/models/distilbert-12-10 --label_mapping_path /home/models/label_mapping.json --config_path /home/config.json
+ENTRYPOINT cd /home && python cis/cis_server.py --model_path /home/models/distilbert-12-10 --label_mapping_path /home/models/label_mapping.json --config_path /home/config.json
