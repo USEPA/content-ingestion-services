@@ -14,8 +14,7 @@ app = Flask(__name__)
 SWAGGER_URL = ''  # URL for exposing Swagger UI
 SWAGGER_PATH = 'swagger.yaml'
 swagger_yml = load(open(SWAGGER_PATH, 'r'), Loader=Loader)
-blueprint = get_swaggerui_blueprint(SWAGGER_URL, SWAGGER_PATH, config={'spec': swagger_yml})
-app.register_blueprint(blueprint)
+
 
 XTIKA_CUTOFF = 10
 c = None
@@ -129,8 +128,15 @@ if __name__ == "__main__":
                     help='Path to mapping between prediction indices and corresponding record schedules.')
     parser.add_argument('--config_path', default='dev_config.json',
                     help='Path to config file with environment dependent variables.')
+    parser.add_argument('--tika_server', default=None,
+                    help='Host for tika service.')
+    parser.add_argument('--cis_server', default=None,
+                    help='Host for tika service.')
     args = parser.parse_args()
     model = HuggingFaceModel(args.model_path, args.label_mapping_path)
     c = config_from_file(args.config_path)
+    swagger_yml['host'] = c.cis_server
+    blueprint = get_swaggerui_blueprint(SWAGGER_URL, SWAGGER_PATH, config={'spec': swagger_yml})
+    app.register_blueprint(blueprint)
     serve(app, host='0.0.0.0', port=8000)
 

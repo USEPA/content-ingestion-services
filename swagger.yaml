@@ -269,7 +269,7 @@ definitions:
           type: "object"
           properties:
             schedule: 
-              type: "string"
+              $ref: "#/definitions/RecordSchedule"
             probability:
               type: "number"
       title:
