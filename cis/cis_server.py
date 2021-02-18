@@ -9,6 +9,7 @@ from data_classes import *
 from flask_swagger_ui import get_swaggerui_blueprint
 from yaml import Loader, load
 import json
+import urllib
 
 app = Flask(__name__)
 SWAGGER_URL = ''  # URL for exposing Swagger UI
@@ -139,7 +140,7 @@ if __name__ == "__main__":
         c.tika_server = args.tika_server
     if args.cis_server:
         c.cis_server = args.cis_server
-    swagger_yml['host'] = c.cis_server
+    swagger_yml['host'] = urllib.parse.urlparse(c.cis_server).netloc
     blueprint = get_swaggerui_blueprint(SWAGGER_URL, SWAGGER_PATH, config={'spec': swagger_yml})
     app.register_blueprint(blueprint)
     serve(app, host='0.0.0.0', port=8000)
