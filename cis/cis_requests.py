@@ -31,7 +31,7 @@ def tika(file, config):
                 "Cache-Control": "no-cache",
                 "accept": "text/plain"
               }
-    server = config.tika_server + '/tika/form'
+    server = "http://" + config.tika_server + '/tika/form'
     r = requests.post(server, files=files, headers=headers)
     return r.text
 
@@ -42,6 +42,6 @@ def xtika(file, config):
               "Cache-Control": "no-cache",
               "accept": "text/plain"
             }
-    server = config.tika_server + "/tika"
+    server = "http://" + config.tika_server + "/tika"
     r = requests.put(server, data=file, headers=headers)
     return r.text
