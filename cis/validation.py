@@ -3,6 +3,7 @@ from cryptography.x509 import load_pem_x509_certificate
 from cryptography.hazmat.backends import default_backend
 import jwt
 import threading
+import time
 
 class PublicKeyCache:
     def __init__(self):
@@ -52,6 +53,16 @@ class PublicKeyCache:
             )
         except:
             return False, "ID Token is invalid.", None
+        try:
+            now = time.time()
+            exp = token_data['exp']
+            if now > exp:
+                return False, "Token is expired.", None 
+            nbf = token_data['nbf']
+            if now < nbf:
+                return False, "Token nbf check failed.", None 
+        except:
+            return False, "Token timestamps are invalid.", None
         return True, None, token_data
 
 def create_public_key(x5c):
