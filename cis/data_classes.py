@@ -143,6 +143,23 @@ class DownloadEmailRequest:
 
 @dataclass_json
 @dataclass 
+class DescribeEmailRequest:
+    email_id: str
+
+@dataclass_json
+@dataclass 
+class DescribeEmailResponse:
+    email_id: str
+    _from: str
+    to: str
+    subject: str
+    sent: str
+    received: str
+    body: str 
+    attachments: list[str]
+
+@dataclass_json
+@dataclass 
 class UploadEmailRequest:
     metadata: ECMSMetadata 
     email_id: str

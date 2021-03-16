@@ -34,6 +34,11 @@ paths:
           name: "file"
           type: "file"
           description: "The file to get recommendations for."
+        - in: "header"
+          name: "Authorization"
+          type: "string"
+          format: "jwt"
+          required: true
       responses:
         "200":
           description: "Recommendations were successfully given."
@@ -51,13 +56,18 @@ paths:
           name: "TextPredictionRequest"
           schema: 
             $ref: "#/definitions/TextPredictionRequest"
+        - in: "header"
+          name: "Authorization"
+          type: "string"
+          format: "jwt"
+          required: true
       responses:
         "200":
           description: "Recommendations were successfully given."
           schema:
             $ref: "#/definitions/MetadataPrediction"
   /email_metadata_prediction:
-    post:
+    get:
       tags:
       - "schedules"
       - "email"
@@ -65,10 +75,18 @@ paths:
       consumes:
         - "application/json"
       parameters:
-        - in: "body"
-          name: "EmailPredictionRequest"
-          schema: 
-            $ref: "#/definitions/EmailPredictionRequest"
+        - in: "query"
+          name: "email_id"
+          type: "string"
+        - in: "header"
+          name: "Authorization"
+          type: "string"
+          format: "jwt"
+          required: true
+        - in: "header"
+          name: "X-Access-Token"
+          type: "string"
+          required: true
       responses:
         "200":
           description: "Recommendations were successfully given."
@@ -90,45 +108,94 @@ paths:
           name: "metadata"
           type: "string"
           description: "String of serialized JSON with ECMS metadata."
+        - in: "header"
+          name: "Authorization"
+          type: "string"
+          format: "jwt"
+          required: true
       responses:
         "200":
           description: "File was successfully uploaded."
           schema:
             $ref: "#/definitions/StatusResponse"
   /get_mailboxes:
-    post:
+    get:
       tags:
       - "email"
       summary: "List the mailboxes to which the user has access."
       consumes:
         - "application/json"
       parameters:
-        - in: "body"
-          name: "GetMailBoxesRequest"
-          schema: 
-            $ref: "#/definitions/GetMailboxesRequest"
+        - in: "query"
+          name: "lan_id"
+          type: "string"
+        - in: "header"
+          name: "Authorization"
+          type: "string"
+          format: "jwt"
+          required: true
+        - in: "header"
+          name: "X-Access-Token"
+          type: "string"
+          required: true
       responses:
         "200":
           description: "Mailboxes successfully listed."
           schema:
             $ref: "#/definitions/GetMailboxesResponse"
   /get_emails:
-    post:
+    get:
       tags:
       - "email"
       summary: "List the emails in a given mailbox."
       consumes:
         - "application/json"
       parameters:
-        - in: "body"
-          name: "GetEmailRequest"
-          schema: 
-            $ref: "#/definitions/GetEmailRequest"
+        - in: "query"
+          name: "mailbox"
+          type: "string"
+        - in: "query"
+          name: "count"
+          type: "integer"
+        - in: "header"
+          name: "Authorization"
+          type: "string"
+          format: "jwt"
+          required: true
+        - in: "header"
+          name: "X-Access-Token"
+          type: "string"
+          required: true
       responses:
         "200":
           description: "Emails successfully retrieved."
           schema:
             $ref: "#/definitions/GetEmailResponse"
+  /describe_email:
+    get:
+      tags:
+      - "email"
+      summary: "Get the details for a specific email."
+      consumes:
+        - "application/json"
+      parameters:
+        - in: "query"
+          name: "email_id"
+          type: "string"
+        - in: "header"
+          name: "Authorization"
+          type: "string"
+          format: "jwt"
+          required: true
+        - in: "header"
+          name: "X-Access-Token"
+          type: "string"
+          required: true
+      responses:
+        "200":
+          description: "Email information provided."
+          schema:
+            $ref: "#/definitions/DescribeEmailResponse"
   /upload_email:
     post:
       tags:
@@ -141,23 +208,43 @@ paths:
           name: "upload_request"
           schema: 
             $ref: "#/definitions/UploadEmailRequest"
+        - in: "header"
+          name: "Authorization"
+          type: "string"
+          format: "jwt"
+          required: true
+        - in: "header"
+          name: "X-Access-Token"
+          type: "string"
+          required: true
       responses:
         "200":
           description: "Email successfully uploaded."
           schema:
             $ref: "#/definitions/StatusResponse"
   /download_email:
-    post:
+    get:
       tags:
       - "email"
       summary: "Download an email as an EML file."
       consumes:
         - "application/json"
       parameters:
-        - in: "body"
-          name: "DownloadEmailRequest"
-          schema: 
-            $ref: "#/definitions/DownloadEmailRequest"
+        - in: "query"
+          name: "filename"
+          type: "string"
+        - in: "query"
+          name: "email_id"
+          type: "string"
+        - in: "header"
+          name: "Authorization"
+          type: "string"
+          format: "jwt"
+          required: true
+        - in: "header"
+          name: "X-Access-Token"
+          type: "string"
+          required: true
       responses:
         "200":
           description: "EML file downloaded."
@@ -175,6 +262,15 @@ paths:
           name: "MarkSavedRequest"
           schema: 
             $ref: "#/definitions/MarkSavedRequest"
+        - in: "header"
+          name: "Authorization"
+          type: "string"
+          format: "jwt"
+          required: true
+        - in: "header"
+          name: "X-Access-Token"
+          type: "string"
+          required: true
       responses:
         "200":
           description: "Email marked as saved."
@@ -192,24 +288,36 @@ paths:
           name: "UntagRequest"
           schema: 
             $ref: "#/definitions/UntagRequest"
+        - in: "header"
+          name: "Authorization"
+          type: "string"
+          format: "jwt"
+          required: true
+        - in: "header"
+          name: "X-Access-Token"
+          type: "string"
+          required: true
       responses:
         "200":
           description: "Record tag for email has been removed."
           schema:
             $ref: "#/definitions/StatusResponse"
   /get_favorites:
-    post:
+    get:
       tags:
       - "settings"
       summary: "Get record schedules favorited by user."
       consumes:
         - "application/json"
       parameters:
-        - in: "body"
-          name: "GetFavoritesRequest"
-          description: "Lan ID for the user whose favorites are to be fetched."
-          schema:
-            $ref: "#/definitions/GetFavoritesRequest"
+        - in: "query"
+          name: "lan_id"
+          type: "string"
+        - in: "header"
+          name: "Authorization"
+          type: "string"
+          format: "jwt"
+          required: true
       responses:
         "200":
           description: "Favorites were added."
@@ -228,6 +336,11 @@ paths:
           description: "Lan ID for the user whose favorites are to be added and the IDs of the new favs."
           schema:
             $ref: "#/definitions/AddFavoritesRequest"
+        - in: "header"
+          name: "Authorization"
+          type: "string"
+          format: "jwt"
+          required: true
       responses:
         "200":
           description: "Favorites were added."
@@ -250,6 +363,11 @@ paths:
           description: "Lan ID for the user whose favorites are to be removed and the IDs of the favs."
           schema:
             $ref: "#/definitions/RemoveFavoritesRequest"
+        - in: "header"
+          name: "Authorization"
+          type: "string"
+          format: "jwt"
+          required: true
       responses:
         "200":
           description: "Favorites were removed."
@@ -286,16 +404,6 @@ definitions:
             type: "string"
           prediction_type:
             type: "string"
-  GetMailboxesRequest:
-    type: "object"
-    properties:
-      lan_id:
-        type: "string"
-  GetFavoritesRequest:
-    type: "object"
-    properties:
-      lan_id:
-        type: "string"
   AddFavoritesRequest:
     type: "object"
     properties:
@@ -325,11 +433,6 @@ definitions:
     type: "object"
     properties:
       text:
-        type: "string"
-  EmailPredictionRequest:
-    type: "object"
-    properties:
-      email_id:
         type: "string"
   GetMailboxesResponse:
     type: "object"
@@ -362,20 +465,27 @@ definitions:
               type: "string"
             received:
               type: "string"
-  GetEmailRequest:
+  DescribeEmailResponse:
     type: "object"
     properties:
-      mailbox:
+      email_id: 
         type: "string"
-      count:
-        type: "integer"
-  DownloadEmailRequest:
-    type: "object"
-    properties:
-      filename:
+      _from:
         type: "string"
-      email_id:
+      to:
         type: "string"
+      subject:
+        type: "string"
+      sent:
+        type: "string"
+      received:
+        type: "string"
+      body:
+        type: "string"
+      attachments:
+        type: "array"
+        items:
+          type: "string"  
   UploadEmailRequest:
     type: "object"
     properties:
@@ -432,7 +542,3 @@ definitions:
         type: "array"
         items:
           $ref: "#/definitions/RecordSchedule"
-      
-  
-  
-  
