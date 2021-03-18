@@ -1,5 +1,5 @@
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
-from data_classes import RecordSchedule, Recommendation
+from .data_classes import RecordSchedule, Recommendation
 import numpy as np
 import json
 

@@ -1,7 +1,7 @@
 import requests
-from data_classes import *
+from .data_classes import *
 import json 
-from io import BytesIO
+import email
 
 def deep_detect_classify(text, config, threshold=0.4):
     data = {
@@ -54,9 +54,43 @@ def get_eml_file(email_id, file_name, access_token, config):
   body = {"filename":file_name, "emailid":email_id}
   r = requests.get("http://" + config.ezemail_server + "/ezemail/v1/getemlfile", data=json.dumps(body), headers=headers)
   if r.status_code == 200:
-    return BytesIO(r.content)
+    return r.content
   else:
     return None
+
+def extract_eml_content(eml_message):
+  body = ""
+  attachments = []
+  for part in e.walk():
+    content_type = part.get_content_type()
+    charset = part.get_content_charset()
+    disposition = part.get_content_disposition()
+    
+    if content_type == 'text/plain' and charset is not None and disposition is None:
+        text = part.get_payload()
+        try:
+            body = text.decode(charset).encode('utf-8')
+        except:
+            body = text
+    
+    if disposition == 'attachment':
+        attachments.append(part.get_filename())
+  return body, attachments
+
+
+def extract_eml_data(eml_bytes, email_id):
+  e = email.message_from_bytes(eml_bytes)
+  body, attachments = extract_eml_content(e)
+  return DescribeEmailResponse(
+    email_id=email_id, 
+    _from = e['From'],
+    to = e['To'],
+    cc = e['CC'],
+    subject = e['Subject'],
+    date = e['Date'],
+    body = body,
+    attachments = attachments
+  )
 
 def list_email_metadata(req: GetEmailRequest, config):
   headers = {"Content-Type": "application/json", "Authorization": "Bearer " + req.access_token}

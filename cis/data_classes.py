@@ -152,9 +152,9 @@ class DescribeEmailResponse:
     email_id: str
     _from: str
     to: str
+    cc: str
     subject: str
-    sent: str
-    received: str
+    date: str
     body: str 
     attachments: list[str]
 

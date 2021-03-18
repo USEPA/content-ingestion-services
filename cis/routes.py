@@ -1,27 +1,16 @@
 from flask import Flask, request, Response, make_response
-from cis_requests import *
-from config import *
-from waitress import serve
+from flask import current_app as app
+from .cis_requests import *
 from werkzeug.utils import secure_filename
-from hf_model import HuggingFaceModel
-import argparse
-from data_classes import * 
-from flask_swagger_ui import get_swaggerui_blueprint
-from yaml import Loader, load
+from .data_classes import * 
 import json
 import urllib
-from validation import PublicKeyCache
-from werkzeug import FileWrapper
-
-app = Flask(__name__)
-SWAGGER_URL = ''  # URL for exposing Swagger UI
-SWAGGER_PATH = 'swagger.yaml'
-swagger_yml = load(open(SWAGGER_PATH, 'r'), Loader=Loader)
-key_cache = PublicKeyCache()
+#from werkzeug import FileWrapper
+from io import BytesIO
+from .models import User, Favorite, db
+from . import key_cache, c, model 
 
 XTIKA_CUTOFF = 10
-c = None
-model = None
 
 @app.route('/file_metadata_prediction', methods=['POST'])
 def file_metadata_prediction():
@@ -131,10 +120,10 @@ def download_email():
         req = DownloadEmailRequest(**req)
     except:
         Response("Unable to parse request.", status=400, mimetype='text/plain')
-    file = get_eml_file(req.email_id, req.file_name, access_token, c)
-    if file is None:
+    content = get_eml_file(req.email_id, req.file_name, access_token, c)
+    if content is None:
         Response("File download failed. Ensure that email_id is valid.", status=500, mimetype='text/plain')
-    resp = make_response(FileWrapper(file))
+    resp = None #make_response(FileWrapper(BytesIO(content)))
     resp.headers['Content-Type'] = 'application/octet-stream'
     resp.headers['Content-Disposition'] = 'attachment;filename=' + req.file_name
     return resp
@@ -183,33 +172,4 @@ def remove_favorites():
     req = request.json
     req = RemoveFavoritesRequest(**req)
     return mock_status_response.to_json()
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='The CIS backend server provides APIs which power the EZDesktop application.')
-    parser.add_argument('--model_path', 
-                    help='Path to HuggingFace classifier model.')
-    parser.add_argument('--label_mapping_path', 
-                    help='Path to mapping between prediction indices and corresponding record schedules.')
-    parser.add_argument('--config_path', default='dev_config.json',
-                    help='Path to config file with environment dependent variables.')
-    parser.add_argument('--tika_server', default=None,
-                    help='Host for tika service.')
-    parser.add_argument('--cis_server', default=None,
-                    help='Host for this (CIS) service.')
-    parser.add_argument('--ezemail_server', default=None,
-                    help='Host for ezemail service.')
-    args = parser.parse_args()
-    model = HuggingFaceModel(args.model_path, args.label_mapping_path)
-    c = config_from_file(args.config_path)
-    if args.tika_server:
-        c.tika_server = args.tika_server
-    if args.cis_server:
-        c.cis_server = args.cis_server
-    if args.ezemail_server:
-        c.ezemail_server = args.ezemail_server
-    swagger_yml['host'] = c.cis_server
-    blueprint = get_swaggerui_blueprint(SWAGGER_URL, SWAGGER_PATH, config={'spec': swagger_yml})
-    app.register_blueprint(blueprint)
-    serve(app, host='0.0.0.0', port=8000)
 

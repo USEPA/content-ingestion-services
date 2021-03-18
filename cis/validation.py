@@ -45,6 +45,7 @@ class PublicKeyCache:
         if public_key is None:
             return False, "Unable to find matching public key.", None
         try:
+            print(config)
             token_data = jwt.decode(
                 id_token,
                 public_key,
