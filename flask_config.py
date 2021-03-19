@@ -6,6 +6,6 @@ class Config:
     FLASK_ENV = "dev"
 
     # Database
-    SQLALCHEMY_DATABASE_URI = ''
+    #SQLALCHEMY_DATABASE_URI = r'test.db'
     SQLALCHEMY_ECHO = False
     SQLALCHEMY_TRACK_MODIFICATIONS = False

@@ -5,10 +5,10 @@ COPY requirements.txt /home/requirements.txt
 RUN pip install -r /home/requirements.txt 
 
 # Copy code, models, config
-COPY cis /home/cis
-COPY models /home/models
-COPY dev_config.json /home/config.json 
-COPY swagger.yaml /home/swagger.yaml 
+COPY . /home
+COPY dev_config.json /home/config.json
+COPY cis/test.db /home/favorites.db
+WORKDIR /home
 
 # Run server
-ENTRYPOINT cd /home && python cis/cis_server.py --model_path /home/models/distilbert-12-10 --label_mapping_path /home/models/label_mapping.json --config_path /home/config.json
+ENTRYPOINT python wsgi.py --model_path /home/models/distilbert-12-10 --label_mapping_path /home/models/label_mapping.json --config_path /home/config.json --upgrade --database_uri sqlite:////home/favorites.db

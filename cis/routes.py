@@ -9,7 +9,6 @@ import urllib
 from io import BytesIO
 from .models import User, Favorite, db
 from . import key_cache, c, model 
-
 XTIKA_CUTOFF = 10
 
 @app.route('/file_metadata_prediction', methods=['POST'])
@@ -148,20 +147,37 @@ def untag_email():
 
 @app.route('/get_favorites', methods=['GET'])
 def get_favorites():
-    valid, message, token_data = key_cache.validate_request(request, c)
-    if not valid:
-        return Response(message, status=401, mimetype='text/plain')
+    #valid, message, token_data = key_cache.validate_request(request, c)
+    #if not valid:
+    #    return Response(message, status=401, mimetype='text/plain')
+
     req = request.args
     req = GetFavoritesRequest(**req)
-    return mock_get_favorites_response.to_json()
+    user = User.query.filter_by(lan_id = req.lan_id).all()
+    if len(user) == 0:
+        get_favorites_response = GetFavoritesResponse(favorites = [])
+    else:
+        user = user[0]
+        schedules = [RecordSchedule(function_number=f.function_number, schedule_number=f.schedule_number, disposition_number=f.disposition_number) for f in user.favorites]
+        get_favorites_response = GetFavoritesResponse(favorites=schedules)
+    return get_favorites_response.to_json()
 
 @app.route('/add_favorites', methods=['POST'])
 def add_favorites():
-    valid, message, token_data = key_cache.validate_request(request, c)
-    if not valid:
-        return Response(message, status=401, mimetype='text/plain')
+    #valid, message, token_data = key_cache.validate_request(request, c)
+    #if not valid:
+    #    return Response(message, status=401, mimetype='text/plain')
     req = request.json
     req = AddFavoritesRequest(**req)
+    user = User.query.filter_by(lan_id = req.lan_id).all()
+    if len(user) == 0:
+        user = User(lan_id = req.lan_id)
+    else:
+        user = user[0]
+    # TODO: only append non-dupes
+    for sched in req.record_schedules:
+        user.favorites.append(Favorite(function_number=sched['function_number'], schedule_number=sched['schedule_number'], disposition_number=sched['disposition_number'], user=user))
+    db.session.commit()
     return mock_status_response.to_json()
 
 @app.route('/remove_favorites', methods=['POST'])

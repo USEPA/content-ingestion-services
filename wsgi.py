@@ -17,6 +17,10 @@ if __name__ == "__main__":
                     help='Host for this (CIS) service.')
     parser.add_argument('--ezemail_server', default=None,
                     help='Host for ezemail service.')
+    parser.add_argument('--database_uri', default=None,
+                    help='Host for ezemail service.')
+    parser.add_argument('--upgrade_db', default=False, action="store_true", 
+                    help='Whether to upgrade the db.')
     args = parser.parse_args()
     app = create_app(**vars(args))
     serve(app, host='0.0.0.0', port=8000)
