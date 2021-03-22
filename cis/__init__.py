@@ -1,4 +1,3 @@
-"""Initialize Flask app."""
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate, upgrade
@@ -13,6 +12,7 @@ dictConfig({
     'version': 1,
     'formatters': {'default': {
         'format': '[%(asctime)s] %(levelname)s in %(module)s: %(message)s',
+        'datefmt':"%m/%d/%Y %I:%M:%S %p %Z"
     }},
     'handlers': {'wsgi': {
         'class': 'logging.StreamHandler',

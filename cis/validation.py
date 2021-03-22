@@ -4,6 +4,7 @@ from cryptography.hazmat.backends import default_backend
 import jwt
 import threading
 import time
+from flask import current_app as app
 
 class PublicKeyCache:
     def __init__(self):
@@ -45,7 +46,6 @@ class PublicKeyCache:
         if public_key is None:
             return False, "Unable to find matching public key.", None
         try:
-            print(config)
             token_data = jwt.decode(
                 id_token,
                 public_key,

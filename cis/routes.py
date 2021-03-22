@@ -1,11 +1,10 @@
-from flask import Flask, request, Response, make_response
+from flask import Flask, request, Response, make_response, send_file
 from flask import current_app as app
 from .cis_requests import *
 from werkzeug.utils import secure_filename
 from .data_classes import * 
 import json
 import urllib
-#from werkzeug import FileWrapper
 from io import BytesIO
 from .models import User, Favorite, db
 from . import key_cache, c, model 
@@ -48,12 +47,26 @@ def text_metadata_prediction():
 def email_metadata_prediction():
     valid, message, token_data = key_cache.validate_request(request, c)
     if not valid:
-        return Response(message, status=401, mimetype='text/plain')   
+        return Response(message, status=401, mimetype='text/plain')
+    access_token = request.headers.get('X-Access-Token')
+    if access_token is None:
+        return Response("X-Access-Token is required.", status=400, mimetype='text/plain')
     req = request.args
     req = EmailPredictionRequest(**req)
-    prediction = mock_metadata_prediction
+    eml_file = get_eml_file(req.email_id, "default_file_name", access_token, c)
+    if eml_file is None:
+        return Response("Could not retrieve eml file.", status=400, mimetype='text/plain')
+    try:
+        eml_data = extract_eml_data(eml_file, req.email_id)
+    except:
+        return Response("Error extracting data from eml file.", status=500, mimetype='text/plain')
+    predicted_schedules = model.predict(eml_data.body)
+    predicted_title = mock_prediction_with_explanation
+    predicted_description = mock_prediction_with_explanation
+    prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description)
     return prediction.to_json()
 
+## TODO: Implement file upload
 @app.route('/upload_file', methods=['POST'])
 def upload_file():
     valid, message, token_data = key_cache.validate_request(request, c)
@@ -66,6 +79,7 @@ def upload_file():
     else:
         return {'error': 'No file found.'}
 
+## TODO: Implement mailbox list
 @app.route('/get_mailboxes', methods=['GET'])
 def get_mailboxes():
     valid, message, token_data = key_cache.validate_request(request, c)
@@ -83,29 +97,38 @@ def get_emails():
     valid, message, token_data = key_cache.validate_request(request, c)
     if not valid:
         return Response(message, status=401, mimetype='text/plain')
+    access_token = request.headers.get('X-Access-Token')
+    if access_token is None:
+        return Response("X-Access-Token is required.", status=400, mimetype='text/plain')
     req = request.args
     req = GetEmailRequest(**req)
-    return list_email_metadata(req, c).to_json()
+    return list_email_metadata(req, access_token, c)
 
 @app.route('/describe_email', methods=['GET'])
-def describe_email():
+def get_email_description():
     valid, message, token_data = key_cache.validate_request(request, c)
     if not valid:
         return Response(message, status=401, mimetype='text/plain')
+    access_token = request.headers.get('X-Access-Token')
+    if access_token is None:
+        return Response("X-Access-Token is required.", status=400, mimetype='text/plain')
     req = request.args
     req = DescribeEmailRequest(**req)
-    return {}
+    return describe_email(req, access_token, c)
 
+## TODO: Implement email upload
 @app.route('/upload_email', methods=['POST'])
 def upload_email():
     valid, message, token_data = key_cache.validate_request(request, c)
     if not valid:
         return Response(message, status=401, mimetype='text/plain')
+    access_token = request.headers.get('X-Access-Token')
+    if access_token is None:
+        return Response("X-Access-Token is required.", status=400, mimetype='text/plain')
     req = request.json
     req = UploadEmailRequest(**req)
     return mock_status_response.to_json()
 
-## TODO: Make this return a real EML file.
 @app.route('/download_email', methods=['GET'])
 def download_email():
     valid, message, token_data = key_cache.validate_request(request, c)
@@ -122,35 +145,37 @@ def download_email():
     content = get_eml_file(req.email_id, req.file_name, access_token, c)
     if content is None:
         Response("File download failed. Ensure that email_id is valid.", status=500, mimetype='text/plain')
-    resp = None #make_response(FileWrapper(BytesIO(content)))
-    resp.headers['Content-Type'] = 'application/octet-stream'
-    resp.headers['Content-Disposition'] = 'attachment;filename=' + req.file_name
-    return resp
+    return send_file(BytesIO(content), attachment_filename=req.file_name, as_attachment=True)
 
 @app.route('/mark_email_saved', methods=['POST'])
 def mark_email_saved():
     valid, message, token_data = key_cache.validate_request(request, c)
     if not valid:
         return Response(message, status=401, mimetype='text/plain')
+    access_token = request.headers.get('X-Access-Token')
+    if access_token is None:
+        return Response("X-Access-Token is required.", status=400, mimetype='text/plain')
     req = request.json
     req = MarkSavedRequest(**req)
-    return mock_status_response.to_json()
+    return mark_saved(req, access_token, c)
 
 @app.route('/untag_email', methods=['POST'])
 def untag_email():
     valid, message, token_data = key_cache.validate_request(request, c)
     if not valid:
         return Response(message, status=401, mimetype='text/plain')
+    access_token = request.headers.get('X-Access-Token')
+    if access_token is None:
+        return Response("X-Access-Token is required.", status=400, mimetype='text/plain')
     req = request.json
     req = UntagRequest(**req)
     return mock_status_response.to_json()
 
 @app.route('/get_favorites', methods=['GET'])
 def get_favorites():
-    #valid, message, token_data = key_cache.validate_request(request, c)
-    #if not valid:
-    #    return Response(message, status=401, mimetype='text/plain')
-
+    valid, message, token_data = key_cache.validate_request(request, c)
+    if not valid:
+        return Response(message, status=401, mimetype='text/plain')
     req = request.args
     req = GetFavoritesRequest(**req)
     user = User.query.filter_by(lan_id = req.lan_id).all()
@@ -164,9 +189,9 @@ def get_favorites():
 
 @app.route('/add_favorites', methods=['POST'])
 def add_favorites():
-    #valid, message, token_data = key_cache.validate_request(request, c)
-    #if not valid:
-    #    return Response(message, status=401, mimetype='text/plain')
+    valid, message, token_data = key_cache.validate_request(request, c)
+    if not valid:
+        return Response(message, status=401, mimetype='text/plain')
     req = request.json
     req = AddFavoritesRequest(**req)
     user = User.query.filter_by(lan_id = req.lan_id).all()

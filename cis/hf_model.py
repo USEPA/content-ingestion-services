@@ -20,7 +20,7 @@ class HuggingFaceModel():
         
     def predict(self, text, k=3):
         # Tokenize text
-        tokens = self.tokenizer(text, truncation=True, padding=True, return_tensors="pt")
+        tokens = self.tokenizer(text[:4000], truncation=True, padding=True, return_tensors="pt")
         # Apply model, get logits
         outputs = self.model(**tokens)
         preds = outputs[0][0].detach().cpu().numpy()

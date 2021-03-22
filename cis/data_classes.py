@@ -138,7 +138,7 @@ class GetEmailRequest:
 @dataclass_json
 @dataclass 
 class DownloadEmailRequest:
-    filename: str 
+    file_name: str 
     email_id: str
 
 @dataclass_json

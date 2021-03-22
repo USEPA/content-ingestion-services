@@ -231,7 +231,7 @@ paths:
         - "application/json"
       parameters:
         - in: "query"
-          name: "filename"
+          name: "file_name"
           type: "string"
         - in: "query"
           name: "email_id"
