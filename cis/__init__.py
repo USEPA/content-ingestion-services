@@ -64,7 +64,7 @@ def create_app(model_path, label_mapping_path, config_path, tika_server=None, ci
     with app.app_context():
         from . import routes  # Import routes
         app.logger.info(db.engine)
-        upgrade()
+        #upgrade()
         #db.create_all()  # Create database tables for our data models
 
         return app
