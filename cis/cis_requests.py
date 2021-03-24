@@ -113,6 +113,7 @@ def list_email_metadata(req: GetEmailRequest, access_token, config):
     headers=headers
   )
   if p.status_code != 200:
+    app.logger.info("Request failed with status " + str(p.status_code) + ". " + p.text)
     return Response("Unable to retrieve records.", status=400, mimetype='text/plain')
   resp = p.json()
   total_count = sum([sum(x.values()) for x in resp["total_count"]])
@@ -140,3 +141,6 @@ def mark_saved(req: MarkSavedRequest, access_token, config):
     return Response("Unable to mark as saved.", status=400, mimetype='text/plain')
   else:
     return Response(StatusResponse(status="OK", reason="Email with id " + req.email_id + "was marked saved.").to_json(), status=200, mimetype="application/json")
+
+def get_lan_id(display_name):
+  pass

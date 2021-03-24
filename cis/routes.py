@@ -199,11 +199,17 @@ def add_favorites():
         user = User(lan_id = req.lan_id)
     else:
         user = user[0]
-    # TODO: only append non-dupes
+   
     for sched in req.record_schedules:
-        user.favorites.append(Favorite(function_number=sched['function_number'], schedule_number=sched['schedule_number'], disposition_number=sched['disposition_number'], user=user))
+        add_sched = True
+        for fav in user.favorites:
+            if fav.function_number == sched.function_number and fav.schedule_number == sched.schedule_number and fav.disposition_number == sched.disposition_number:
+                add_sched = False
+                break
+        if add_sched:
+            user.favorites.append(Favorite(function_number=sched['function_number'], schedule_number=sched['schedule_number'], disposition_number=sched['disposition_number'], user=user))
     db.session.commit()
-    return mock_status_response.to_json()
+    return Response(StatusResponse(status="OK", reason="Favorites were added.").to_json(), status=200, mimetype="application/json")
 
 @app.route('/remove_favorites', methods=['POST'])
 def remove_favorites():
@@ -212,5 +218,15 @@ def remove_favorites():
         return Response(message, status=401, mimetype='text/plain')
     req = request.json
     req = RemoveFavoritesRequest(**req)
-    return mock_status_response.to_json()
+    user = User.query.filter_by(lan_id = req.lan_id).all()
+    if len(user) == 0:
+        user = User(lan_id = req.lan_id)
+    else:
+        user = user[0]
+    for fav in user.favorites:
+        for sched in req.record_schedules:
+            if fav.function_number == sched.function_number and fav.schedule_number == sched.schedule_number and fav.disposition_number == sched.disposition_number:
+                db.session.delete(fav)
+    db.session.commit()
+    return Response(StatusResponse(status="OK", reason="Favorites were removed.").to_json(), status=200, mimetype="application/json")
 
