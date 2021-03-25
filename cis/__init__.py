@@ -37,7 +37,7 @@ SWAGGER_PATH = 'swagger.yaml'
 swagger_yml = load(open(SWAGGER_PATH, 'r'), Loader=Loader)
 
 
-def create_app(model_path, label_mapping_path, config_path, mailbox_data_path, tika_server=None, cis_server=None, ezemail_server=None, database_uri=None, upgrade_db=False):
+def create_app(model_path, label_mapping_path, config_path, mailbox_data_path, database_uri, tika_server=None, cis_server=None, ezemail_server=None, upgrade_db=False):
 
     
     """Construct the core application."""
@@ -68,7 +68,7 @@ def create_app(model_path, label_mapping_path, config_path, mailbox_data_path, t
     with app.app_context():
         from . import routes  # Import routes
         app.logger.info(db.engine)
-        #upgrade()
-        #db.create_all()  # Create database tables for our data models
+        if upgrade_db:
+            upgrade()
 
         return app

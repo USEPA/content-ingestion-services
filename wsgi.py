@@ -18,7 +18,7 @@ if __name__ == "__main__":
     parser.add_argument('--ezemail_server', default=None,
                     help='Host for ezemail service.')
     parser.add_argument('--database_uri', default=None,
-                    help='Host for ezemail service.')
+                    help='Database connection string.')
     parser.add_argument('--upgrade_db', default=False, action="store_true", 
                     help='Whether to upgrade the db.')
     parser.add_argument('--mailbox_data_path', default='shared_mailboxes_by_user.json', 
