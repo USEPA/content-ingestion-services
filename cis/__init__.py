@@ -7,6 +7,7 @@ from .validation import PublicKeyCache
 from .hf_model import HuggingFaceModel
 from .app_config import config_from_file
 from logging.config import dictConfig
+from .shared_mailbox_manager import SharedMailboxManager
 
 dictConfig({
     'version': 1,
@@ -30,19 +31,22 @@ migrate = Migrate()
 key_cache = PublicKeyCache()
 c = None
 model = None
+mailbox_manager = None
 SWAGGER_URL = ''  # URL for exposing Swagger UI
 SWAGGER_PATH = 'swagger.yaml'
 swagger_yml = load(open(SWAGGER_PATH, 'r'), Loader=Loader)
 
-def create_app(model_path, label_mapping_path, config_path, tika_server=None, cis_server=None, ezemail_server=None, database_uri=None, upgrade_db=False):
+
+def create_app(model_path, label_mapping_path, config_path, mailbox_data_path, tika_server=None, cis_server=None, ezemail_server=None, database_uri=None, upgrade_db=False):
 
     
     """Construct the core application."""
     app = Flask(__name__, instance_relative_config=False)
     app.config.from_object("flask_config.Config")
 
-    global model, c
+    global model, c, mailbox_manager
     
+    mailbox_manager = SharedMailboxManager(mailbox_data_path)
     c = config_from_file(config_path)
     if tika_server:
         c.tika_server = tika_server

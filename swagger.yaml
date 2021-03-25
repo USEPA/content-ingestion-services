@@ -126,17 +126,10 @@ paths:
       consumes:
         - "application/json"
       parameters:
-        - in: "query"
-          name: "lan_id"
-          type: "string"
         - in: "header"
           name: "Authorization"
           type: "string"
           format: "jwt"
-          required: true
-        - in: "header"
-          name: "X-Access-Token"
-          type: "string"
           required: true
       responses:
         "200":

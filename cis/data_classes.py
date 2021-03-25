@@ -55,11 +55,6 @@ class ECMSMetadata:
 
 @dataclass_json
 @dataclass 
-class GetMailboxesRequest:
-    lan_id: str 
-
-@dataclass_json
-@dataclass 
 class GetFavoritesRequest:
     lan_id: str 
 
@@ -168,6 +163,11 @@ class UploadEmailRequest:
 @dataclass 
 class MarkSavedRequest:
     sensitivity: str 
+    email_id: str
+
+@dataclass_json
+@dataclass 
+class UntagRequest:
     email_id: str
 
 @dataclass_json

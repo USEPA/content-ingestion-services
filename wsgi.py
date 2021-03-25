@@ -21,6 +21,8 @@ if __name__ == "__main__":
                     help='Host for ezemail service.')
     parser.add_argument('--upgrade_db', default=False, action="store_true", 
                     help='Whether to upgrade the db.')
+    parser.add_argument('--mailbox_data_path', default='shared_mailboxes_by_user.json', 
+                    help='Path to dictionary of shared mailboxes.')
     args = parser.parse_args()
     app = create_app(**vars(args))
     serve(app, host='0.0.0.0', port=8000)

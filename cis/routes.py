@@ -7,7 +7,7 @@ import json
 import urllib
 from io import BytesIO
 from .models import User, Favorite, db
-from . import key_cache, c, model 
+from . import key_cache, c, model, mailbox_manager
 XTIKA_CUTOFF = 10
 
 @app.route('/file_metadata_prediction', methods=['POST'])
@@ -79,18 +79,12 @@ def upload_file():
     else:
         return {'error': 'No file found.'}
 
-## TODO: Implement mailbox list
 @app.route('/get_mailboxes', methods=['GET'])
 def get_mailboxes():
     valid, message, token_data = key_cache.validate_request(request, c)
     if not valid:
         return Response(message, status=401, mimetype='text/plain')
-    req = request.args
-    try:
-        req = GetMailboxesRequest(**req)
-    except:
-        Response("Unable to parse request.", status=400, mimetype='text/plain')
-    return mock_get_mailboxes_response.to_json()
+    return mailbox_manager.list_shared_mailboxes(token_data['email'])
 
 @app.route('/get_emails', methods=['GET'])
 def get_emails():
@@ -102,7 +96,9 @@ def get_emails():
         return Response("X-Access-Token is required.", status=400, mimetype='text/plain')
     req = request.args
     req = GetEmailRequest(**req)
-    return list_email_metadata(req, access_token, c)
+    if not mailbox_manager.validate_mailbox(token_data['email'], req.mailbox):
+        return Response("User " + token_data['email'] + " is not authorized to access " + req.mailbox + ".", status=401, mimetype='text/plain')
+    return list_email_metadata(req, token_data['email'], access_token, c)
 
 @app.route('/describe_email', methods=['GET'])
 def get_email_description():
@@ -169,7 +165,7 @@ def untag_email():
         return Response("X-Access-Token is required.", status=400, mimetype='text/plain')
     req = request.json
     req = UntagRequest(**req)
-    return mock_status_response.to_json()
+    return untag(req, access_token, c)
 
 @app.route('/get_favorites', methods=['GET'])
 def get_favorites():

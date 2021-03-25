@@ -9,3 +9,8 @@ ez-email
 __pycache__
 models/env
 training_data_processing/*.csv
+*.csv
+*.db
+migrations/
+.xlsx
+*.json

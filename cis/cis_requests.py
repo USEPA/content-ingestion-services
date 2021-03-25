@@ -104,9 +104,11 @@ def describe_email(req: DescribeEmailRequest, access_token, config):
   return Response(eml_response.to_json(), status=200, mimetype='application/json')
   
 
-def list_email_metadata(req: GetEmailRequest, access_token, config):
+def list_email_metadata(req: GetEmailRequest, user_email, access_token, config):
   headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}
-  body = {"mailbox": req.mailbox, "count": req.count}
+  body = {"mailbox": 'Regular&Archive', "count": req.count}
+  if req.mailbox != user_email:
+    body['shared_mailbox'] = req.mailbox
   p = requests.get(
     "http://" + config.ezemail_server + "/ezemail/v1/getrecords/", 
     data=json.dumps(body), 
@@ -132,6 +134,8 @@ def list_email_metadata(req: GetEmailRequest, access_token, config):
 def mark_saved(req: MarkSavedRequest, access_token, config):
   headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}
   body = {"emailid": req.email_id}
+  if req.sensitivity.lower() == 'private':
+    body['sensitivityid'] = 3
   p = requests.post(
     "http://" + config.ezemail_server + "/ezemail/v1/setcategory", 
     json=body, 
@@ -140,7 +144,20 @@ def mark_saved(req: MarkSavedRequest, access_token, config):
   if p.status_code != 204:
     return Response("Unable to mark as saved.", status=400, mimetype='text/plain')
   else:
-    return Response(StatusResponse(status="OK", reason="Email with id " + req.email_id + "was marked saved.").to_json(), status=200, mimetype="application/json")
+    return Response(StatusResponse(status="OK", reason="Email with id " + req.email_id + " was marked saved.").to_json(), status=200, mimetype="application/json")
+
+def untag(req: UntagRequest, access_token, config):
+  headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}
+  body = {"emailid": req.email_id}
+  p = requests.post(
+    "http://" + config.ezemail_server + "/ezemail/v1/removecategory", 
+    json=body, 
+    headers=headers
+  )
+  if p.status_code != 204:
+    return Response("Unable to remove Record category.", status=400, mimetype='text/plain')
+  else:
+    return Response(StatusResponse(status="OK", reason="Email with id " + req.email_id + " is no longer categorized as a record.").to_json(), status=200, mimetype="application/json")
 
 def get_lan_id(display_name):
   pass
