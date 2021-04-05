@@ -193,19 +193,28 @@ def add_favorites():
     user = User.query.filter_by(lan_id = req.lan_id).all()
     if len(user) == 0:
         user = User(lan_id = req.lan_id)
+        db.session.add(user)
     else:
         user = user[0]
-   
+
+    add_any_sched = False
     for sched in req.record_schedules:
         add_sched = True
         for fav in user.favorites:
-            if fav.function_number == sched.function_number and fav.schedule_number == sched.schedule_number and fav.disposition_number == sched.disposition_number:
+            if fav.function_number == sched['function_number'] and fav.schedule_number == sched['schedule_number'] and fav.disposition_number == sched['disposition_number']:
                 add_sched = False
                 break
         if add_sched:
+            add_any_sched = True
             user.favorites.append(Favorite(function_number=sched['function_number'], schedule_number=sched['schedule_number'], disposition_number=sched['disposition_number'], user=user))
-    db.session.commit()
-    return Response(StatusResponse(status="OK", reason="Favorites were added.").to_json(), status=200, mimetype="application/json")
+    if add_any_sched:
+        try:
+            db.session.commit()
+            return Response(StatusResponse(status="OK", reason="Favorites were added.").to_json(), status=200, mimetype="application/json")
+        except:
+            return Response("Error committing updates.", status=500, mimetype="text/plain")
+    else:
+        return Response(StatusResponse(status="OK", reason="All favorites given were already in the database.").to_json(), status=200, mimetype="text/plain")
 
 @app.route('/remove_favorites', methods=['POST'])
 def remove_favorites():
@@ -219,9 +228,10 @@ def remove_favorites():
         user = User(lan_id = req.lan_id)
     else:
         user = user[0]
+
     for fav in user.favorites:
         for sched in req.record_schedules:
-            if fav.function_number == sched.function_number and fav.schedule_number == sched.schedule_number and fav.disposition_number == sched.disposition_number:
+            if fav.function_number == sched['function_number'] and fav.schedule_number == sched['schedule_number'] and fav.disposition_number == sched['disposition_number']:
                 db.session.delete(fav)
     db.session.commit()
     return Response(StatusResponse(status="OK", reason="Favorites were removed.").to_json(), status=200, mimetype="application/json")
