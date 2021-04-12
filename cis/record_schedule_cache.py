@@ -1,5 +1,4 @@
 import json
-import pandas as pd
 from .data_classes import RecordScheduleInformation, RecordScheduleList
 from datetime import datetime
 import threading
@@ -8,9 +7,15 @@ from gql.transport.requests import RequestsHTTPTransport
 
 class RecordScheduleCache:
     def __init__(self, config, dnul_path):
-        dnul = pd.read_csv(dnul_path)
+        #dnul = pd.read_csv(dnul_path)
+        #self.dnu_items = list(dnul['Disposition Item '])
+        dnu_items = []
+        with open(dnul_path, 'r') as f:
+          for line in f:
+            csv = line.split(',')
+            dnu_items.append(csv[1])
+        self.dnu_items = dnu_items
         self.config = config
-        self.dnu_items = list(dnul['Disposition Item '])
         self.schedules = get_record_schedules(config, self.dnu_items)
         self.update_ts = datetime.now()
         self.lock = threading.Lock()
