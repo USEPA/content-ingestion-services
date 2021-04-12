@@ -7,7 +7,7 @@ class SharedMailboxManager:
             self.mailboxes_by_user = json.load(f)
     
     def validate_mailbox(self, user_email, mailbox_to_access):
-        if user_email == mailbox_to_access:
+        if user_email.lower() == mailbox_to_access.lower():
             return True
         shared_mailboxes = self.mailboxes_by_user.get(user_email.lower())
         if shared_mailboxes is not None:

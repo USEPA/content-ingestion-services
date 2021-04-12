@@ -4,31 +4,6 @@ import json
 import email
 from flask import Response, current_app as app
 
-def deep_detect_classify(text, config, threshold=0.4):
-    data = {
-          "service": 'records',
-          "parameters": {
-            "input": {},
-            "output": {
-              "confidence_threshold": threshold
-            },
-            "mllib": {
-              "gpu": False
-            }
-          },
-          "data": [text]
-        }
-    server = config.deep_detect_api_server + '/predict'
-    r = requests.post(server,json=data)
-    #return r.json()['body']['predictions'][0]['classes'][0]
-    return r.json()
-
-def nlp_buddy_analyze(text, config):
-    data = { "text":  text }
-    server = config.nlp_buddy_server + '/api/analyze'
-    r = requests.post(server,json=data)
-    return r.json()
-
 def tika(file, config):
     files = {'file': file}
     headers = {
@@ -158,6 +133,32 @@ def untag(req: UntagRequest, access_token, config):
     return Response("Unable to remove Record category.", status=400, mimetype='text/plain')
   else:
     return Response(StatusResponse(status="OK", reason="Email with id " + req.email_id + " is no longer categorized as a record.").to_json(), status=200, mimetype="application/json")
+
+def process_schedule_data(schedule_dict):
+    try:
+        function_number = str(int(float(schedule_dict['functionCode'])))
+    except:
+        function_number = schedule_dict['functionCode']
+    return RecordScheduleInformation(
+        function_number=function_number,
+        schedule_number=schedule_dict['scheduleNumber'],
+        disposition_number=schedule_dict['itemNumber'],
+        display_name=schedule_dict['scheduleItemNumber'],
+        schedule_title=schedule_dict['scheduleTitle'],
+        disposition_title=schedule_dict['itemTitle'],
+        disposition_instructions=schedule_dict['dispositionInstructions'],
+        cutoff_instructions=schedule_dict['cutoffInstructions'],
+        function_title=schedule_dict['functionTitle'],
+        program=schedule_dict['program'],
+        applicability=schedule_dict['applicability'],
+        nara_disposal_authority_item_level=schedule_dict['naraDisposalAuthorityItemLevel'],
+        nara_disposal_authority_schedule_level=schedule_dict['naraDisposalAuthorityRecordScheduleLevel'],
+        final_disposition=schedule_dict['finalDisposition'],
+        disposition_summary=schedule_dict['dispositionSummary'],
+        description=schedule_dict['scheduleDescription'],
+        guidance=schedule_dict['guidance'],
+        keywords=schedule_dict['keywords']
+    )
 
 def get_lan_id(display_name):
   pass

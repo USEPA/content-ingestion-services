@@ -16,6 +16,33 @@ mock_schedules = [
 
 @dataclass_json
 @dataclass 
+class RecordScheduleInformation:
+    function_number: str 
+    schedule_number: str 
+    disposition_number: str 
+    display_name: str
+    schedule_title: str 
+    disposition_title: str 
+    disposition_instructions: str 
+    cutoff_instructions: str
+    function_title: str
+    program: str 
+    applicability: str
+    nara_disposal_authority_item_level: str
+    nara_disposal_authority_schedule_level: str
+    final_disposition: str 
+    disposition_summary: str
+    description: str
+    guidance: str
+    keywords: str
+
+@dataclass_json
+@dataclass 
+class RecordScheduleList:
+    schedules: list[RecordScheduleInformation]
+
+@dataclass_json
+@dataclass 
 class Recommendation:
     schedule: RecordSchedule 
     probability: float 
@@ -163,11 +190,6 @@ class UploadEmailRequest:
 @dataclass 
 class MarkSavedRequest:
     sensitivity: str 
-    email_id: str
-
-@dataclass_json
-@dataclass 
-class UntagRequest:
     email_id: str
 
 @dataclass_json

@@ -8,23 +8,25 @@ info:
 host: "localhost:8000"
 basePath: "/"
 tags:
+- name: "record_schedules"
+  description: "APIs to access record schedule information."
 - name: "desktop"
-  description: "Desktop file upload"
+  description: "APIs to support desktop file upload"
 - name: "email"
-  description: "Email file upload"
-- name: "schedules"
-  description: "Record schedule recommendations"
-- name: "settings"
-  description: "User settings"
+  description: "APIs to support email file upload"
 - name: "my_records"
   description: "APIs for users to access their records"
+- name: "settings"
+  description: "APIs to access and edit user settings"
+- name: "schedule_predictions"
+  description: "All APIs that provide record schedule recommendations."
 schemes:
 - "http"
 paths:
   /file_metadata_prediction:
     post:
       tags:
-      - "schedules"
+      - "schedule_predictions"
       - "desktop"
       summary: "Gets record schedule, title, and description recommendations for a document."
       consumes:
@@ -47,7 +49,7 @@ paths:
   /text_metadata_prediction:
     post:
       tags:
-      - "schedules"
+      - "schedule_predictions"
       summary: "Gets record schedule recommendation for given text."
       consumes:
         - "application/json"
@@ -69,7 +71,7 @@ paths:
   /email_metadata_prediction:
     get:
       tags:
-      - "schedules"
+      - "schedule_predictions"
       - "email"
       summary: "Gets metadata recommendations for given email."
       consumes:
@@ -370,6 +372,24 @@ paths:
           description: "Server side failure with explanation."
           schema:
             $ref: "#/definitions/StatusResponse"
+  /get_record_schedules:
+    get:
+      tags:
+      - "record_schedules"
+      summary: "Get record schedule information."
+      consumes:
+        - "application/json"
+      parameters:
+        - in: "header"
+          name: "Authorization"
+          type: "string"
+          format: "jwt"
+          required: true
+      responses:
+        "200":
+          description: "Record schedule information retrieved."
+          schema:
+            $ref: "#/definitions/StatusResponse"
 definitions:
   MetadataPrediction:
     type: "object"
@@ -528,6 +548,45 @@ definitions:
         type: "string"
       disposition_number: 
         type: "string"
+  RecordScheduleInformation:
+    type: "object"
+    properties:
+      function_number: 
+        type: "string"
+      schedule_number: 
+        type: "string"
+      disposition_number: 
+        type: "string"
+      display_name:
+        type: "string"
+      schedule_title: 
+        type: "string" 
+      disposition_title:
+        type: "string" 
+      disposition_instructions:
+        type: "string" 
+      cutoff_instructions:
+        type: "string" 
+      function_title:
+        type: "string" 
+      program:
+        type: "string" 
+      applicability:
+        type: "string" 
+      nara_disposal_authority_item_level:
+        type: "string" 
+      nara_disposal_authority_schedule_level:
+        type: "string" 
+      final_disposition:
+        type: "string" 
+      disposition_summary:
+        type: "string" 
+      description:
+        type: "string" 
+      guidance:
+        type: "string" 
+      keywords:
+        type: "string" 
   GetFavoritesResponse:
     type: "object"
     properties:
@@ -535,3 +594,11 @@ definitions:
         type: "array"
         items:
           $ref: "#/definitions/RecordSchedule"
+  GetRecordSchedulesResponse:
+    type: "object"
+    properties:
+      schedules:
+        type: "array"
+        items:
+          $ref: "#/definitions/RecordScheduleInformation"
+    

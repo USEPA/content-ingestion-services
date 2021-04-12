@@ -23,6 +23,8 @@ if __name__ == "__main__":
                     help='Whether to upgrade the db.')
     parser.add_argument('--mailbox_data_path', default='shared_mailboxes_by_user.json', 
                     help='Path to dictionary of shared mailboxes.')
+    parser.add_argument('--dnul_path', default='dnul.csv', 
+                    help='Do not use list for record schedules.')
     args = parser.parse_args()
     app = create_app(**vars(args))
     serve(app, host='0.0.0.0', port=8000)

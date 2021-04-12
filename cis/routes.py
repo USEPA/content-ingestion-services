@@ -7,7 +7,7 @@ import json
 import urllib
 from io import BytesIO
 from .models import User, Favorite, db
-from . import key_cache, c, model, mailbox_manager
+from . import key_cache, c, model, mailbox_manager, schedule_cache
 XTIKA_CUTOFF = 10
 
 @app.route('/file_metadata_prediction', methods=['POST'])
@@ -236,3 +236,14 @@ def remove_favorites():
     db.session.commit()
     return Response(StatusResponse(status="OK", reason="Favorites were removed.").to_json(), status=200, mimetype="application/json")
 
+@app.route('/get_record_schedules', methods=['GET'])
+def get_record_schedules():
+    valid, message, token_data = key_cache.validate_request(request, c)
+    if not valid:
+        return Response(message, status=401, mimetype='text/plain')
+    try:
+        schedules = schedule_cache.get_schedules()
+        return Response(schedules.to_json(), status=200, mimetype='application/json')
+    except:
+        # TODO: Improve error logging
+        return Response("Record schedules unable to be found.", status=500, mimetype='text/plain')
