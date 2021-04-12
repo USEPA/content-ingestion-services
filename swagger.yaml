@@ -390,6 +390,36 @@ paths:
           description: "Record schedule information retrieved."
           schema:
             $ref: "#/definitions/StatusResponse"
+  /my_records:
+    get:
+      tags:
+      - "my_records"
+      summary: "Get information for existing records."
+      consumes:
+        - "application/json"
+      parameters:
+        - in: "header"
+          name: "Authorization"
+          type: "string"
+          format: "jwt"
+          required: true
+        - in: "query"
+          name: "lan_id"
+          type: "string"
+          required: true
+        - in: "query"
+          name: "items_per_page"
+          type: "number"
+          required: true
+        - in: "query"
+          name: "page_number"
+          type: "number"
+          required: true
+      responses:
+        "200":
+          description: "Record information retrieved."
+          schema:
+            $ref: "#/definitions/DocumentumRecordList"
 definitions:
   MetadataPrediction:
     type: "object"
@@ -601,4 +631,32 @@ definitions:
         type: "array"
         items:
           $ref: "#/definitions/RecordScheduleInformation"
+  DocumentumDocInfo:
+    type: "object"
+    properties:
+      title: 
+        type: "string"
+      doc_type: 
+        type: "string"
+      date: 
+        type: "string"
+      sensitivity:
+        type: "string"
+      doc_id:
+        type: "string"
+      object_ids: 
+        type: "array"
+        items: "string"
+      size: 
+        type: "number"
+      custodian:
+        type: "string"
+  DocumentumRecordList:
+    type: "object"
+    properties:
+      has_next:
+        type: "boolean"
+      records:
+        type: "array"
+        items: "#/definitions/DocumentumDocInfo"
     

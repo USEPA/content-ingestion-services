@@ -247,3 +247,12 @@ def get_record_schedules():
     except:
         # TODO: Improve error logging
         return Response("Record schedules unable to be found.", status=500, mimetype='text/plain')
+
+@app.route('/my_records', methods=['GET'])
+def my_records():
+    valid, message, token_data = key_cache.validate_request(request, c)
+    if not valid:
+        return Response(message, status=401, mimetype='text/plain')
+    req = request.args
+    req = MyRecordsRequest(**req)
+    return get_documentum_records(c, req.lan_id, req.items_per_page, req.page_number)

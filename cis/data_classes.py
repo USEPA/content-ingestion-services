@@ -43,6 +43,31 @@ class RecordScheduleList:
 
 @dataclass_json
 @dataclass 
+class DocumentumDocInfo:
+    title: str
+    doc_type: str
+    date: str
+    sensitivity: str
+    doc_id: str
+    object_ids: list[str]
+    size: float
+    custodian: str
+
+@dataclass_json
+@dataclass 
+class DocumentumRecordList:
+    records: list[DocumentumDocInfo]
+    has_next: bool
+
+@dataclass_json
+@dataclass 
+class MyRecordsRequest:
+    lan_id: str
+    items_per_page: int
+    page_number: int
+
+@dataclass_json
+@dataclass 
 class Recommendation:
     schedule: RecordSchedule 
     probability: float 

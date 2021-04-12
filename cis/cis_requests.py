@@ -3,6 +3,7 @@ from .data_classes import *
 import json 
 import email
 from flask import Response, current_app as app
+import urllib 
 
 def tika(file, config):
     files = {'file': file}
@@ -159,6 +160,68 @@ def process_schedule_data(schedule_dict):
         guidance=schedule_dict['guidance'],
         keywords=schedule_dict['keywords']
     )
+
+def dql_request(sql, items_per_page, page_number, username, password):
+    url = "https://ecms.epa.gov/dctm-rest/repositories/ecmsrmr65?items-per-page=" + str(items_per_page) + "&page=" + str(page_number) + "&dql=" + urllib.parse.quote(sql)
+    headers = {'cache-control': 'no-cache'}
+    r = requests.get(url, headers=headers, auth=(username,password), verify=False)
+    return r
+  
+
+def get_documentum_records(config, lan_id, items_per_page, page_number):
+  # TODO: Improve error handling
+  doc_id_sql = "select erma_doc_id, creation_date from (select s.ERMA_DOC_ID as erma_doc_id, MAX(s.R_CREATION_DATE) as creation_date from ECMSRMR65.ERMA_DOC_SV s where s.ERMA_DOC_CUSTODIAN = '" + lan_id + "' GROUP BY s.ERMA_DOC_ID) ORDER BY creation_date DESC;"
+  # TODO: Why does verification fail?
+  r = dql_request(doc_id_sql, items_per_page, page_number, config.documentum_prod_username, config.documentum_prod_password)
+  if r.status_code != 200:
+    return Response('Documentum doc ID request returned status ' + str(r.status_code), status=500, mimetype='text/plain')
+  doc_id_resp = r.json()
+  if 'entries' not in doc_id_resp:
+    # TODO: Empty array goes here
+    return Response( {}, status=200, mimetype='application/json')
+  doc_ids = [x['content']['properties']['erma_doc_id'] for x in doc_id_resp['entries']]
+  has_next = False
+  for l in doc_id_resp['links']:
+    if l['rel'] == 'next':
+      has_next = True
+  doc_where_clause = ' OR '.join(["erma_doc_id = '" + str(x) + "'" for x in doc_ids])
+  doc_info_sql = "select s.erma_doc_sensitivity as erma_doc_sensitivity, s.R_OBJECT_TYPE as r_object_type, s.ERMA_DOC_DATE as erma_doc_date, s.ERMA_DOC_CUSTODIAN as erma_doc_custodian, s.ERMA_DOC_ID as erma_doc_id, s.R_FULL_CONTENT_SIZE as r_full_content_size, s.R_OBJECT_ID as r_object_id, s.ERMA_DOC_TITLE as erma_doc_title from ECMSRMR65.ERMA_DOC_SV s where " + doc_where_clause + ";"
+  r = dql_request(doc_info_sql, 3*int(items_per_page), 1, config.documentum_prod_username, config.documentum_prod_password)
+  if r.status_code != 200:
+    return Response('Documentum doc info request returned status ' + str(r.status_code), status=500, mimetype='text/plain')
+  doc_info = {}
+  for doc in r.json()['entries']:
+    properties = doc['content']['properties']
+    doc_id = properties['erma_doc_id']
+    object_id = properties['r_object_id']
+    size = properties['r_full_content_size']
+    if properties['erma_doc_sensitivity'] == '3':
+      sensitivity = 'private'
+    else:
+      sensitivity = 'shared'
+    if properties['r_object_type'] == 'erma_mail':
+      doc_type = 'email'
+    else:
+      doc_type = 'document'
+    if doc_id in doc_info:
+      data = doc_info[doc_id]
+      if doc_type == 'erma_mail':
+        data['doc_type'] = doc_type
+      data['object_ids'].append(object_id)
+      data['size'] += size
+    else:
+      doc_info[doc_id] = {
+        "doc_id": doc_id,
+        "size": size,
+        "object_ids": [object_id],
+        "title": properties['erma_doc_title'],
+        "date": properties['erma_doc_date'],
+        "sensitivity": sensitivity,
+        "custodian": properties['erma_doc_custodian'],
+        "doc_type": doc_type
+      }
+  doc_list = DocumentumRecordList(has_next=has_next, records=list(sorted([DocumentumDocInfo(**x) for x in doc_info.values()], key=lambda x: x.date, reverse=True)))
+  return Response(doc_list.to_json(), status=200, mimetype='application/json')
 
 def get_lan_id(display_name):
   pass
