@@ -161,10 +161,10 @@ def process_schedule_data(schedule_dict):
         keywords=schedule_dict['keywords']
     )
 
-def dql_request(sql, items_per_page, page_number, username, password):
-    url = "https://ecms.epa.gov/dctm-rest/repositories/ecmsrmr65?items-per-page=" + str(items_per_page) + "&page=" + str(page_number) + "&dql=" + urllib.parse.quote(sql)
+def dql_request(config, sql, items_per_page, page_number):
+    url = "https://" + config.documentum_prod_url + "/dctm-rest/repositories/ecmsrmr65?items-per-page=" + str(items_per_page) + "&page=" + str(page_number) + "&dql=" + urllib.parse.quote(sql)
     headers = {'cache-control': 'no-cache'}
-    r = requests.get(url, headers=headers, auth=(username,password), verify=False)
+    r = requests.get(url, headers=headers, auth=(config.documentum_prod_username,config.documentum_prod_password), verify=False)
     return r
   
 
@@ -172,13 +172,13 @@ def get_documentum_records(config, lan_id, items_per_page, page_number):
   # TODO: Improve error handling
   doc_id_sql = "select erma_doc_id, creation_date from (select s.ERMA_DOC_ID as erma_doc_id, MAX(s.R_CREATION_DATE) as creation_date from ECMSRMR65.ERMA_DOC_SV s where s.ERMA_DOC_CUSTODIAN = '" + lan_id + "' GROUP BY s.ERMA_DOC_ID) ORDER BY creation_date DESC;"
   # TODO: Why does verification fail?
-  r = dql_request(doc_id_sql, items_per_page, page_number, config.documentum_prod_username, config.documentum_prod_password)
+  r = dql_request(config, doc_id_sql, items_per_page, page_number)
   if r.status_code != 200:
+    app.logger.error(r.text)
     return Response('Documentum doc ID request returned status ' + str(r.status_code), status=500, mimetype='text/plain')
   doc_id_resp = r.json()
   if 'entries' not in doc_id_resp:
-    # TODO: Empty array goes here
-    return Response( {}, status=200, mimetype='application/json')
+    return Response(DocumentumRecordList(has_next=False, records=[]).to_json(), status=200, mimetype='application/json')
   doc_ids = [x['content']['properties']['erma_doc_id'] for x in doc_id_resp['entries']]
   has_next = False
   for l in doc_id_resp['links']:
@@ -186,8 +186,9 @@ def get_documentum_records(config, lan_id, items_per_page, page_number):
       has_next = True
   doc_where_clause = ' OR '.join(["erma_doc_id = '" + str(x) + "'" for x in doc_ids])
   doc_info_sql = "select s.erma_doc_sensitivity as erma_doc_sensitivity, s.R_OBJECT_TYPE as r_object_type, s.ERMA_DOC_DATE as erma_doc_date, s.ERMA_DOC_CUSTODIAN as erma_doc_custodian, s.ERMA_DOC_ID as erma_doc_id, s.R_FULL_CONTENT_SIZE as r_full_content_size, s.R_OBJECT_ID as r_object_id, s.ERMA_DOC_TITLE as erma_doc_title from ECMSRMR65.ERMA_DOC_SV s where " + doc_where_clause + ";"
-  r = dql_request(doc_info_sql, 3*int(items_per_page), 1, config.documentum_prod_username, config.documentum_prod_password)
+  r = dql_request(config, doc_info_sql, 3*int(items_per_page), 1)
   if r.status_code != 200:
+    app.logger.error(r.text)
     return Response('Documentum doc info request returned status ' + str(r.status_code), status=500, mimetype='text/plain')
   doc_info = {}
   for doc in r.json()['entries']:
