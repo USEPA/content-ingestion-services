@@ -256,6 +256,9 @@ def get_lan_id(config, token_data):
   url = 'https://' + config.wam_host + '/iam/governance/scim/v1/Users?attributes=userName&attributes=Active&filter=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:Upn eq "' + token_data['email'] + '"'
   try:
     wam = requests.get(url, auth=(config.wam_username, config.wam_password))
+    if wam.status_code != 200:
+      app.logger.error('WAM request failed with status ' + str(wam.status_code) + '. ' + wam.text)
+      return False, 'WAM request failed with status ' + str(wam.status_code) + '.', None
     user_data = wam.json()['Resources'][0]
     lan_id = user_data['userName'].lower()
     active = user_data['active']
