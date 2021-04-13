@@ -2,8 +2,9 @@ import requests
 from .data_classes import *
 import json 
 import email
-from flask import Response, current_app as app
+from flask import Response, current_app as app, send_file
 import urllib 
+import io
 
 def tika(file, config):
     files = {'file': file}
@@ -224,5 +225,42 @@ def get_documentum_records(config, lan_id, items_per_page, page_number):
   doc_list = DocumentumRecordList(has_next=has_next, records=list(sorted([DocumentumDocInfo(**x) for x in doc_info.values()], key=lambda x: x.date, reverse=True)))
   return Response(doc_list.to_json(), status=200, mimetype='application/json')
 
-def get_lan_id(display_name):
-  pass
+def download_documentum_record(config, lan_id, object_ids):
+  app.logger.info(type(object_ids))
+  app.logger.info(object_ids)
+  doc_where_clause = ' OR '.join(["s.r_object_id = '" + str(x) + "'" for x in object_ids])
+  doc_info_sql = "select s.ERMA_DOC_CUSTODIAN as erma_doc_custodian from ECMSRMR65.ERMA_DOC_SV s where " + doc_where_clause + ";"
+  r = dql_request(config, doc_info_sql, 2*len(object_ids), 1)
+  if r.status_code != 200:
+    app.logger.error(r.text)
+    return Response('Documentum doc info request returned status ' + str(r.status_code), status=500, mimetype='text/plain')
+  for doc in r.json()['entries']:
+    if doc['content']['properties']['erma_doc_custodian'] != lan_id:
+      return Response('User ' + lan_id + ' is not the custodian of all files requested.', status=401, mimetype='text/plain')
+  hrefs = ['https://' + config.documentum_prod_url + '/dctm-rest/repositories/ecmsrmr65/objects/' + obj for obj in object_ids]
+  data = {'hrefs': list(set(hrefs))}
+  archive_url = 'https://' + config.documentum_prod_url + '/dctm-rest/repositories/ecmsrmr65/archived-contents'
+  post_headers = {
+    'cache-control': 'no-cache',
+    'Content-Type': 'application/vnd.emc.documentum+json'
+  }
+  # TODO: Why is verification failing?
+  archive_req = requests.post(archive_url, headers=post_headers, json=data, auth=(config.documentum_prod_username,config.documentum_prod_password), verify=False)
+  if archive_req.status_code != 200:
+    app.logger.error(r.text)
+    return Response('Documentum archive request returned status ' + str(r.status_code), status=500, mimetype='text/plain')
+  b = io.BytesIO(archive_req.content)
+  return send_file(b, mimetype='application/zip', as_attachment=True, attachment_filename='ecms_download.zip')
+
+def get_lan_id(config, token_data):
+  url = 'https://' + config.wam_host + '/iam/governance/scim/v1/Users?attributes=userName&attributes=Active&filter=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:Upn eq "' + token_data['email'] + '"'
+  try:
+    wam = requests.get(url, auth=(config.wam_username, config.wam_password))
+    user_data = wam.json()['Resources'][0]
+    lan_id = user_data['userName'].lower()
+    active = user_data['active']
+    if not active:
+      return False, 'User is not active.', None
+    return True, None, lan_id
+  except:
+    return False, 'WAM request failed.', None

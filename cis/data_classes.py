@@ -68,6 +68,12 @@ class MyRecordsRequest:
 
 @dataclass_json
 @dataclass 
+class RecordDownloadRequest:
+    lan_id: str
+    object_ids: list[str]
+
+@dataclass_json
+@dataclass 
 class Recommendation:
     schedule: RecordSchedule 
     probability: float 
@@ -107,19 +113,12 @@ class ECMSMetadata:
 
 @dataclass_json
 @dataclass 
-class GetFavoritesRequest:
-    lan_id: str 
-
-@dataclass_json
-@dataclass 
 class AddFavoritesRequest:
-    lan_id: str 
     record_schedules: list[RecordSchedule]
 
 @dataclass_json
 @dataclass 
 class RemoveFavoritesRequest:
-    lan_id: str 
     record_schedules: list[RecordSchedule]
 
 @dataclass_json

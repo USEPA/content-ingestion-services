@@ -39,7 +39,7 @@ SWAGGER_PATH = 'swagger.yaml'
 swagger_yml = load(open(SWAGGER_PATH, 'r'), Loader=Loader)
 
 
-def create_app(model_path, label_mapping_path, config_path, mailbox_data_path, dnul_path, database_uri, documentum_prod_username, documentum_prod_password, tika_server=None, cis_server=None, ezemail_server=None, upgrade_db=False, documentum_prod_url=None):
+def create_app(model_path, label_mapping_path, config_path, mailbox_data_path, dnul_path, database_uri, documentum_prod_username, documentum_prod_password, wam_username, wam_password, tika_server=None, cis_server=None, ezemail_server=None, upgrade_db=False, documentum_prod_url=None, wam_host=None):
     """Construct the core application."""
     app = Flask(__name__, instance_relative_config=False)
     app.config.from_object("flask_config.Config")
@@ -63,6 +63,12 @@ def create_app(model_path, label_mapping_path, config_path, mailbox_data_path, d
         c.documentum_prod_password = documentum_prod_password
     if documentum_prod_url:
         c.documentum_prod_url = documentum_prod_url
+    if wam_username:
+        c.wam_username = wam_username
+    if wam_password:
+        c.wam_password = wam_password
+    if wam_host:
+        c.wam_host = wam_host
     app.config['SQLALCHEMY_DATABASE_URI'] = c.database_uri
     app.app_context().push()
     db.init_app(app)

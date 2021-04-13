@@ -14,3 +14,4 @@ training_data_processing/*.csv
 migrations/
 .xlsx
 *.json
+sample_command.txt

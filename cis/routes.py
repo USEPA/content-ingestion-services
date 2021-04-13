@@ -72,6 +72,9 @@ def upload_file():
     valid, message, token_data = key_cache.validate_request(request, c)
     if not valid:
         return Response(message, status=401, mimetype='text/plain')
+    success, message, lan_id = get_lan_id(c, token_data)
+    if not success:
+        return Response(message, status=400, mimetype='text/plain')
     file = request.files.get('file')
     metadata = ECMSMetadata(**json.loads(request.form['metadata']))
     if file:
@@ -118,6 +121,9 @@ def upload_email():
     valid, message, token_data = key_cache.validate_request(request, c)
     if not valid:
         return Response(message, status=401, mimetype='text/plain')
+    success, message, lan_id = get_lan_id(c, token_data)
+    if not success:
+        return Response(message, status=400, mimetype='text/plain')
     access_token = request.headers.get('X-Access-Token')
     if access_token is None:
         return Response("X-Access-Token is required.", status=400, mimetype='text/plain')
@@ -172,9 +178,12 @@ def get_favorites():
     valid, message, token_data = key_cache.validate_request(request, c)
     if not valid:
         return Response(message, status=401, mimetype='text/plain')
+    success, message, lan_id = get_lan_id(c, token_data)
+    if not success:
+        return Response(message, status=400, mimetype='text/plain')
     req = request.args
     req = GetFavoritesRequest(**req)
-    user = User.query.filter_by(lan_id = req.lan_id).all()
+    user = User.query.filter_by(lan_id = lan_id).all()
     if len(user) == 0:
         get_favorites_response = GetFavoritesResponse(favorites = [])
     else:
@@ -188,11 +197,12 @@ def add_favorites():
     valid, message, token_data = key_cache.validate_request(request, c)
     if not valid:
         return Response(message, status=401, mimetype='text/plain')
-    req = request.json
-    req = AddFavoritesRequest(**req)
-    user = User.query.filter_by(lan_id = req.lan_id).all()
+    success, message, lan_id = get_lan_id(c, token_data)
+    if not success:
+        return Response(message, status=400, mimetype='text/plain')
+    user = User.query.filter_by(lan_id = lan_id).all()
     if len(user) == 0:
-        user = User(lan_id = req.lan_id)
+        user = User(lan_id = lan_id)
         db.session.add(user)
     else:
         user = user[0]
@@ -221,11 +231,14 @@ def remove_favorites():
     valid, message, token_data = key_cache.validate_request(request, c)
     if not valid:
         return Response(message, status=401, mimetype='text/plain')
+    success, message, lan_id = get_lan_id(c, token_data)
+    if not success:
+        return Response(message, status=400, mimetype='text/plain')
     req = request.json
     req = RemoveFavoritesRequest(**req)
-    user = User.query.filter_by(lan_id = req.lan_id).all()
+    user = User.query.filter_by(lan_id = lan_id).all()
     if len(user) == 0:
-        user = User(lan_id = req.lan_id)
+        user = User(lan_id = lan_id)
     else:
         user = user[0]
 
@@ -253,6 +266,26 @@ def my_records():
     valid, message, token_data = key_cache.validate_request(request, c)
     if not valid:
         return Response(message, status=401, mimetype='text/plain')
+    success, message, lan_id = get_lan_id(c, token_data)
+    if not success:
+        return Response(message, status=400, mimetype='text/plain')
     req = request.args
     req = MyRecordsRequest(**req)
-    return get_documentum_records(c, req.lan_id, req.items_per_page, req.page_number)
+    if lan_id != req.lan_id:
+        return Response('User ' + lan_id + ' is not authorized to download records for ' + req.lan_id + '.', status=401, mimetype='text/plain')
+    return get_documentum_records(c, lan_id, req.items_per_page, req.page_number)
+
+@app.route('/my_records_download', methods=['GET'])
+def my_records_download():
+    valid, message, token_data = key_cache.validate_request(request, c)
+    if not valid:
+        return Response(message, status=401, mimetype='text/plain')
+    success, message, lan_id = get_lan_id(c, token_data)
+    if not success:
+        return Response(message, status=400, mimetype='text/plain')
+    req = request.args
+    req = RecordDownloadRequest(**req)
+    # TODO: Sanitize object ids.
+    if lan_id != req.lan_id:
+        return Response('User ' + lan_id + ' is not authorized to download records for ' + req.lan_id + '.', status=401, mimetype='text/plain')
+    return download_documentum_record(c, lan_id, req.object_ids.split(','))

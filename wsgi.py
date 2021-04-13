@@ -31,6 +31,12 @@ if __name__ == "__main__":
                     help='Username for production Documentum instance.')
     parser.add_argument('--documentum_prod_password', default=None, 
                     help='Password for production Documentum instance.')
+    parser.add_argument('--wam_host', default=None, 
+                    help='Host for WAM service.')
+    parser.add_argument('--wam_username', default=None, 
+                    help='Username for WAM service.')
+    parser.add_argument('--wam_password', default=None, 
+                    help='Password for WAM service.')
     args = parser.parse_args()
     app = create_app(**vars(args))
     serve(app, host='0.0.0.0', port=8000)

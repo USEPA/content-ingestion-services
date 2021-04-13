@@ -7,7 +7,21 @@ def config_from_file(file, overrides={}):
     return CISConfig(**conf)
 
 class CISConfig:
-    def __init__(self, cis_server, tika_server, ezemail_server, client_id, database_uri, record_schedules_server, documentum_prod_url, documentum_prod_username, documentum_prod_password):
+    def __init__(
+        self, 
+        cis_server, 
+        tika_server, 
+        ezemail_server, 
+        client_id, 
+        database_uri, 
+        record_schedules_server, 
+        documentum_prod_url, 
+        documentum_prod_username, 
+        documentum_prod_password,
+        wam_host, 
+        wam_username, 
+        wam_password
+        ):
         self.cis_server = cis_server
         self.tika_server = tika_server
         self.ezemail_server = ezemail_server
@@ -17,3 +31,6 @@ class CISConfig:
         self.documentum_prod_url = documentum_prod_url
         self.documentum_prod_password = documentum_prod_password
         self.documentum_prod_username = documentum_prod_username
+        self.wam_host = wam_host
+        self.wam_username = wam_username
+        self.wam_password = wam_password

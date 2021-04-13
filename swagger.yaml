@@ -305,9 +305,6 @@ paths:
       consumes:
         - "application/json"
       parameters:
-        - in: "query"
-          name: "lan_id"
-          type: "string"
         - in: "header"
           name: "Authorization"
           type: "string"
@@ -420,6 +417,34 @@ paths:
           description: "Record information retrieved."
           schema:
             $ref: "#/definitions/DocumentumRecordList"
+  /my_records_download:
+    get:
+      tags:
+      - "my_records"
+      summary: "Download existing records."
+      consumes:
+        - "application/json"
+      parameters:
+        - in: "header"
+          name: "Authorization"
+          type: "string"
+          format: "jwt"
+          required: true
+        - in: "query"
+          name: "lan_id"
+          type: "string"
+          required: true
+        - in: "query"
+          name: "object_ids"
+          type: "array"
+          items:
+            type: "string"
+          required: true
+      responses:
+        "200":
+          description: "Records zip file downloaded."
+          schema:
+            type: "file"
 definitions:
   MetadataPrediction:
     type: "object"
@@ -450,8 +475,6 @@ definitions:
   AddFavoritesRequest:
     type: "object"
     properties:
-      lan_id:
-        type: "string"
       record_schedules:
         type: "array"
         items: 
@@ -459,8 +482,6 @@ definitions:
   RemoveFavoritesRequest:
     type: "object"
     properties:
-      lan_id:
-        type: "string"
       record_schedules:
         type: "array"
         items: 
@@ -646,7 +667,8 @@ definitions:
         type: "string"
       object_ids: 
         type: "array"
-        items: "string"
+        items: 
+          type: "string"
       size: 
         type: "number"
       custodian:
@@ -658,5 +680,6 @@ definitions:
         type: "boolean"
       records:
         type: "array"
-        items: "#/definitions/DocumentumDocInfo"
+        items: 
+          $ref: "#/definitions/DocumentumDocInfo"
     
