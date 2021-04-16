@@ -246,7 +246,7 @@ def download_documentum_record(config, lan_id, object_ids):
     'Content-Type': 'application/vnd.emc.documentum+json'
   }
   # TODO: Why is verification failing?
-  archive_req = requests.post(archive_url, headers=post_headers, json=data, auth=(config.documentum_prod_username,config.documentum_prod_password), verify=False)
+  archive_req = requests.post(archive_url, headers=post_headers, json=data, auth=(config.documentum_prod_username,config.documentum_prod_password))
   if archive_req.status_code != 200:
     app.logger.error(r.text)
     return Response('Documentum archive request returned status ' + str(r.status_code), status=500, mimetype='text/plain')
