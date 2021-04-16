@@ -34,6 +34,7 @@ def get_eml_file(email_id, file_name, access_token, config):
   if r.status_code == 200:
     return r.content
   else:
+    app.logger.error('Get EML file request ended with status ' + str(r.status_code) + '. Response: ' + r.text)
     return None
 
 def extract_eml_content(eml_message):
@@ -77,7 +78,7 @@ def describe_email(req: DescribeEmailRequest, access_token, config):
   try:
     eml_response = extract_eml_data(eml_file, req.email_id)
   except:
-    return Response("Error extracting data from eml file.", status=500, mimetype='text/plain')
+    return Response("Error extracting data from eml file.", status=400, mimetype='text/plain')
   return Response(eml_response.to_json(), status=200, mimetype='application/json')
   
 
@@ -165,7 +166,7 @@ def process_schedule_data(schedule_dict):
 def dql_request(config, sql, items_per_page, page_number):
     url = "https://" + config.documentum_prod_url + "/dctm-rest/repositories/ecmsrmr65?items-per-page=" + str(items_per_page) + "&page=" + str(page_number) + "&dql=" + urllib.parse.quote(sql)
     headers = {'cache-control': 'no-cache'}
-    r = requests.get(url, headers=headers, auth=(config.documentum_prod_username,config.documentum_prod_password), verify=False)
+    r = requests.get(url, headers=headers, auth=(config.documentum_prod_username,config.documentum_prod_password))
     return r
   
 

@@ -8,6 +8,8 @@ RUN pip install -r /home/requirements.txt
 COPY . /home
 COPY dev_config.json /home/config.json
 COPY cis/test.db /home/favorites.db
+ADD https://cacerts.digicert.com/DigiCertSHA2SecureServerCA.crt.pem /home/digicert.pem
+RUN cat /home/digicert.pem >> $(python -m certifi)
 WORKDIR /home
 
 # Run server
