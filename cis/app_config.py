@@ -20,7 +20,8 @@ class CISConfig:
         documentum_prod_password,
         wam_host, 
         wam_username, 
-        wam_password
+        wam_password,
+        records_repository_id
         ):
         self.cis_server = cis_server
         self.tika_server = tika_server
@@ -34,3 +35,4 @@ class CISConfig:
         self.wam_host = wam_host
         self.wam_username = wam_username
         self.wam_password = wam_password
+        self.records_repository_id = records_repository_id

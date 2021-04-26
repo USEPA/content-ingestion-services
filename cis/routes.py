@@ -181,8 +181,6 @@ def get_favorites():
     success, message, lan_id = get_lan_id(c, token_data)
     if not success:
         return Response(message, status=400, mimetype='text/plain')
-    req = request.args
-    req = GetFavoritesRequest(**req)
     user = User.query.filter_by(lan_id = lan_id).all()
     if len(user) == 0:
         get_favorites_response = GetFavoritesResponse(favorites = [])

@@ -5,6 +5,7 @@ import email
 from flask import Response, current_app as app, send_file
 import urllib 
 import io
+import re
 
 def tika(file, config):
     files = {'file': file}
@@ -137,32 +138,6 @@ def untag(req: UntagRequest, access_token, config):
   else:
     return Response(StatusResponse(status="OK", reason="Email with id " + req.email_id + " is no longer categorized as a record.").to_json(), status=200, mimetype="application/json")
 
-def process_schedule_data(schedule_dict):
-    try:
-        function_number = str(int(float(schedule_dict['functionCode'])))
-    except:
-        function_number = schedule_dict['functionCode']
-    return RecordScheduleInformation(
-        function_number=function_number,
-        schedule_number=schedule_dict['scheduleNumber'],
-        disposition_number=schedule_dict['itemNumber'],
-        display_name=schedule_dict['scheduleItemNumber'],
-        schedule_title=schedule_dict['scheduleTitle'],
-        disposition_title=schedule_dict['itemTitle'],
-        disposition_instructions=schedule_dict['dispositionInstructions'],
-        cutoff_instructions=schedule_dict['cutoffInstructions'],
-        function_title=schedule_dict['functionTitle'],
-        program=schedule_dict['program'],
-        applicability=schedule_dict['applicability'],
-        nara_disposal_authority_item_level=schedule_dict['naraDisposalAuthorityItemLevel'],
-        nara_disposal_authority_schedule_level=schedule_dict['naraDisposalAuthorityRecordScheduleLevel'],
-        final_disposition=schedule_dict['finalDisposition'],
-        disposition_summary=schedule_dict['dispositionSummary'],
-        description=schedule_dict['scheduleDescription'],
-        guidance=schedule_dict['guidance'],
-        keywords=schedule_dict['keywords']
-    )
-
 def dql_request(config, sql, items_per_page, page_number):
     url = "https://" + config.documentum_prod_url + "/dctm-rest/repositories/ecmsrmr65?items-per-page=" + str(items_per_page) + "&page=" + str(page_number) + "&dql=" + urllib.parse.quote(sql)
     headers = {'cache-control': 'no-cache'}
@@ -226,18 +201,28 @@ def get_documentum_records(config, lan_id, items_per_page, page_number):
   doc_list = DocumentumRecordList(has_next=has_next, records=list(sorted([DocumentumDocInfo(**x) for x in doc_info.values()], key=lambda x: x.date, reverse=True)))
   return Response(doc_list.to_json(), status=200, mimetype='application/json')
 
+def object_id_is_valid(config, object_id):
+  return re.fullmatch('[a-z0-9]{16}', object_id) is not None and object_id[2:8] == config.records_repository_id
+
 def download_documentum_record(config, lan_id, object_ids):
-  app.logger.info(type(object_ids))
-  app.logger.info(object_ids)
+  for object_id in object_ids:
+    valid = object_id_is_valid(config, object_id)
+    if not valid:
+      return Response('Object ID invalid: ' + object_id, status=400, mimetype='text/plain')
   doc_where_clause = ' OR '.join(["s.r_object_id = '" + str(x) + "'" for x in object_ids])
-  doc_info_sql = "select s.ERMA_DOC_CUSTODIAN as erma_doc_custodian from ECMSRMR65.ERMA_DOC_SV s where " + doc_where_clause + ";"
+  doc_info_sql = "select s.ERMA_DOC_CUSTODIAN as erma_doc_custodian, r_object_id from ECMSRMR65.ERMA_DOC_SV s where " + doc_where_clause + ";"
+  # This gives some buffer, even though there should be exactly len(object_ids) items to recover
   r = dql_request(config, doc_info_sql, 2*len(object_ids), 1)
   if r.status_code != 200:
     app.logger.error(r.text)
     return Response('Documentum doc info request returned status ' + str(r.status_code), status=500, mimetype='text/plain')
+  missing_ids = set(object_ids) - set([doc['content']['properties']['r_object_id'] for doc in r.json()['entries']])
+  if len(missing_ids) != 0:
+    return Response('The following object_ids could not be found: ' + ', '.join(list(missing_ids)), status=400, mimetype='text/plain')
   for doc in r.json()['entries']:
     if doc['content']['properties']['erma_doc_custodian'] != lan_id:
       return Response('User ' + lan_id + ' is not the custodian of all files requested.', status=401, mimetype='text/plain')
+  
   hrefs = ['https://' + config.documentum_prod_url + '/dctm-rest/repositories/ecmsrmr65/objects/' + obj for obj in object_ids]
   data = {'hrefs': list(set(hrefs))}
   archive_url = 'https://' + config.documentum_prod_url + '/dctm-rest/repositories/ecmsrmr65/archived-contents'
@@ -245,7 +230,6 @@ def download_documentum_record(config, lan_id, object_ids):
     'cache-control': 'no-cache',
     'Content-Type': 'application/vnd.emc.documentum+json'
   }
-  # TODO: Why is verification failing?
   archive_req = requests.post(archive_url, headers=post_headers, json=data, auth=(config.documentum_prod_username,config.documentum_prod_password))
   if archive_req.status_code != 200:
     app.logger.error(r.text)
