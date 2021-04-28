@@ -7,26 +7,22 @@ import urllib
 import io
 import re
 
-def tika(file, config):
-    files = {'file': file}
-    headers = {
-                "Cache-Control": "no-cache",
-                "accept": "text/plain"
-              }
-    server = "http://" + config.tika_server + '/tika/form'
-    r = requests.post(server, files=files, headers=headers)
-    return r.text
-
-def xtika(file, config):
-    headers = {
-              "Content-Type" : "application/pdf",
-              "X-Tika-PDFOcrStrategy": "ocr_only",
-              "Cache-Control": "no-cache",
-              "accept": "text/plain"
-            }
-    server = "http://" + config.tika_server + "/tika"
-    r = requests.put(server, data=file, headers=headers)
-    return r.text
+def tika(file, config, extraction_type='text'):
+  if extraction_type == 'html':
+    accept = "text/html"
+  else:
+    accept = "text/plain"
+  headers = {
+            "X-Tika-PDFOcrStrategy": "ocr_only",
+            "Cache-Control": "no-cache",
+            "accept": accept
+          }
+  server = "http://" + config.tika_server + "/tika"
+  r = requests.put(server, data=file, headers=headers)
+  if r.status_code != 200:
+    return False, None, Response('Tika failed with status ' + str(r.status_code), 500, mimetype='text/plain')
+  else:
+    return True, r.text, None
 
 def get_eml_file(email_id, file_name, access_token, config):
   headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}
@@ -38,31 +34,26 @@ def get_eml_file(email_id, file_name, access_token, config):
     app.logger.error('Get EML file request ended with status ' + str(r.status_code) + '. Response: ' + r.text)
     return None
 
-def extract_eml_content(eml_message):
-  body = ""
+def extract_attachments(eml_message):
   attachments = []
   for part in eml_message.walk():
-    content_type = part.get_content_type()
-    charset = part.get_content_charset()
     disposition = part.get_content_disposition()
-    
-    if content_type == 'text/plain' and charset is not None and disposition is None:
-        text = part.get_payload()
-        try:
-            body = text.decode(charset).encode('utf-8')
-        except:
-            body = text
-    
     if disposition == 'attachment':
         attachments.append(part.get_filename())
-  return body, attachments
+  return attachments
 
-
-def extract_eml_data(eml_bytes, email_id):
-  e = email.message_from_bytes(eml_bytes)
-  body, attachments = extract_eml_content(e)
-  return DescribeEmailResponse(
-    email_id=email_id, 
+def describe_email(req: DescribeEmailRequest, access_token, config):
+  eml_file = get_eml_file(req.email_id, "default_file_name", access_token, config)
+  if eml_file is None:
+    return Response("Could not retrieve eml file.", status=400, mimetype='text/plain')
+  try:
+    success, body, response = tika(eml_file, config, 'html')
+    if not success:
+      return response
+    e = email.message_from_bytes(eml_file)
+    attachments = extract_attachments(e)
+    eml_response = DescribeEmailResponse(
+    email_id=req.email_id, 
     _from = e['From'],
     to = e['To'],
     cc = e['CC'],
@@ -71,13 +62,6 @@ def extract_eml_data(eml_bytes, email_id):
     body = body,
     attachments = attachments
   )
-
-def describe_email(req: DescribeEmailRequest, access_token, config):
-  eml_file = get_eml_file(req.email_id, "default_file_name", access_token, config)
-  if eml_file is None:
-    return Response("Could not retrieve eml file.", status=400, mimetype='text/plain')
-  try:
-    eml_response = extract_eml_data(eml_file, req.email_id)
   except:
     return Response("Error extracting data from eml file.", status=400, mimetype='text/plain')
   return Response(eml_response.to_json(), status=200, mimetype='application/json')
@@ -148,7 +132,6 @@ def dql_request(config, sql, items_per_page, page_number):
 def get_documentum_records(config, lan_id, items_per_page, page_number):
   # TODO: Improve error handling
   doc_id_sql = "select erma_doc_id, creation_date from (select s.ERMA_DOC_ID as erma_doc_id, MAX(s.R_CREATION_DATE) as creation_date from ECMSRMR65.ERMA_DOC_SV s where s.ERMA_DOC_CUSTODIAN = '" + lan_id + "' GROUP BY s.ERMA_DOC_ID) ORDER BY creation_date DESC;"
-  # TODO: Why does verification fail?
   r = dql_request(config, doc_id_sql, items_per_page, page_number)
   if r.status_code != 200:
     app.logger.error(r.text)
@@ -205,6 +188,7 @@ def object_id_is_valid(config, object_id):
   return re.fullmatch('[a-z0-9]{16}', object_id) is not None and object_id[2:8] == config.records_repository_id
 
 def download_documentum_record(config, lan_id, object_ids):
+  # Validate object_ids
   for object_id in object_ids:
     valid = object_id_is_valid(config, object_id)
     if not valid:

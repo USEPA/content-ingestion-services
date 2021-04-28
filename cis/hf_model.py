@@ -2,6 +2,7 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from .data_classes import RecordSchedule, Recommendation
 import numpy as np
 import json
+import threading
 
 def softmax(logits):
     return np.exp(logits)/sum(np.exp(logits))
@@ -12,6 +13,7 @@ def format_record_schedule(sched):
 
 class HuggingFaceModel():
     def __init__(self, model_path, label_mapping_path):
+        self.lock = threading.Lock()
         self.tokenizer = AutoTokenizer.from_pretrained(model_path)
         self.model = AutoModelForSequenceClassification.from_pretrained(model_path)
         with open(label_mapping_path, 'r') as f:
@@ -20,7 +22,9 @@ class HuggingFaceModel():
         
     def predict(self, text, k=3):
         # Tokenize text
-        tokens = self.tokenizer(text[:4000], truncation=True, padding=True, return_tensors="pt")
+        # thread lock tokenization https://github.com/huggingface/tokenizers/issues/537
+        with self.lock:
+            tokens = self.tokenizer(text[:4000], truncation=True, padding=True, return_tensors="pt")
         # Apply model, get logits
         outputs = self.model(**tokens)
         preds = outputs[0][0].detach().cpu().numpy()

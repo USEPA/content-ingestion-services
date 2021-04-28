@@ -19,9 +19,9 @@ def file_metadata_prediction():
     if file:
         filename = secure_filename(file.filename)
         extension = filename.split('.')[-1]
-        text = tika(file, c)
-        if extension == 'pdf' and len(text) < XTIKA_CUTOFF:
-            text = xtika(file, c)
+        success, text, response = tika(file, c)
+        if not success:
+            return response
         predicted_schedules = model.predict(text)
         predicted_title = mock_prediction_with_explanation
         predicted_description = mock_prediction_with_explanation
@@ -56,11 +56,10 @@ def email_metadata_prediction():
     eml_file = get_eml_file(req.email_id, "default_file_name", access_token, c)
     if eml_file is None:
         return Response("Could not retrieve eml file.", status=400, mimetype='text/plain')
-    try:
-        eml_data = extract_eml_data(eml_file, req.email_id)
-    except:
-        return Response("Error extracting data from eml file.", status=500, mimetype='text/plain')
-    predicted_schedules = model.predict(eml_data.body)
+    success, text, response = tika(eml_file, c, extraction_type='text')
+    if not success:
+        return response
+    predicted_schedules = model.predict(text)
     predicted_title = mock_prediction_with_explanation
     predicted_description = mock_prediction_with_explanation
     prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description)
@@ -195,6 +194,11 @@ def add_favorites():
     valid, message, token_data = key_cache.validate_request(request, c)
     if not valid:
         return Response(message, status=401, mimetype='text/plain')
+    req = request.json
+    try:
+        req = AddFavoritesRequest(**req)
+    except:
+        Response("Unable to parse request.", status=400, mimetype='text/plain')
     success, message, lan_id = get_lan_id(c, token_data)
     if not success:
         return Response(message, status=400, mimetype='text/plain')
@@ -204,7 +208,6 @@ def add_favorites():
         db.session.add(user)
     else:
         user = user[0]
-
     add_any_sched = False
     for sched in req.record_schedules:
         add_sched = True
