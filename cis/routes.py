@@ -276,6 +276,16 @@ def my_records():
         return Response('User ' + lan_id + ' is not authorized to download records for ' + req.lan_id + '.', status=401, mimetype='text/plain')
     return get_documentum_records(c, lan_id, req.items_per_page, req.page_number)
 
+@app.route('/my_records_count', methods=['GET'])
+def my_records_count():
+    valid, message, token_data = key_cache.validate_request(request, c)
+    if not valid:
+        return Response(message, status=401, mimetype='text/plain')
+    success, message, lan_id = get_lan_id(c, token_data)
+    if not success:
+        return Response(message, status=400, mimetype='text/plain')
+    return get_documentum_record_count(c, lan_id)
+
 @app.route('/my_records_download', methods=['GET'])
 def my_records_download():
     valid, message, token_data = key_cache.validate_request(request, c)

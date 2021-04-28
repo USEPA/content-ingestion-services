@@ -223,6 +223,11 @@ class UntagRequest:
 
 @dataclass_json
 @dataclass 
+class RecordCountResponse:
+    count: int
+
+@dataclass_json
+@dataclass 
 class GetFavoritesResponse:
     favorites: list[RecordSchedule]
 

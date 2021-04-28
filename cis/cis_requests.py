@@ -127,7 +127,21 @@ def dql_request(config, sql, items_per_page, page_number):
     headers = {'cache-control': 'no-cache'}
     r = requests.get(url, headers=headers, auth=(config.documentum_prod_username,config.documentum_prod_password))
     return r
-  
+
+def get_documentum_record_count(config, lan_id):
+  count_sql = "select count(*) as total_count from (select distinct s.ERMA_DOC_ID from ECMSRMR65.ERMA_DOC_SV s where s.ERMA_DOC_CUSTODIAN = '" + lan_id + "');"
+  r = dql_request(config, count_sql, 10, 1)
+  if r.status_code != 200:
+    app.logger.error(r.text)
+    return Response('Documentum count request returned status ' + str(r.status_code), status=500, mimetype='text/plain')
+  dql_response = r.json()
+  if 'entries' not in dql_response:
+    return Response(RecordCountResponse(0).to_json(), status=200, mimetype='application/json')
+  try:
+    count = r.json()['entries'][0]['content']['properties']['total_count']
+    return Response(RecordCountResponse(count).to_json(), status=200, mimetype='application/json')
+  except:
+    return Response('Failed to extract information from Documentum count request.', status=400, mimetype='text/plain')
 
 def get_documentum_records(config, lan_id, items_per_page, page_number):
   # TODO: Improve error handling

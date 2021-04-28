@@ -417,6 +417,24 @@ paths:
           description: "Record information retrieved."
           schema:
             $ref: "#/definitions/DocumentumRecordList"
+  /my_records_count:
+    get:
+      tags:
+      - "my_records"
+      summary: "Get count of existing records for the user."
+      consumes:
+        - "application/json"
+      parameters:
+        - in: "header"
+          name: "Authorization"
+          type: "string"
+          format: "jwt"
+          required: true
+      responses:
+        "200":
+          description: "Record count retrieved."
+          schema:
+            $ref: "#/definitions/RecordCountResponse"
   /my_records_download:
     get:
       tags:
@@ -682,4 +700,9 @@ definitions:
         type: "array"
         items: 
           $ref: "#/definitions/DocumentumDocInfo"
-    
+  RecordCountResponse:
+    type: "object"
+    properties:
+      count:
+        type: "number"
+
