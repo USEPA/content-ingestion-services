@@ -21,6 +21,7 @@ tags:
 - name: "schedule_predictions"
   description: "All APIs that provide record schedule recommendations."
 schemes:
+- "https"
 - "http"
 paths:
   /file_metadata_prediction:
