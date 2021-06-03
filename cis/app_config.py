@@ -18,6 +18,11 @@ class CISConfig:
         documentum_prod_url, 
         documentum_prod_username, 
         documentum_prod_password,
+        documentum_prod_api_key,
+        documentum_dev_url,
+        documentum_dev_username, 
+        documentum_dev_password,
+        documentum_dev_api_key,
         wam_host, 
         wam_username, 
         wam_password,
@@ -32,6 +37,10 @@ class CISConfig:
         self.documentum_prod_url = documentum_prod_url
         self.documentum_prod_password = documentum_prod_password
         self.documentum_prod_username = documentum_prod_username
+        self.documentum_prod_api_key = documentum_prod_api_key
+        self.documentum_dev_url = documentum_dev_url
+        self.documentum_dev_password = documentum_dev_password
+        self.documentum_dev_username = documentum_dev_username
         self.wam_host = wam_host
         self.wam_username = wam_username
         self.wam_password = wam_password

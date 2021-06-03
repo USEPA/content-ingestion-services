@@ -42,12 +42,34 @@ def extract_attachments(eml_message):
         attachments.append(part.get_filename())
   return attachments
 
+def get_email_html(email_id, access_token, config):
+  body = {"emailid": email_id,
+       "filename": 'email'}
+  headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}
+  p = requests.get(
+    "http://" + config.ezemail_server + "/ezemail/v1/gethtmlfile/", 
+    data=json.dumps(body), 
+    headers=headers
+  )
+  if p.status_code != 200:
+    app.logger.info("Email HTML request failed with status " + str(p.status_code) + ". " + p.text)
+    return False, None, Response("Unable to retrieve email HTML.", status=400, mimetype='text/plain')
+  return True, p.text, None
+
+def get_email_body(req: GetEmailBodyRequest, access_token, config):
+  success, html, failure_response = get_email_html(req.email_id, access_token, config)
+  if not success:
+    return failure_response
+  else:
+    return Response(html, status=200, mimetype='text/html')
+  
+
 def describe_email(req: DescribeEmailRequest, access_token, config):
   eml_file = get_eml_file(req.email_id, "default_file_name", access_token, config)
   if eml_file is None:
     return Response("Could not retrieve eml file.", status=400, mimetype='text/plain')
   try:
-    success, body, response = tika(eml_file, config, 'html')
+    success, body, response = get_email_html(req.email_id, access_token, config)
     if not success:
       return response
     e = email.message_from_bytes(eml_file)
@@ -89,10 +111,31 @@ def list_email_metadata(req: GetEmailRequest, user_email, access_token, config):
     received=x['received'], 
     _from=x['from'], 
     to=x['to'], 
-    sent=x['sent']
+    sent=x['sent'],
+    attachments=extract_attachments_from_response(x)
    ) for x in resp["email_items"]
   ]
   return Response(GetEmailResponse(total_count=total_count, emails=emails).to_json(), status=200, mimetype="application/json")
+
+def extract_attachments_from_response(ezemail_response):
+  if 'attachments' not in ezemail_response:
+    return []
+  else:
+    return [EmailAttachment(name=attachment['name'], attachment_id=attachment['attachment_id']) for attachment in ezemail_response['attachments']]
+
+def download_attachment(req: DownloadAttachmentRequest, access_token, config):
+  body = {"attachmentid": req.attachment_id, "filename": req.file_name}
+  headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}
+  p = requests.get(
+    "http://" + config.ezemail_server + "/ezemail/v1/getattachment/", 
+    data=json.dumps(body), 
+    headers=headers
+  )
+  if p.status_code != 200:
+    app.logger.info("Attachment download request failed with status " + str(p.status_code) + ". " + p.text)
+    return Response("Unable to retrieve attachment.", status=400, mimetype='text/plain')
+  response_headers = {'Content-Type': 'application/octet-stream', 'Content-Disposition': 'attachment; filename=' + req.file_name}
+  return Response(p.content, headers=response_headers, status=200)
 
 def mark_saved(req: MarkSavedRequest, access_token, config):
   headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}

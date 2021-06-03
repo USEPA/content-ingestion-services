@@ -148,6 +148,12 @@ mock_get_mailboxes_response = GetMailboxesResponse(["Yuen.Andrew@epa.gov", "ecms
 
 @dataclass_json
 @dataclass 
+class EmailAttachment:
+    name: str
+    attachment_id: str
+
+@dataclass_json
+@dataclass 
 class EmailMetadata:
     unid: str
     email_id: str
@@ -156,6 +162,8 @@ class EmailMetadata:
     subject: str
     sent: str
     received: str
+    attachments: list[EmailAttachment]
+
 
 mock_email_metadata = EmailMetadata(**{
     'unid': '<DM6PR09MB549690B3AC3ED29A07A4B0B0B78D9@DM6PR09MB5496.namprd09.prod.outlook.com>',
@@ -164,8 +172,15 @@ mock_email_metadata = EmailMetadata(**{
     'received': 'Wed Feb 10 17:13:32 UTC 2021',
     '_from': 'ECMS3 Test <ECMS3Test@testusepa.onmicrosoft.com>',
     'to': 'ECMS3Test@testusepa.onmicrosoft.com',
-    'sent': 'Wed Feb 10 17:13:31 UTC 2021'
+    'sent': 'Wed Feb 10 17:13:31 UTC 2021',
+    'attachments': []
     })
+
+@dataclass_json
+@dataclass 
+class DownloadAttachmentRequest:
+    file_name: str
+    attachment_id: str
 
 @dataclass_json
 @dataclass 
@@ -180,6 +195,11 @@ mock_get_email_response = GetEmailResponse(total_count=2, emails=[mock_email_met
 class GetEmailRequest:
     count: int 
     mailbox: str
+
+@dataclass_json
+@dataclass 
+class GetEmailBodyRequest:
+    email_id: int 
 
 @dataclass_json
 @dataclass 

@@ -102,6 +102,18 @@ def get_emails():
         return Response("User " + token_data['email'] + " is not authorized to access " + req.mailbox + ".", status=401, mimetype='text/plain')
     return list_email_metadata(req, token_data['email'], access_token, c)
 
+@app.route('/get_attachment', methods=['GET'])
+def get_attachment():
+    valid, message, _ = key_cache.validate_request(request, c)
+    if not valid:
+        return Response(message, status=401, mimetype='text/plain')
+    access_token = request.headers.get('X-Access-Token')
+    if access_token is None:
+        return Response("X-Access-Token is required.", status=400, mimetype='text/plain')
+    req = request.args
+    req = DownloadAttachmentRequest(**req)
+    return download_attachment(req, access_token, c)
+
 @app.route('/describe_email', methods=['GET'])
 def get_email_description():
     valid, message, token_data = key_cache.validate_request(request, c)
@@ -113,6 +125,18 @@ def get_email_description():
     req = request.args
     req = DescribeEmailRequest(**req)
     return describe_email(req, access_token, c)
+
+@app.route('/get_email_body', methods=['GET'])
+def get_body():
+    valid, message, token_data = key_cache.validate_request(request, c)
+    if not valid:
+        return Response(message, status=401, mimetype='text/plain')
+    access_token = request.headers.get('X-Access-Token')
+    if access_token is None:
+        return Response("X-Access-Token is required.", status=400, mimetype='text/plain')
+    req = request.args
+    req = GetEmailBodyRequest(**req)
+    return get_email_body(req, access_token, c)
 
 ## TODO: Implement email upload
 @app.route('/upload_email', methods=['POST'])
