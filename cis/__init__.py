@@ -9,6 +9,7 @@ from .hf_model import HuggingFaceModel
 from .app_config import config_from_file
 from logging.config import dictConfig
 from .shared_mailbox_manager import SharedMailboxManager
+from .sems_site_cache import SemsSiteCache
 
 dictConfig({
     'version': 1,
@@ -30,6 +31,7 @@ dictConfig({
 db = SQLAlchemy()
 migrate = Migrate()
 key_cache = PublicKeyCache()
+sems_site_cache = None
 schedule_cache = None
 c = None
 model = None
@@ -44,11 +46,12 @@ def create_app(model_path, label_mapping_path, config_path, mailbox_data_path, d
     app = Flask(__name__, instance_relative_config=False)
     app.config.from_object("flask_config.Config")
 
-    global model, c, mailbox_manager, schedule_cache
+    global model, c, mailbox_manager, schedule_cache, sems_site_cache
     
     mailbox_manager = SharedMailboxManager(mailbox_data_path)
     c = config_from_file(config_path)
     schedule_cache = RecordScheduleCache(c, dnul_path)
+    sems_site_cache = SemsSiteCache(c)
     if tika_server:
         c.tika_server = tika_server
     if cis_server:

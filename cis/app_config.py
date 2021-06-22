@@ -26,7 +26,8 @@ class CISConfig:
         wam_host, 
         wam_username, 
         wam_password,
-        records_repository_id
+        records_repository_id,
+        sems_host
         ):
         self.cis_server = cis_server
         self.tika_server = tika_server
@@ -41,7 +42,9 @@ class CISConfig:
         self.documentum_dev_url = documentum_dev_url
         self.documentum_dev_password = documentum_dev_password
         self.documentum_dev_username = documentum_dev_username
+        self.documentum_dev_api_key = documentum_dev_api_key
         self.wam_host = wam_host
         self.wam_username = wam_username
         self.wam_password = wam_password
         self.records_repository_id = records_repository_id
+        self.sems_host = sems_host

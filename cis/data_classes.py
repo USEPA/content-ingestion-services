@@ -164,6 +164,37 @@ class EmailMetadata:
     received: str
     attachments: list[EmailAttachment]
 
+@dataclass_json
+@dataclass 
+class SemsSite:
+    _id: str
+    region: str
+    epaid: str
+    sitename: str
+
+@dataclass_json
+@dataclass 
+class GetSitesResponse:
+    sites: list[SemsSite]
+
+@dataclass_json
+@dataclass 
+class SemsSpecialProcessing:
+    description: str
+    code: str
+
+@dataclass_json
+@dataclass 
+class GetSpecialProcessingResponse:
+    special_processing: list[SemsSpecialProcessing]
+
+@dataclass_json
+@dataclass 
+class UserInfo:
+    email: str
+    display_name: str
+    lan_id: str
+    department: str
 
 mock_email_metadata = EmailMetadata(**{
     'unid': '<DM6PR09MB549690B3AC3ED29A07A4B0B0B78D9@DM6PR09MB5496.namprd09.prod.outlook.com>',
@@ -189,6 +220,16 @@ class GetEmailResponse:
     emails: list[EmailMetadata]
 
 mock_get_email_response = GetEmailResponse(total_count=2, emails=[mock_email_metadata, mock_email_metadata])
+
+@dataclass_json
+@dataclass 
+class GetSitesRequest:
+    region: str
+
+@dataclass_json
+@dataclass 
+class GetSpecialProcessingRequest:
+    region: str
 
 @dataclass_json
 @dataclass 

@@ -20,6 +20,10 @@ tags:
   description: "APIs to access and edit user settings"
 - name: "schedule_predictions"
   description: "All APIs that provide record schedule recommendations."
+- name: "user_info"
+  description: "APIs to give information about the user."
+- name: "sems"
+  description: "APIs for integration with SEMS."
 schemes:
 - "https"
 - "http"
@@ -95,6 +99,22 @@ paths:
           description: "Recommendations were successfully given."
           schema:
             $ref: "#/definitions/MetadataPrediction"
+  /get_user_info:
+    get:
+      tags:
+      - "user_info"
+      summary: "Gets name, LAN ID, and department information for the user."
+      parameters:
+        - in: "header"
+          name: "Authorization"
+          type: "string"
+          format: "jwt"
+          required: true
+      responses:
+        "200":
+          description: "User information retrieved."
+          schema:
+            $ref: "#/definitions/UserInfo"
   /upload_file:
     post:
       tags:
@@ -517,6 +537,47 @@ paths:
           description: "Records zip file downloaded."
           schema:
             type: "file"
+  /get_sites:
+    get:
+      tags:
+      - "sems"
+      summary: "Gets SEMS site information."
+      parameters:
+        - in: "header"
+          name: "Authorization"
+          type: "string"
+          format: "jwt"
+          required: true
+        - in: "query"
+          name: "region"
+          type: "string"
+          required: true
+      responses:
+        "200":
+          description: "Site information retrieved."
+          schema:
+            $ref: "#/definitions/GetSitesResponse"
+  /get_special_processing:
+    get:
+      tags:
+      - "sems"
+      summary: "Gets SEMS special processing information."
+      parameters:
+        - in: "header"
+          name: "Authorization"
+          type: "string"
+          format: "jwt"
+          required: true
+        - in: "query"
+          name: "region"
+          type: "string"
+          required: true
+      responses:
+        "200":
+          description: "Special processing information retrieved."
+          schema:
+            $ref: "#/definitions/GetSpecialProcessingResponse"
+
 definitions:
   MetadataPrediction:
     type: "object"
@@ -577,6 +638,38 @@ definitions:
         type: "array"
         items: 
           type: "string"
+  SemsSite:
+    type: "object"
+    properties:
+      _id:
+        type: "string"
+      region:
+        type: "string"
+      epaid:
+        type: "string"
+      sitename:
+        type: "string"
+  GetSitesResponse:
+    type: "object"
+    properties:
+      sites:
+        type: "array"
+        items:
+          $ref: "#/definitions/SemsSite"
+  SemsSpecialProcessing:
+    type: "object"
+    properties:
+      description: 
+        type: "string"
+      code:
+        type: "string"
+  GetSpecialProcessingResponse:
+    type: "object"
+    properties:
+      special_processing:
+        type: "array"
+        items:
+          $ref: "#/definitions/SemsSpecialProcessing"
   GetEmailResponse:
     type: "object"
     properties:
@@ -724,6 +817,17 @@ definitions:
         type: "array"
         items:
           $ref: "#/definitions/RecordScheduleInformation"
+  UserInfo:
+    type: "object"
+    properties:
+      lan_id: 
+        type: "string"
+      display_name: 
+        type: "string"
+      email: 
+        type: "string"
+      department: 
+        type: "string"
   DocumentumDocInfo:
     type: "object"
     properties:

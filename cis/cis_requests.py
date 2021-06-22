@@ -13,16 +13,27 @@ def tika(file, config, extraction_type='text'):
   else:
     accept = "text/plain"
   headers = {
-            "X-Tika-PDFOcrStrategy": "ocr_only",
+            "X-Tika-PDFOcrStrategy": "auto",
+            "X-Tika-PDFextractInlineImages": "false",
             "Cache-Control": "no-cache",
             "accept": accept
           }
   server = "http://" + config.tika_server + "/tika"
   r = requests.put(server, data=file, headers=headers)
-  if r.status_code != 200:
-    return False, None, Response('Tika failed with status ' + str(r.status_code), 500, mimetype='text/plain')
+  if r.status_code != 200 or len(r.text) < 20:
+      headers = {
+          "X-Tika-PDFOcrStrategy": "ocr_only",
+          "X-Tika-PDFextractInlineImages": "true",
+          "Cache-Control": "no-cache",
+          "accept": accept
+        }
+      r = requests.put(server, data=file, headers=headers)
+      if r.status_code != 200:
+          return False, None, Response('Tika failed with status ' + str(r.status_code), 500, mimetype='text/plain')
+      else:
+          return True, r.text, None
   else:
-    return True, r.text, None
+      return True, r.text, None
 
 def get_eml_file(email_id, file_name, access_token, config):
   headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}
@@ -278,8 +289,8 @@ def download_documentum_record(config, lan_id, object_ids):
   b = io.BytesIO(archive_req.content)
   return send_file(b, mimetype='application/zip', as_attachment=True, attachment_filename='ecms_download.zip')
 
-def get_lan_id(config, token_data):
-  url = 'https://' + config.wam_host + '/iam/governance/scim/v1/Users?attributes=userName&attributes=Active&filter=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:Upn eq "' + token_data['email'] + '"'
+def get_user_info(config, token_data):
+  url = 'https://' + config.wam_host + '/iam/governance/scim/v1/Users?attributes=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:Department&attributes=userName&attributes=Active&attributes=displayName&filter=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:Upn eq "' + token_data['email'] + '"'
   try:
     wam = requests.get(url, auth=(config.wam_username, config.wam_password))
     if wam.status_code != 200:
@@ -287,9 +298,19 @@ def get_lan_id(config, token_data):
       return False, 'WAM request failed with status ' + str(wam.status_code) + '.', None
     user_data = wam.json()['Resources'][0]
     lan_id = user_data['userName'].lower()
+    display_name = user_data['displayName']
+    department = user_data['urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User']['Department']
     active = user_data['active']
     if not active:
       return False, 'User is not active.', None
-    return True, None, lan_id
+    return True, None, UserInfo(token_data['email'], display_name, lan_id, department)
   except:
     return False, 'WAM request failed.', None
+
+def get_sems_special_processing(config, region):
+  special_processing = requests.get('http://' + config.sems_host + '/sems-ws/outlook/getSpecialProcessing/' + region)
+  if special_processing.status_code == 200:
+    response_object = GetSpecialProcessingResponse([SemsSpecialProcessing(**obj) for obj in special_processing.json()])
+    return Response(response_object.to_json(), status=200, mimetype='application/json')
+  else:
+    return Response(special_processing.text, status=special_processing.status_code, mimetype='text/plain')
