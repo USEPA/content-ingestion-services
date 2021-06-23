@@ -163,6 +163,7 @@ class EmailMetadata:
     sent: str
     received: str
     attachments: list[EmailAttachment]
+    mailbox_source: str
 
 @dataclass_json
 @dataclass 
@@ -204,7 +205,8 @@ mock_email_metadata = EmailMetadata(**{
     '_from': 'ECMS3 Test <ECMS3Test@testusepa.onmicrosoft.com>',
     'to': 'ECMS3Test@testusepa.onmicrosoft.com',
     'sent': 'Wed Feb 10 17:13:31 UTC 2021',
-    'attachments': []
+    'attachments': [],
+    'mailbox_source': 'regular'
     })
 
 @dataclass_json
@@ -217,9 +219,11 @@ class DownloadAttachmentRequest:
 @dataclass 
 class GetEmailResponse:
     total_count: int 
+    page_number: int
+    items_per_page: int
     emails: list[EmailMetadata]
 
-mock_get_email_response = GetEmailResponse(total_count=2, emails=[mock_email_metadata, mock_email_metadata])
+mock_get_email_response = GetEmailResponse(total_count=2, page_number=1, items_per_page=10, emails=[mock_email_metadata, mock_email_metadata])
 
 @dataclass_json
 @dataclass 
@@ -234,7 +238,8 @@ class GetSpecialProcessingRequest:
 @dataclass_json
 @dataclass 
 class GetEmailRequest:
-    count: int 
+    items_per_page: int 
+    page_number: int
     mailbox: str
 
 @dataclass_json

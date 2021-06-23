@@ -96,8 +96,12 @@ def get_emails():
     access_token = request.headers.get('X-Access-Token')
     if access_token is None:
         return Response("X-Access-Token is required.", status=400, mimetype='text/plain')
-    req = request.args
-    req = GetEmailRequest(**req)
+    req = dict(request.args)
+    if 'items_per_page' not in req:
+        req['items_per_page'] = req.pop('count', 10)
+    if 'page_number' not in req:
+        req['page_number'] = 1
+    req = GetEmailRequest(items_per_page=int(req['items_per_page']), page_number=int(req['page_number']), mailbox=req['mailbox'])
     if not mailbox_manager.validate_mailbox(token_data['email'], req.mailbox):
         return Response("User " + token_data['email'] + " is not authorized to access " + req.mailbox + ".", status=401, mimetype='text/plain')
     return list_email_metadata(req, token_data['email'], access_token, c)

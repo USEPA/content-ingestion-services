@@ -171,7 +171,10 @@ paths:
           name: "mailbox"
           type: "string"
         - in: "query"
-          name: "count"
+          name: "items_per_page"
+          type: "integer"
+        - in: "query"
+          name: "page_number"
           type: "integer"
         - in: "header"
           name: "Authorization"
@@ -675,6 +678,10 @@ definitions:
     properties:
       total_count: 
         type: "integer"
+      page_number: 
+        type: "integer"
+      items_per_page: 
+        type: "integer"
       emails:
         type: "array"
         items:
@@ -693,6 +700,8 @@ definitions:
             sent:
               type: "string"
             received:
+              type: "string"
+            mailbox_source:
               type: "string"
   DescribeEmailResponse:
     type: "object"
