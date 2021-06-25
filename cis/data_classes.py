@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from dataclasses_json import dataclass_json
+from typing import Optional
 
 
 @dataclass_json
@@ -105,16 +106,18 @@ class ECMSMetadata:
     file_path: str
     custodian: str
     title: str
-    description: str
+    description: Optional[str]
     record_schedule: RecordSchedule 
-    creator: str 
-    creation_date: str
-    close_date: str
+    creator: Optional[str] 
+    creation_date: Optional[str]
+    close_date: Optional[str]
     sensitivity: str 
-    rights: list[str]
-    coverage: list[str] 
-    relationships: list[str]
+    rights: Optional[list[str]]
+    coverage: Optional[list[str]]
+    relationships: Optional[list[str]]
+    tags: Optional[list[str]]
 
+# Dates must be formatted as %Y-%m-%dT%H:%M:%S
 @dataclass_json
 @dataclass
 class DocumentumMetadata:
@@ -129,6 +132,16 @@ class DocumentumMetadata:
     erma_sensitivity_id: str
     erma_custodian: str
     erma_folder_path: str
+    erma_content_description: Optional[str]
+    erma_content_creator: Optional[str]
+    erma_content_creation_date: Optional[str]
+    erma_content_close_date: Optional[str]
+    erma_content_rights: Optional[list[str]]
+    erma_content_coverage: Optional[list[str]]
+    erma_content_relation: Optional[list[str]]
+    erma_content_tags: Optional[list[str]]
+
+
 
 @dataclass_json
 @dataclass 

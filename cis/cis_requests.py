@@ -459,12 +459,22 @@ def convert_metadata(ecms_metadata, unid=None):
     a_application_type="Ezdesktop",
     erma_content_title=ecms_metadata.title,
     erma_content_unid="Ezdesktop_" + unid,
+    # TODO: Creation date is optional, so need a different content date in this case
     erma_content_date=ecms_metadata.creation_date,
     erma_content_schedule=documentum_schedule,
+    # TODO: Close date is optional, leave empty in this case
     erma_content_eventdate=ecms_metadata.close_date,
     erma_sensitivity_id=sensitivity,
     erma_custodian=ecms_metadata.custodian,
-    erma_folder_path=ecms_metadata.file_path
+    erma_folder_path=ecms_metadata.file_path,
+    erma_content_description=ecms_metadata.description,
+    erma_content_creator=ecms_metadata.creator,
+    erma_content_creation_date=ecms_metadata.creation_date,
+    erma_content_close_date=ecms_metadata.close_date,
+    erma_content_rights=ecms_metadata.rights,
+    erma_content_coverage=ecms_metadata.coverage,
+    erma_content_relation=ecms_metadata.relationships,
+    erma_content_tags=ecms_metadata.tags
   )
 
 def upload_documentum_email(upload_email_request, access_token, config):

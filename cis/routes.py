@@ -26,9 +26,9 @@ def file_metadata_prediction():
         predicted_title = mock_prediction_with_explanation
         predicted_description = mock_prediction_with_explanation
         prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description)
-        return prediction.to_json()
+        return Response(prediction.to_json(), status=200, mimetype='application/json')
     else:
-        return {'error': 'No file found.'}
+        return Response("No file found.", status=400, mimetype='text/plain')
 
 @app.route('/text_metadata_prediction', methods=['GET'])
 def text_metadata_prediction():
@@ -36,12 +36,12 @@ def text_metadata_prediction():
     if not valid:
         return Response(message, status=401, mimetype='text/plain')    
     req = request.args
-    req = TextPredictionRequest(**req)
+    req = TextPredictionRequest.from_dict(req)
     predicted_schedules = model.predict(req.text)
     predicted_title = mock_prediction_with_explanation
     predicted_description = mock_prediction_with_explanation
     prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description)
-    return prediction.to_json()
+    return Response(prediction.to_json(), status=200, mimetype='application/json')
 
 @app.route('/email_metadata_prediction', methods=['GET'])
 def email_metadata_prediction():
@@ -52,7 +52,7 @@ def email_metadata_prediction():
     if access_token is None:
         return Response("X-Access-Token is required.", status=400, mimetype='text/plain')
     req = request.args
-    req = EmailPredictionRequest(**req)
+    req = EmailPredictionRequest.from_dict(req)
     eml_file = get_eml_file(req.email_id, "default_file_name", access_token, c)
     if eml_file is None:
         return Response("Could not retrieve eml file.", status=400, mimetype='text/plain')
@@ -63,7 +63,7 @@ def email_metadata_prediction():
     predicted_title = mock_prediction_with_explanation
     predicted_description = mock_prediction_with_explanation
     prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description)
-    return prediction.to_json()
+    return Response(prediction.to_json(), status=200, mimetype='application/json')
 
 ## TODO: Implement file upload
 @app.route('/upload_file', methods=['POST'])
@@ -75,11 +75,13 @@ def upload_file():
     if not success:
         return Response(message, status=400, mimetype='text/plain')
     file = request.files.get('file')
-    metadata = ECMSMetadata(**json.loads(request.form['metadata']))
+    metadata = ECMSMetadata.from_json(request.form['metadata'])
+    # Default to dev environment
+    env = request.form.get('env', 'dev')
     if file:
-        return mock_status_response.to_json()
+        return upload_documentum_record(file, convert_metadata(metadata), c, env)
     else:
-        return {'error': 'No file found.'}
+        return Response("No file found", status=400, mimetype="text/plain")
 
 @app.route('/get_mailboxes', methods=['GET'])
 def get_mailboxes():
@@ -115,7 +117,7 @@ def get_attachment():
     if access_token is None:
         return Response("X-Access-Token is required.", status=400, mimetype='text/plain')
     req = request.args
-    req = DownloadAttachmentRequest(**req)
+    req = DownloadAttachmentRequest.from_dict(req)
     return download_attachment(req, access_token, c)
 
 @app.route('/describe_email', methods=['GET'])
@@ -127,7 +129,7 @@ def get_email_description():
     if access_token is None:
         return Response("X-Access-Token is required.", status=400, mimetype='text/plain')
     req = request.args
-    req = DescribeEmailRequest(**req)
+    req = DescribeEmailRequest.from_dict(req)
     return describe_email(req, access_token, c)
 
 @app.route('/get_email_body', methods=['GET'])
@@ -139,10 +141,9 @@ def get_body():
     if access_token is None:
         return Response("X-Access-Token is required.", status=400, mimetype='text/plain')
     req = request.args
-    req = GetEmailBodyRequest(**req)
+    req = GetEmailBodyRequest.from_dict(req)
     return get_email_body(req, access_token, c)
 
-## TODO: Implement email upload
 @app.route('/upload_email', methods=['POST'])
 def upload_email():
     valid, message, token_data = key_cache.validate_request(request, c)
@@ -155,11 +156,11 @@ def upload_email():
     if access_token is None:
         return Response("X-Access-Token is required.", status=400, mimetype='text/plain')
     req = request.json
-    schedule = RecordSchedule(**req['metadata']['record_schedule'])
+    schedule = RecordSchedule.from_dict(req['metadata']['record_schedule'])
     req['metadata']['record_schedule'] = schedule
-    metadata = ECMSMetadata(**req['metadata'])
+    metadata = ECMSMetadata.from_dict(req['metadata'])
     req['metadata'] = metadata
-    req = UploadEmailRequest(**req)
+    req = UploadEmailRequest.from_dict(req)
     # TODO: Improve custodian validation based on role
     if metadata.custodian != lan_id:
         return Response('User ' + lan_id + ' is not authorized to list ' + req.metadata.custodian + ' as custodian.', status=400, mimetype='text/plain')
@@ -175,7 +176,7 @@ def download_email():
         return Response("X-Access-Token is required.", status=400, mimetype='text/plain')
     req = request.args
     try:
-        req = DownloadEmailRequest(**req)
+        req = DownloadEmailRequest.from_dict(req)
     except:
         Response("Unable to parse request.", status=400, mimetype='text/plain')
     content = get_eml_file(req.email_id, req.file_name, access_token, c)
@@ -192,7 +193,7 @@ def mark_email_saved():
     if access_token is None:
         return Response("X-Access-Token is required.", status=400, mimetype='text/plain')
     req = request.json
-    req = MarkSavedRequest(**req)
+    req = MarkSavedRequest.from_dict(req)
     return mark_saved(req, access_token, c)
 
 @app.route('/untag_email', methods=['POST'])
@@ -204,7 +205,7 @@ def untag_email():
     if access_token is None:
         return Response("X-Access-Token is required.", status=400, mimetype='text/plain')
     req = request.json
-    req = UntagRequest(**req)
+    req = UntagRequest.from_dict(req)
     return untag(req, access_token, c)
 
 @app.route('/get_favorites', methods=['GET'])
@@ -231,7 +232,7 @@ def add_favorites():
         return Response(message, status=401, mimetype='text/plain')
     req = request.json
     try:
-        req = AddFavoritesRequest(**req)
+        req = AddFavoritesRequest.from_dict(req)
     except:
         Response("Unable to parse request.", status=400, mimetype='text/plain')
     success, message, user_info = get_user_info(c, token_data)
@@ -271,7 +272,7 @@ def remove_favorites():
     if not success:
         return Response(message, status=400, mimetype='text/plain')
     req = request.json
-    req = RemoveFavoritesRequest(**req)
+    req = RemoveFavoritesRequest.from_dict(req)
     user = User.query.filter_by(lan_id = user_info.lan_id).all()
     if len(user) == 0:
         user = User(lan_id = user_info.lan_id)
@@ -306,7 +307,7 @@ def my_records():
     if not success:
         return Response(message, status=400, mimetype='text/plain')
     req = request.args
-    req = MyRecordsRequest(**req)
+    req = MyRecordsRequest.from_dict(req)
     if user_info.lan_id != req.lan_id:
         return Response('User ' + user_info.lan_id + ' is not authorized to download records for ' + req.lan_id + '.', status=401, mimetype='text/plain')
     return get_documentum_records(c, user_info.lan_id, req.items_per_page, req.page_number)
@@ -340,7 +341,7 @@ def my_records_download():
     if not success:
         return Response(message, status=400, mimetype='text/plain')
     req = request.args
-    req = RecordDownloadRequest(**req)
+    req = RecordDownloadRequest.from_dict(req)
     # TODO: Sanitize object ids.
     if user_info.lan_id != req.lan_id:
         return Response('User ' + user_info.lan_id + ' is not authorized to download records for ' + req.lan_id + '.', status=401, mimetype='text/plain')
@@ -352,7 +353,7 @@ def get_sites():
     if not valid:
         return Response(message, status=401, mimetype='text/plain')
     req = request.args
-    req = GetSitesRequest(**req)
+    req = GetSitesRequest.from_dict(req)
     sites = sems_site_cache.get_sites(req.region)
     return Response(GetSitesResponse(sites).to_json(), status=200, mimetype='application/json')
 
@@ -362,5 +363,5 @@ def get_special_processing():
     if not valid:
         return Response(message, status=401, mimetype='text/plain')
     req = request.args
-    req = GetSpecialProcessingRequest(**req)
+    req = GetSpecialProcessingRequest.from_dict(req)
     return get_sems_special_processing(c, req.region)
