@@ -14,7 +14,7 @@ class SemsSiteCache:
         diff = datetime.now() - self.update_ts
         with self.lock:
           if diff.total_seconds() > 24 * 60 * 60:
-            self.sites = get_sems_sites(self.config, self.dnu_items)
+            self.sites = get_sems_sites(self.config)
             self.update_ts = datetime.now()
           return self.sites[region]
 
