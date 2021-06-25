@@ -48,3 +48,4 @@ class CISConfig:
         self.wam_password = wam_password
         self.records_repository_id = records_repository_id
         self.sems_host = sems_host
+        

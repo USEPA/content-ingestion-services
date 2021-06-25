@@ -729,6 +729,10 @@ definitions:
     properties:
       email_id:
         type: "string"
+      email_unid:
+        type: "string"
+      documentum_env:
+        type: "string"
       metadata:
         $ref: "#/definitions/ECMSMetadata"
   MarkSavedRequest:
@@ -747,6 +751,10 @@ definitions:
   ECMSMetadata:
     type: "object"
     properties:
+      file_path: 
+        type: "string"
+      custodian: 
+        type: "string"
       title: 
         type: "string"
       description:
@@ -757,13 +765,23 @@ definitions:
         type: "string"
       creation_date: 
         type: "string"
+      close_date: 
+        type: "string"  
       sensitivity:
         type: "string"
         enum: ["shared", "private"]
       rights:
-        type: "string"
+        type: "array"
+        items:
+          type: "string"
       coverage:
-        type: "string"
+        type: "array"
+        items:
+          type: "string"
+      relationships:
+        type: "array"
+        items:
+          type: "string"
   RecordSchedule:
     type: "object"
     properties:

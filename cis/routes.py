@@ -155,8 +155,15 @@ def upload_email():
     if access_token is None:
         return Response("X-Access-Token is required.", status=400, mimetype='text/plain')
     req = request.json
+    schedule = RecordSchedule(**req['metadata']['record_schedule'])
+    req['metadata']['record_schedule'] = schedule
+    metadata = ECMSMetadata(**req['metadata'])
+    req['metadata'] = metadata
     req = UploadEmailRequest(**req)
-    return mock_status_response.to_json()
+    # TODO: Improve custodian validation based on role
+    if metadata.custodian != lan_id:
+        return Response('User ' + lan_id + ' is not authorized to list ' + req.metadata.custodian + ' as custodian.', status=400, mimetype='text/plain')
+    return upload_documentum_email(req, access_token, c)
 
 @app.route('/download_email', methods=['GET'])
 def download_email():

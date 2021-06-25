@@ -102,14 +102,33 @@ mock_metadata_prediction = MetadataPrediction(predicted_schedules=mock_predicted
 @dataclass_json
 @dataclass
 class ECMSMetadata:
+    file_path: str
+    custodian: str
     title: str
     description: str
     record_schedule: RecordSchedule 
     creator: str 
     creation_date: str
+    close_date: str
     sensitivity: str 
-    rights: str
-    coverage: str 
+    rights: list[str]
+    coverage: list[str] 
+    relationships: list[str]
+
+@dataclass_json
+@dataclass
+class DocumentumMetadata:
+    r_object_type: str
+    object_name: str
+    a_application_type: str
+    erma_content_title: str
+    erma_content_unid: str
+    erma_content_date: str
+    erma_content_schedule: str
+    erma_content_eventdate: str
+    erma_sensitivity_id: str
+    erma_custodian: str
+    erma_folder_path: str
 
 @dataclass_json
 @dataclass 
@@ -275,6 +294,8 @@ class DescribeEmailResponse:
 class UploadEmailRequest:
     metadata: ECMSMetadata 
     email_id: str
+    email_unid: str
+    documentum_env: str
 
 @dataclass_json
 @dataclass 

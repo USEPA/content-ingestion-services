@@ -1,4 +1,5 @@
 import requests
+from requests.auth import HTTPBasicAuth
 from .data_classes import *
 import json 
 import email
@@ -6,6 +7,7 @@ from flask import Response, current_app as app, send_file
 import urllib 
 import io
 import re
+import uuid
 
 def tika(file, config, extraction_type='text'):
   if extraction_type == 'html':
@@ -421,3 +423,54 @@ def get_sems_special_processing(config, region):
     return Response(response_object.to_json(), status=200, mimetype='application/json')
   else:
     return Response(special_processing.text, status=special_processing.status_code, mimetype='text/plain')
+
+def upload_documentum_record(content, documentum_metadata, config, env):
+  if env == 'prod':
+    ecms_host = config.documentum_prod_url
+    ecms_user = config.documentum_prod_username
+    ecms_password = config.documentum_prod_password
+    api_key = config.documentum_prod_api_key
+  else:
+    ecms_host = config.documentum_dev_url
+    ecms_user = config.documentum_dev_username
+    ecms_password = config.documentum_dev_password
+    api_key = config.documentum_dev_api_key
+  url = "https://" + ecms_host + "/ecms/save/1.2?apiKey=" + api_key
+  files = {'metadata': json.dumps({'properties': documentum_metadata.to_json()}), 'contents': content}
+  r = requests.post(url, files=files, auth=HTTPBasicAuth(ecms_user, ecms_password))
+  if r.status_code == 200 and 'r_object_id' in r.json()['properties']:
+    return Response(r.json(), status=200, mimetype='text/plain')
+  else:
+    return Response(r.text, r.status_code, mimetype='text/plain')
+
+# Converts ECMS metadata to metadata compatible with Documentum
+def convert_metadata(ecms_metadata, unid=None):
+  if unid is None:
+    unid = str(uuid.uuid1())
+  if ecms_metadata.sensitivity.lower() == 'private':
+    sensitivity = "3"
+  else:
+    sensitivity = ""
+  schedule = ecms_metadata.record_schedule
+  documentum_schedule = '_'.join([schedule.function_number, schedule.schedule_number, schedule.disposition_number])
+  return DocumentumMetadata(
+    r_object_type='erma_content', 
+    object_name=ecms_metadata.title,
+    a_application_type="Ezdesktop",
+    erma_content_title=ecms_metadata.title,
+    erma_content_unid="Ezdesktop_" + unid,
+    erma_content_date=ecms_metadata.creation_date,
+    erma_content_schedule=documentum_schedule,
+    erma_content_eventdate=ecms_metadata.close_date,
+    erma_sensitivity_id=sensitivity,
+    erma_custodian=ecms_metadata.custodian,
+    erma_folder_path=ecms_metadata.file_path
+  )
+
+def upload_documentum_email(upload_email_request, access_token, config):
+  ecms_metadata = upload_email_request.metadata
+  content = get_eml_file(upload_email_request.email_id, ecms_metadata.title, access_token, config)
+  if content is None:
+    return Response('Unable to retrieve email.', status=400, mimetype='text/plain')
+  documentum_metadata = convert_metadata(ecms_metadata, upload_email_request.email_unid)
+  return upload_documentum_record(content, documentum_metadata, config, upload_email_request.documentum_env)
