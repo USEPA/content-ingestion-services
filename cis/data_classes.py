@@ -58,14 +58,14 @@ class DocumentumDocInfo:
 @dataclass 
 class DocumentumRecordList:
     records: list[DocumentumDocInfo]
-    has_next: bool
-
+    total: int
 @dataclass_json
 @dataclass 
 class MyRecordsRequest:
     lan_id: str
     items_per_page: int
     page_number: int
+    query: Optional[str] = None
 
 @dataclass_json
 @dataclass 

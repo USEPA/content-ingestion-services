@@ -14,13 +14,20 @@ class SemsSiteCache:
         diff = datetime.now() - self.update_ts
         with self.lock:
           if diff.total_seconds() > 24 * 60 * 60:
-            self.sites = get_sems_sites(self.config)
+            updated_sites = get_sems_sites(self.config)
+            if self.sites is None:
+              # TODO: log failure
+              pass
+            else:
+              self.sites = updated_sites
             self.update_ts = datetime.now()
           return self.sites[region]
 
 
 def get_sems_sites(config):
     sites = requests.get('http://' + config.sems_host + '/sems-ws/outlook/getSites')
+    if sites.status_code != 200:
+      return None
     site_objects = [SemsSite(_id=site['id'], region=site['region'], epaid=site.get('epaid', ''), sitename=site['sitename']) for site in sites.json()]
     grouped_by_region = {}
     for site in site_objects:

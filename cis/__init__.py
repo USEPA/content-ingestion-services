@@ -7,26 +7,11 @@ from .validation import PublicKeyCache
 from .record_schedule_cache import RecordScheduleCache
 from .hf_model import HuggingFaceModel
 from .app_config import config_from_file
-from logging.config import dictConfig
+import logging
 from .shared_mailbox_manager import SharedMailboxManager
 from .sems_site_cache import SemsSiteCache
 
-dictConfig({
-    'version': 1,
-    'formatters': {'default': {
-        'format': '[%(asctime)s] %(levelname)s in %(module)s: %(message)s',
-        'datefmt':"%m/%d/%Y %I:%M:%S %p %Z"
-    }},
-    'handlers': {'wsgi': {
-        'class': 'logging.StreamHandler',
-        'stream': 'ext://flask.logging.wsgi_errors_stream',
-        'formatter': 'default'
-    }},
-    'root': {
-        'level': 'INFO',
-        'handlers': ['wsgi']
-    }
-})
+logging.basicConfig(level=logging.INFO, format = '[%(asctime)s] %(levelname)s in %(module)s: %(message)s')
 
 db = SQLAlchemy()
 migrate = Migrate()

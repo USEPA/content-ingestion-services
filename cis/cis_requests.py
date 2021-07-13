@@ -9,6 +9,8 @@ import io
 import re
 import uuid
 
+TIKA_CUTOFF = 20
+
 def tika(file, config, extraction_type='text'):
   if extraction_type == 'html':
     accept = "text/html"
@@ -22,7 +24,7 @@ def tika(file, config, extraction_type='text'):
           }
   server = "http://" + config.tika_server + "/tika"
   r = requests.put(server, data=file, headers=headers)
-  if r.status_code != 200 or len(r.text) < 20:
+  if r.status_code != 200 or len(r.text) < TIKA_CUTOFF:
       headers = {
           "X-Tika-PDFOcrStrategy": "ocr_only",
           "X-Tika-PDFextractInlineImages": "true",
@@ -306,27 +308,35 @@ def get_documentum_record_count(config, lan_id):
   except:
     return Response('Failed to extract information from Documentum count request.', status=400, mimetype='text/plain')
 
-def get_documentum_records(config, lan_id, items_per_page, page_number):
+def get_documentum_records(config, lan_id, items_per_page, page_number, query):
   # TODO: Improve error handling
-  doc_id_sql = "select erma_doc_id, creation_date from (select s.ERMA_DOC_ID as erma_doc_id, MAX(s.R_CREATION_DATE) as creation_date from ECMSRMR65.ERMA_DOC_SV s where s.ERMA_DOC_CUSTODIAN = '" + lan_id + "' GROUP BY s.ERMA_DOC_ID) ORDER BY creation_date DESC;"
+  if query is None or len(query.strip()) == 0:
+    where_clause = "where s.ERMA_DOC_CUSTODIAN = '" + lan_id + "'"
+  else:
+    where_clause = "where s.ERMA_DOC_CUSTODIAN = '" + lan_id + "' and s.erma_doc_title LIKE \'%" + query + '%\''
+  count_sql = "select count(*) as total from (select s.ERMA_DOC_ID as erma_doc_id, MAX(s.R_CREATION_DATE) as creation_date from ECMSRMR65.ERMA_DOC_SV s " + where_clause + " group by erma_doc_id);"
+  count_request = dql_request(config, count_sql, items_per_page, page_number)
+  if count_request.status_code != 200:
+    return Response('Documentum count request returned status ' + str(count_request.status_code) + ' and error ' + str(count_request.text), status=500, mimetype='text/plain')
+  if 'entries' not in count_request or count_request:
+    return Response(DocumentumRecordList(total=0, records=[]).to_json(), status=200, mimetype='application/json')
+  total = count_request.json()['entries'][0]['content']['properties']['total']
+  if total == 0:
+    return Response(DocumentumRecordList(total=0, records=[]).to_json(), status=200, mimetype='application/json')
+  doc_id_sql = "select erma_doc_id, creation_date from (select s.ERMA_DOC_ID as erma_doc_id, MAX(s.R_CREATION_DATE) as creation_date from ECMSRMR65.ERMA_DOC_SV s " + where_clause + " group by erma_doc_id) ORDER BY creation_date DESC;"
   r = dql_request(config, doc_id_sql, items_per_page, page_number)
   if r.status_code != 200:
-    app.logger.error(r.text)
-    return Response('Documentum doc ID request returned status ' + str(r.status_code), status=500, mimetype='text/plain')
+    return Response('Documentum doc ID request returned status ' + str(r.status_code) + ' and error ' + str(r.text), status=500, mimetype='text/plain')
   doc_id_resp = r.json()
   if 'entries' not in doc_id_resp:
-    return Response(DocumentumRecordList(has_next=False, records=[]).to_json(), status=200, mimetype='application/json')
+    return Response(DocumentumRecordList(total=0, records=[]).to_json(), status=200, mimetype='application/json')
   doc_ids = [x['content']['properties']['erma_doc_id'] for x in doc_id_resp['entries']]
-  has_next = False
-  for l in doc_id_resp['links']:
-    if l['rel'] == 'next':
-      has_next = True
   doc_where_clause = ' OR '.join(["erma_doc_id = '" + str(x) + "'" for x in doc_ids])
   doc_info_sql = "select s.erma_doc_sensitivity as erma_doc_sensitivity, s.R_OBJECT_TYPE as r_object_type, s.ERMA_DOC_DATE as erma_doc_date, s.ERMA_DOC_CUSTODIAN as erma_doc_custodian, s.ERMA_DOC_ID as erma_doc_id, s.R_FULL_CONTENT_SIZE as r_full_content_size, s.R_OBJECT_ID as r_object_id, s.ERMA_DOC_TITLE as erma_doc_title from ECMSRMR65.ERMA_DOC_SV s where " + doc_where_clause + ";"
   r = dql_request(config, doc_info_sql, 3*int(items_per_page), 1)
   if r.status_code != 200:
     app.logger.error(r.text)
-    return Response('Documentum doc info request returned status ' + str(r.status_code), status=500, mimetype='text/plain')
+    return Response('Documentum doc info request returned status ' + str(r.status_code) + ' and error ' + str(r.text), status=500, mimetype='text/plain')
   doc_info = {}
   for doc in r.json()['entries']:
     properties = doc['content']['properties']
@@ -358,7 +368,7 @@ def get_documentum_records(config, lan_id, items_per_page, page_number):
         "custodian": properties['erma_doc_custodian'],
         "doc_type": doc_type
       }
-  doc_list = DocumentumRecordList(has_next=has_next, records=list(sorted([DocumentumDocInfo(**x) for x in doc_info.values()], key=lambda x: x.date, reverse=True)))
+  doc_list = DocumentumRecordList(total=total, records=list(sorted([DocumentumDocInfo(**x) for x in doc_info.values()], key=lambda x: x.date, reverse=True)))
   return Response(doc_list.to_json(), status=200, mimetype='application/json')
 
 def object_id_is_valid(config, object_id):
@@ -403,8 +413,7 @@ def get_user_info(config, token_data):
   try:
     wam = requests.get(url, auth=(config.wam_username, config.wam_password))
     if wam.status_code != 200:
-      app.logger.error('WAM request failed with status ' + str(wam.status_code) + '. ' + wam.text)
-      return False, 'WAM request failed with status ' + str(wam.status_code) + '.', None
+      return False, 'WAM request failed with status ' + str(wam.status_code) + ' and error ' + str(wam.text), None
     user_data = wam.json()['Resources'][0]
     lan_id = user_data['userName'].lower()
     display_name = user_data['displayName']

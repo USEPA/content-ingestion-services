@@ -482,6 +482,10 @@ paths:
           type: "string"
           required: true
         - in: "query"
+          name: "query"
+          type: "string"
+          required: false
+        - in: "query"
           name: "items_per_page"
           type: "number"
           required: true
@@ -778,6 +782,10 @@ definitions:
         type: "array"
         items:
           type: "string"
+      tags:
+        type: "array"
+        items:
+          type: "string"
       relationships:
         type: "array"
         items:
@@ -879,8 +887,8 @@ definitions:
   DocumentumRecordList:
     type: "object"
     properties:
-      has_next:
-        type: "boolean"
+      total:
+        type: "number"
       records:
         type: "array"
         items: 
