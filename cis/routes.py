@@ -310,7 +310,7 @@ def my_records_download():
     # TODO: Sanitize object ids.
     if user_info.lan_id != req.lan_id:
         return Response('User ' + user_info.lan_id + ' is not authorized to download records for ' + req.lan_id + '.', status=401, mimetype='text/plain')
-    return download_documentum_record(c, user_info.lan_id, req.object_ids.split(','))
+    return download_documentum_record(c, user_info.lan_id, req.object_ids)
 
 @app.route('/get_sites', methods=['GET'])
 def get_sites():

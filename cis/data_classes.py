@@ -59,6 +59,7 @@ class DocumentumDocInfo:
 class DocumentumRecordList:
     records: list[DocumentumDocInfo]
     total: int
+    
 @dataclass_json
 @dataclass 
 class MyRecordsRequest:

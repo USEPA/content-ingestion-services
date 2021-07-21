@@ -431,7 +431,7 @@ def upload_documentum_record(content, documentum_metadata, config, env):
     api_key = config.documentum_dev_api_key
   
   url = "https://" + ecms_host + "/ecms/save/1.2?apiKey=" + api_key
-  app.logger.info(str({'metadata': {'properties': documentum_metadata.to_json()}}))
+  #app.logger.info(str({'metadata': {'properties': documentum_metadata.to_json()}}))
   files = {'metadata': json.dumps({'properties': documentum_metadata.to_json()}), 'contents': content}
   r = requests.post(url, files=files, auth=HTTPBasicAuth(ecms_user, ecms_password))
   if r.status_code == 200 and 'r_object_id' in r.json()['properties']:
