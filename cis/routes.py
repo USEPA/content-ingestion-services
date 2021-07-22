@@ -305,7 +305,10 @@ def my_records_download():
     success, message, user_info = get_user_info(c, g.token_data)
     if not success:
         return Response(message, status=400, mimetype='text/plain')
-    req = request.args
+    req = dict(request.args)
+    if 'object_ids' not in req:
+        return Response("object_ids field is required", status=400, mimetype='text/plain')
+    req['object_ids'] = req['object_ids'].split(',')
     req = RecordDownloadRequest.from_dict(req)
     # TODO: Sanitize object ids.
     if user_info.lan_id != req.lan_id:
