@@ -131,6 +131,10 @@ paths:
           name: "metadata"
           type: "string"
           description: "String of serialized JSON with ECMS metadata."
+        - in: "formData"
+          name: "documentum_env"
+          type: "string"
+          description: "Environment - either dev or prod."
         - in: "header"
           name: "Authorization"
           type: "string"
@@ -493,6 +497,11 @@ paths:
           name: "page_number"
           type: "number"
           required: true
+        - in: "query"
+          name: "documentum_env"
+          type: "string"
+          required: false
+          default: "dev"
       responses:
         "200":
           description: "Record information retrieved."
@@ -521,6 +530,11 @@ paths:
           items:
             type: "string"
           required: true
+        - in: "query"
+          name: "documentum_env"
+          type: "string"
+          required: false
+          default: "dev"
       responses:
         "200":
           description: "Records zip file downloaded."
@@ -717,10 +731,13 @@ definitions:
         type: "string"
       email_unid:
         type: "string"
-      documentum_env:
-        type: "string"
       metadata:
         $ref: "#/definitions/ECMSMetadata"
+      documentum_env:
+        type: "string"
+        enum: ["dev", "prod"]
+        default: "dev"
+        required: false
   MarkSavedRequest:
     type: "object"
     properties:

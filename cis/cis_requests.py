@@ -287,20 +287,28 @@ def untag(req: UntagRequest, access_token, config):
   else:
     return Response(StatusResponse(status="OK", reason="Email with id " + req.email_id + " is no longer categorized as a record.").to_json(), status=200, mimetype="application/json")
 
-def dql_request(config, sql, items_per_page, page_number):
-    url = "https://" + config.documentum_prod_url + "/dctm-rest/repositories/ecmsrmr65?items-per-page=" + str(items_per_page) + "&page=" + str(page_number) + "&dql=" + urllib.parse.quote(sql)
+def dql_request(config, sql, items_per_page, page_number, env):
+  if env == 'prod':
+    ecms_host = config.documentum_prod_url
+    ecms_user = config.documentum_prod_username
+    ecms_password = config.documentum_prod_password
+  else:
+    ecms_host = config.documentum_dev_url
+    ecms_user = config.documentum_dev_username
+    ecms_password = config.documentum_dev_password
+    url = "https://" + ecms_host + "/dctm-rest/repositories/ecmsrmr65?items-per-page=" + str(items_per_page) + "&page=" + str(page_number) + "&dql=" + urllib.parse.quote(sql)
     headers = {'cache-control': 'no-cache'}
-    r = requests.get(url, headers=headers, auth=(config.documentum_prod_username,config.documentum_prod_password))
+    r = requests.get(url, headers=headers, auth=(ecms_user,ecms_password))
     return r
 
-def get_documentum_records(config, lan_id, items_per_page, page_number, query):
+def get_documentum_records(config, lan_id, items_per_page, page_number, query, env):
   # TODO: Improve error handling
   if query is None or len(query.strip()) == 0:
     where_clause = "where s.ERMA_DOC_CUSTODIAN = '" + lan_id + "'"
   else:
     where_clause = "where s.ERMA_DOC_CUSTODIAN = '" + lan_id + "' and s.erma_doc_title LIKE \'%" + query + '%\''
   count_sql = "select count(*) as total from (select s.ERMA_DOC_ID as erma_doc_id, MAX(s.R_CREATION_DATE) as creation_date from ECMSRMR65.ERMA_DOC_SV s " + where_clause + " group by erma_doc_id);"
-  count_request = dql_request(config, count_sql, items_per_page, page_number)
+  count_request = dql_request(config, count_sql, items_per_page, page_number, env)
   if count_request.status_code != 200:
     return Response('Documentum count request returned status ' + str(count_request.status_code) + ' and error ' + str(count_request.text), status=500, mimetype='text/plain')
   if 'entries' not in count_request.json():
@@ -309,7 +317,7 @@ def get_documentum_records(config, lan_id, items_per_page, page_number, query):
   if total == 0:
     return Response(DocumentumRecordList(total=0, records=[]).to_json(), status=200, mimetype='application/json')
   doc_id_sql = "select erma_doc_id, creation_date from (select s.ERMA_DOC_ID as erma_doc_id, MAX(s.R_CREATION_DATE) as creation_date from ECMSRMR65.ERMA_DOC_SV s " + where_clause + " group by erma_doc_id) ORDER BY creation_date DESC;"
-  r = dql_request(config, doc_id_sql, items_per_page, page_number)
+  r = dql_request(config, doc_id_sql, items_per_page, page_number, env)
   if r.status_code != 200:
     return Response('Documentum doc ID request returned status ' + str(r.status_code) + ' and error ' + str(r.text), status=500, mimetype='text/plain')
   doc_id_resp = r.json()
@@ -318,7 +326,7 @@ def get_documentum_records(config, lan_id, items_per_page, page_number, query):
   doc_ids = [x['content']['properties']['erma_doc_id'] for x in doc_id_resp['entries']]
   doc_where_clause = ' OR '.join(["erma_doc_id = '" + str(x) + "'" for x in doc_ids])
   doc_info_sql = "select s.erma_doc_sensitivity as erma_doc_sensitivity, s.R_OBJECT_TYPE as r_object_type, s.ERMA_DOC_DATE as erma_doc_date, s.ERMA_DOC_CUSTODIAN as erma_doc_custodian, s.ERMA_DOC_ID as erma_doc_id, s.R_FULL_CONTENT_SIZE as r_full_content_size, s.R_OBJECT_ID as r_object_id, s.ERMA_DOC_TITLE as erma_doc_title from ECMSRMR65.ERMA_DOC_SV s where " + doc_where_clause + ";"
-  r = dql_request(config, doc_info_sql, 3*int(items_per_page), 1)
+  r = dql_request(config, doc_info_sql, 3*int(items_per_page), 1, env)
   if r.status_code != 200:
     app.logger.error(r.text)
     return Response('Documentum doc info request returned status ' + str(r.status_code) + ' and error ' + str(r.text), status=500, mimetype='text/plain')
@@ -359,7 +367,7 @@ def get_documentum_records(config, lan_id, items_per_page, page_number, query):
 def object_id_is_valid(config, object_id):
   return re.fullmatch('[a-z0-9]{16}', object_id) is not None and object_id[2:8] == config.records_repository_id
 
-def download_documentum_record(config, lan_id, object_ids):
+def download_documentum_record(config, lan_id, object_ids, env):
   # Validate object_ids
   for object_id in object_ids:
     valid = object_id_is_valid(config, object_id)
@@ -368,7 +376,7 @@ def download_documentum_record(config, lan_id, object_ids):
   doc_where_clause = ' OR '.join(["s.r_object_id = '" + str(x) + "'" for x in object_ids])
   doc_info_sql = "select s.ERMA_DOC_CUSTODIAN as erma_doc_custodian, r_object_id from ECMSRMR65.ERMA_DOC_SV s where " + doc_where_clause + ";"
   # This gives some buffer, even though there should be exactly len(object_ids) items to recover
-  r = dql_request(config, doc_info_sql, 2*len(object_ids), 1)
+  r = dql_request(config, doc_info_sql, 2*len(object_ids), 1, env)
   if r.status_code != 200:
     app.logger.error(r.text)
     return Response('Documentum doc info request returned status ' + str(r.status_code), status=500, mimetype='text/plain')

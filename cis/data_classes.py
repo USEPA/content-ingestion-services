@@ -67,12 +67,14 @@ class MyRecordsRequest:
     items_per_page: int
     page_number: int
     query: Optional[str] = None
+    documentum_env: Optional[str] = "dev"
 
 @dataclass_json
 @dataclass 
 class RecordDownloadRequest:
     lan_id: str
     object_ids: list[str]
+    documentum_env: Optional[str] = "dev"
 
 @dataclass_json
 @dataclass 

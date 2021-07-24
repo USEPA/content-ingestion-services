@@ -91,16 +91,17 @@ def email_metadata_prediction():
     prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description)
     return Response(prediction.to_json(), status=200, mimetype='application/json')
 
-## TODO: Implement file upload
 @app.route('/upload_file', methods=['POST'])
 def upload_file():
-    success, message, _ = get_user_info(c, g.token_data)
+    success, message, user_info = get_user_info(c, g.token_data)
     if not success:
         return Response(message, status=400, mimetype='text/plain')
     file = request.files.get('file')
     metadata = ECMSMetadata.from_json(request.form['metadata'])
     # Default to dev environment
-    env = request.form.get('env', 'dev')
+    env = request.form.get('documentum_env', 'dev')
+    if metadata.custodian != user_info.lan_id:
+        return Response('User ' + user_info.lan_id + ' is not authorized to list ' + metadata.custodian + ' as custodian.', status=400, mimetype='text/plain')
     if file:
         return upload_documentum_record(file, convert_metadata(metadata), c, env)
     else:
@@ -291,7 +292,7 @@ def my_records():
     req = MyRecordsRequest.from_dict(req)
     if user_info.lan_id != req.lan_id:
         return Response('User ' + user_info.lan_id + ' is not authorized to download records for ' + req.lan_id + '.', status=401, mimetype='text/plain')
-    return get_documentum_records(c, user_info.lan_id, req.items_per_page, req.page_number, req.query)
+    return get_documentum_records(c, user_info.lan_id, req.items_per_page, req.page_number, req.query, req.documentum_env)
 
 @app.route('/get_user_info', methods=['GET'])
 def user_info():
@@ -310,10 +311,9 @@ def my_records_download():
         return Response("object_ids field is required", status=400, mimetype='text/plain')
     req['object_ids'] = req['object_ids'].split(',')
     req = RecordDownloadRequest.from_dict(req)
-    # TODO: Sanitize object ids.
     if user_info.lan_id != req.lan_id:
         return Response('User ' + user_info.lan_id + ' is not authorized to download records for ' + req.lan_id + '.', status=401, mimetype='text/plain')
-    return download_documentum_record(c, user_info.lan_id, req.object_ids)
+    return download_documentum_record(c, user_info.lan_id, req.object_ids, req.documentum_env)
 
 @app.route('/get_sites', methods=['GET'])
 def get_sites():
