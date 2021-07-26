@@ -119,8 +119,8 @@ def list_email_metadata(req: GetEmailRequest, user_email, access_token, config):
     app.logger.info("getrecords request failed with status " + str(p.status_code) + ". " + p.text)
     return Response("Unable to retrieve records.", status=400, mimetype='text/plain')
   resp = p.json()
-  archive_count = None
-  regular_count = None
+  archive_count = 0
+  regular_count = 0
   for count in resp["total_count"]:
     if 'regular' in count:
       regular_count = int(count['regular'])
