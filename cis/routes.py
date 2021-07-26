@@ -238,12 +238,12 @@ def add_favorites():
     for sched in req.record_schedules:
         add_sched = True
         for fav in user.favorites:
-            if fav.function_number == sched['function_number'] and fav.schedule_number == sched['schedule_number'] and fav.disposition_number == sched['disposition_number']:
+            if fav.function_number == sched.function_number and fav.schedule_number == sched.schedule_number and fav.disposition_number == sched.disposition_number:
                 add_sched = False
                 break
         if add_sched:
             add_any_sched = True
-            user.favorites.append(Favorite(function_number=sched['function_number'], schedule_number=sched['schedule_number'], disposition_number=sched['disposition_number'], user=user))
+            user.favorites.append(Favorite(function_number=sched.function_number, schedule_number=sched.schedule_number, disposition_number=sched.disposition_number, user=user))
     if add_any_sched:
         try:
             db.session.commit()
