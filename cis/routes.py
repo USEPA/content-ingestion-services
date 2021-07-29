@@ -268,7 +268,7 @@ def remove_favorites():
 
     for fav in user.favorites:
         for sched in req.record_schedules:
-            if fav.function_number == sched['function_number'] and fav.schedule_number == sched['schedule_number'] and fav.disposition_number == sched['disposition_number']:
+            if fav.function_number == sched.function_number and fav.schedule_number == sched.schedule_number and fav.disposition_number == sched.disposition_number:
                 db.session.delete(fav)
     db.session.commit()
     return Response(StatusResponse(status="OK", reason="Favorites were removed.").to_json(), status=200, mimetype="application/json")
