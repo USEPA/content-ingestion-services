@@ -15,3 +15,4 @@ Flask-SQLAlchemy==2.5.1
 PyMySQL==1.0.2
 gql==2.0.0
 certifi
+boto3==1.18.9

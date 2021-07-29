@@ -10,6 +10,7 @@ from .app_config import config_from_file
 import logging
 from .shared_mailbox_manager import SharedMailboxManager
 from .sems_site_cache import SemsSiteCache
+from .secrets_manager import load_all_secrets
 
 logging.basicConfig(level=logging.INFO, format = '[%(asctime)s] %(levelname)s in %(module)s: %(message)s')
 
@@ -26,7 +27,7 @@ SWAGGER_PATH = 'swagger.yaml'
 swagger_yml = load(open(SWAGGER_PATH, 'r'), Loader=Loader)
 
 
-def create_app(model_path, label_mapping_path, config_path, mailbox_data_path, dnul_path, database_uri, documentum_prod_username, documentum_prod_password, wam_username, wam_password, tika_server=None, cis_server=None, ezemail_server=None, upgrade_db=False, documentum_prod_url=None, wam_host=None):
+def create_app(env, region_name, model_path, label_mapping_path, config_path, mailbox_data_path, dnul_path, database_uri, documentum_prod_username, documentum_prod_password, wam_username, wam_password, tika_server=None, cis_server=None, ezemail_server=None, upgrade_db=False, documentum_prod_url=None, wam_host=None):
     """Construct the core application."""
     app = Flask(__name__, instance_relative_config=False)
     app.config.from_object("flask_config.Config")
@@ -57,6 +58,8 @@ def create_app(model_path, label_mapping_path, config_path, mailbox_data_path, d
         c.wam_password = wam_password
     if wam_host:
         c.wam_host = wam_host
+    if env == 'cloud':
+        load_all_secrets(c, region_name)
     app.config['SQLALCHEMY_DATABASE_URI'] = c.database_uri
     app.app_context().push()
     db.init_app(app)
