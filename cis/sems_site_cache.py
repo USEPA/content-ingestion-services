@@ -25,6 +25,7 @@ class SemsSiteCache:
 
 
 def get_sems_sites(config):
+  try:
     sites = requests.get('http://' + config.sems_host + '/sems-ws/outlook/getSites')
     if sites.status_code != 200:
       return None
@@ -36,4 +37,6 @@ def get_sems_sites(config):
       else:
         grouped_by_region[site.region].append(site)
     return grouped_by_region
+  except:
+    return {}
     

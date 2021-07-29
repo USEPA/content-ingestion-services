@@ -60,8 +60,10 @@ def load_all_secrets(c, region_name):
 
     c.documentum_prod_username = documentum['documentum_production_username']
     c.documentum_prod_password = documentum['documentum_production_password']
+    c.documentum_prod_api_key = documentum['documentum_production_api_key']
     c.documentum_dev_username = documentum['documentum_staging_username']
     c.documentum_dev_password = documentum['documentum_staging_password']
+    c.documentum_dev_api_key = documentum['documentum_staging_api_key']
     c.wam_username = wam['wam_username']
     c.wam_password = wam['wam_password']
     c.wam_host = wam['wam_host']
