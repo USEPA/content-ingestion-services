@@ -18,6 +18,10 @@ def log_request_info():
         else:
             g.token_data = token_data
             g.request_id = str(uuid.uuid4())
+            g.outlook_access_token = request.headers.get('X-Outlook-Token')
+            if g.outlook_access_token is None:
+                g.outlook_access_token = request.headers.get('X-Access-Token')
+            g.sharepoint_access_token = request.headers.get('X-Sharepoint-Token')
         log_headers = dict(request.headers)
         # Remove sensitive information from logs
         del log_headers['Authorization']
@@ -74,12 +78,11 @@ def text_metadata_prediction():
 
 @app.route('/email_metadata_prediction', methods=['GET'])
 def email_metadata_prediction():
-    access_token = request.headers.get('X-Access-Token')
-    if access_token is None:
-        return Response("X-Access-Token is required.", status=400, mimetype='text/plain')
+    if g.outlook_access_token is None:
+        return Response("X-Outlook-Token is required.", status=400, mimetype='text/plain')
     req = request.args
     req = EmailPredictionRequest.from_dict(req)
-    eml_file = get_eml_file(req.email_id, "default_file_name", access_token, c)
+    eml_file = get_eml_file(req.email_id, "default_file_name", g.outlook_access_token, c)
     if eml_file is None:
         return Response("Could not retrieve eml file.", status=400, mimetype='text/plain')
     success, text, response = tika(eml_file, c, extraction_type='text')
@@ -113,9 +116,8 @@ def get_mailboxes():
 
 @app.route('/get_emails', methods=['GET'])
 def get_emails():
-    access_token = request.headers.get('X-Access-Token')
-    if access_token is None:
-        return Response("X-Access-Token is required.", status=400, mimetype='text/plain')
+    if g.outlook_access_token is None:
+        return Response("X-Outlook-Token is required.", status=400, mimetype='text/plain')
     req = dict(request.args)
     if 'items_per_page' not in req:
         req['items_per_page'] = req.pop('count', 10)
@@ -124,43 +126,39 @@ def get_emails():
     req = GetEmailRequest(items_per_page=int(req['items_per_page']), page_number=int(req['page_number']), mailbox=req['mailbox'])
     if not mailbox_manager.validate_mailbox(g.token_data['email'], req.mailbox):
         return Response("User " + g.token_data['email'] + " is not authorized to access " + req.mailbox + ".", status=401, mimetype='text/plain')
-    return list_email_metadata(req, g.token_data['email'], access_token, c)
+    return list_email_metadata(req, g.token_data['email'], g.outlook_access_token, c)
 
 @app.route('/get_attachment', methods=['GET'])
 def get_attachment():
-    access_token = request.headers.get('X-Access-Token')
-    if access_token is None:
-        return Response("X-Access-Token is required.", status=400, mimetype='text/plain')
+    if g.outlook_access_token is None:
+        return Response("X-Outlook-Token is required.", status=400, mimetype='text/plain')
     req = request.args
     req = DownloadAttachmentRequest.from_dict(req)
-    return download_attachment(req, access_token, c)
+    return download_attachment(req, g.outlook_access_token, c)
 
 @app.route('/describe_email', methods=['GET'])
 def get_email_description():
-    access_token = request.headers.get('X-Access-Token')
-    if access_token is None:
-        return Response("X-Access-Token is required.", status=400, mimetype='text/plain')
+    if g.outlook_access_token is None:
+        return Response("X-Outlook-Token is required.", status=400, mimetype='text/plain')
     req = request.args
     req = DescribeEmailRequest.from_dict(req)
-    return describe_email(req, access_token, c)
+    return describe_email(req, g.outlook_access_token, c)
 
 @app.route('/get_email_body', methods=['GET'])
 def get_body():
-    access_token = request.headers.get('X-Access-Token')
-    if access_token is None:
-        return Response("X-Access-Token is required.", status=400, mimetype='text/plain')
+    if g.outlook_access_token is None:
+        return Response("X-Outlook-Token is required.", status=400, mimetype='text/plain')
     req = request.args
     req = GetEmailBodyRequest.from_dict(req)
-    return get_email_body(req, access_token, c)
+    return get_email_body(req, g.outlook_access_token, c)
 
 @app.route('/upload_email', methods=['POST'])
 def upload_email():
     success, message, user_info = get_user_info(c, g.token_data)
     if not success:
         return Response(message, status=400, mimetype='text/plain')
-    access_token = request.headers.get('X-Access-Token')
-    if access_token is None:
-        return Response("X-Access-Token is required.", status=400, mimetype='text/plain')
+    if g.outlook_access_token is None:
+        return Response("X-Outlook-Token is required.", status=400, mimetype='text/plain')
     req = request.json
     schedule = RecordSchedule.from_dict(req['metadata']['record_schedule'])
     req['metadata']['record_schedule'] = schedule
@@ -170,40 +168,37 @@ def upload_email():
     # TODO: Improve custodian validation based on role
     if metadata.custodian != user_info.lan_id:
         return Response('User ' + user_info.lan_id + ' is not authorized to list ' + req.metadata.custodian + ' as custodian.', status=400, mimetype='text/plain')
-    return upload_documentum_email(req, access_token, c)
+    return upload_documentum_email(req, g.outlook_access_token, c)
 
 @app.route('/download_email', methods=['GET'])
 def download_email():
-    access_token = request.headers.get('X-Access-Token')
-    if access_token is None:
-        return Response("X-Access-Token is required.", status=400, mimetype='text/plain')
+    if g.outlook_access_token is None:
+        return Response("X-Outlook-Token is required.", status=400, mimetype='text/plain')
     req = request.args
     try:
         req = DownloadEmailRequest.from_dict(req)
     except:
         Response("Unable to parse request.", status=400, mimetype='text/plain')
-    content = get_eml_file(req.email_id, req.file_name, access_token, c)
+    content = get_eml_file(req.email_id, req.file_name, g.outlook_access_token, c)
     if content is None:
         Response("File download failed. Ensure that email_id is valid.", status=500, mimetype='text/plain')
     return send_file(BytesIO(content), attachment_filename=req.file_name, as_attachment=True)
 
 @app.route('/mark_email_saved', methods=['POST'])
 def mark_email_saved():
-    access_token = request.headers.get('X-Access-Token')
-    if access_token is None:
-        return Response("X-Access-Token is required.", status=400, mimetype='text/plain')
+    if g.outlook_access_token is None:
+        return Response("X-Outlook-Token is required.", status=400, mimetype='text/plain')
     req = request.json
     req = MarkSavedRequest.from_dict(req)
-    return mark_saved(req, access_token, c)
+    return mark_saved(req, g.outlook_access_token, c)
 
 @app.route('/untag_email', methods=['POST'])
 def untag_email():
-    access_token = request.headers.get('X-Access-Token')
-    if access_token is None:
-        return Response("X-Access-Token is required.", status=400, mimetype='text/plain')
+    if g.outlook_access_token is None:
+        return Response("X-Outlook-Token is required.", status=400, mimetype='text/plain')
     req = request.json
     req = UntagRequest.from_dict(req)
-    return untag(req, access_token, c)
+    return untag(req, g.outlook_access_token, c)
 
 @app.route('/get_favorites', methods=['GET'])
 def get_favorites():

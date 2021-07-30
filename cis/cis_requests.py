@@ -303,6 +303,7 @@ def dql_request(config, sql, items_per_page, page_number, env):
 
 def get_documentum_records(config, lan_id, items_per_page, page_number, query, env):
   # TODO: Improve error handling
+  # Page across erma_content and other doc types
   if query is None or len(query.strip()) == 0:
     where_clause = "where s.ERMA_DOC_CUSTODIAN = '" + lan_id + "'"
   else:
