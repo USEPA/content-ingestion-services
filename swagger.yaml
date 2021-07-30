@@ -91,7 +91,7 @@ paths:
           format: "jwt"
           required: true
         - in: "header"
-          name: "X-Access-Token"
+          name: "X-Outlook-Token"
           type: "string"
           required: true
       responses:
@@ -186,7 +186,7 @@ paths:
           format: "jwt"
           required: true
         - in: "header"
-          name: "X-Access-Token"
+          name: "X-Outlook-Token"
           type: "string"
           required: true
       responses:
@@ -211,7 +211,7 @@ paths:
           format: "jwt"
           required: true
         - in: "header"
-          name: "X-Access-Token"
+          name: "X-Outlook-Token"
           type: "string"
           required: true
       responses:
@@ -236,7 +236,7 @@ paths:
           format: "jwt"
           required: true
         - in: "header"
-          name: "X-Access-Token"
+          name: "X-Outlook-Token"
           type: "string"
           required: true
       produces:
@@ -262,7 +262,7 @@ paths:
           format: "jwt"
           required: true
         - in: "header"
-          name: "X-Access-Token"
+          name: "X-Outlook-Token"
           type: "string"
           required: true
       responses:
@@ -290,7 +290,7 @@ paths:
           format: "jwt"
           required: true
         - in: "header"
-          name: "X-Access-Token"
+          name: "X-Outlook-Token"
           type: "string"
           required: true
       responses:
@@ -318,7 +318,7 @@ paths:
           format: "jwt"
           required: true
         - in: "header"
-          name: "X-Access-Token"
+          name: "X-Outlook-Token"
           type: "string"
           required: true
       responses:
@@ -344,7 +344,7 @@ paths:
           format: "jwt"
           required: true
         - in: "header"
-          name: "X-Access-Token"
+          name: "X-Outlook-Token"
           type: "string"
           required: true
       responses:
@@ -370,7 +370,7 @@ paths:
           format: "jwt"
           required: true
         - in: "header"
-          name: "X-Access-Token"
+          name: "X-Outlook-Token"
           type: "string"
           required: true
       responses:
