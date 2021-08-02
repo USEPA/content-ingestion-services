@@ -296,10 +296,10 @@ def dql_request(config, sql, items_per_page, page_number, env):
     ecms_host = config.documentum_dev_url
     ecms_user = config.documentum_dev_username
     ecms_password = config.documentum_dev_password
-    url = "https://" + ecms_host + "/dctm-rest/repositories/ecmsrmr65?items-per-page=" + str(items_per_page) + "&page=" + str(page_number) + "&dql=" + urllib.parse.quote(sql)
-    headers = {'cache-control': 'no-cache'}
-    r = requests.get(url, headers=headers, auth=(ecms_user,ecms_password))
-    return r
+  url = "https://" + ecms_host + "/dctm-rest/repositories/ecmsrmr65?items-per-page=" + str(items_per_page) + "&page=" + str(page_number) + "&dql=" + urllib.parse.quote(sql)
+  headers = {'cache-control': 'no-cache'}
+  r = requests.get(url, headers=headers, auth=(ecms_user,ecms_password))
+  return r
 
 def get_where_clause(lan_id, query, request_type='doc'):
   filter_var = 'erma_doc_custodian'
@@ -470,7 +470,7 @@ def get_documentum_records(config, lan_id, items_per_page, page_number, query, e
       success, records, response = get_erma_content(config, lan_id, items_per_page, page_number, query, env)
       if not success:
           return response
-      return Response(DocumentumRecordList(records=records, total=total_count), status=200, mimetype='application/json')
+      return Response(DocumentumRecordList(records=records, total=total_count).to_json(), status=200, mimetype='application/json')
   
   # Case where we need only pull erma_doc/email
   elif content_count < offset:
@@ -484,7 +484,7 @@ def get_documentum_records(config, lan_id, items_per_page, page_number, query, e
       if not second_success:
           return second_response
       sliced_records = records[page_offset:] + second_records[:page_offset]
-      return Response(DocumentumRecordList(records=sliced_records, total=total_count), status=200, mimetype='application/json')
+      return Response(DocumentumRecordList(records=sliced_records, total=total_count).to_json(), status=200, mimetype='application/json')
   
   # Case where we are paging across the boundary
   else:
@@ -498,20 +498,28 @@ def get_documentum_records(config, lan_id, items_per_page, page_number, query, e
       if not second_success:
           return second_response
       sliced_records = records[page_offset:] + second_records[:page_offset]
-      return Response(DocumentumRecordList(records=sliced_records, total=total_count).to_dict(), status=200, mimetype='application/json')
+      return Response(DocumentumRecordList(records=sliced_records, total=total_count).to_json(), status=200, mimetype='application/json')
       
 
 def object_id_is_valid(config, object_id):
   return re.fullmatch('[a-z0-9]{16}', object_id) is not None and object_id[2:8] == config.records_repository_id
 
 def download_documentum_record(config, lan_id, object_ids, env):
+  if env == 'prod':
+    ecms_host = config.documentum_prod_url
+    ecms_user = config.documentum_prod_username
+    ecms_password = config.documentum_prod_password
+  else:
+    ecms_host = config.documentum_dev_url
+    ecms_user = config.documentum_dev_username
+    ecms_password = config.documentum_dev_password
   # Validate object_ids
   for object_id in object_ids:
     valid = object_id_is_valid(config, object_id)
     if not valid:
       return Response('Object ID invalid: ' + object_id, status=400, mimetype='text/plain')
   doc_where_clause = ' OR '.join(["s.r_object_id = '" + str(x) + "'" for x in object_ids])
-  doc_info_sql = "select s.ERMA_DOC_CUSTODIAN as erma_doc_custodian, r_object_id from ECMSRMR65.ERMA_DOC_SV s where " + doc_where_clause + ";"
+  doc_info_sql = "select s.ERMA_DOC_CUSTODIAN as erma_doc_custodian, r_object_id, r_object_type from erma_doc s where " + doc_where_clause + ";"
   # This gives some buffer, even though there should be exactly len(object_ids) items to recover
   r = dql_request(config, doc_info_sql, 2*len(object_ids), 1, env)
   if r.status_code != 200:
@@ -520,21 +528,22 @@ def download_documentum_record(config, lan_id, object_ids, env):
   missing_ids = set(object_ids) - set([doc['content']['properties']['r_object_id'] for doc in r.json()['entries']])
   if len(missing_ids) != 0:
     return Response('The following object_ids could not be found: ' + ', '.join(list(missing_ids)), status=400, mimetype='text/plain')
-  for doc in r.json()['entries']:
-    if doc['content']['properties']['erma_doc_custodian'] != lan_id:
-      return Response('User ' + lan_id + ' is not the custodian of all files requested.', status=401, mimetype='text/plain')
+  # TODO: Reenable custodian validation
+  #for doc in r.json()['entries']:
+  #  if doc['content']['properties']['erma_doc_custodian'] != lan_id:
+  #    return Response('User ' + lan_id + ' is not the custodian of all files requested.', status=401, mimetype='text/plain')
   
-  hrefs = ['https://' + config.documentum_prod_url + '/dctm-rest/repositories/ecmsrmr65/objects/' + obj for obj in object_ids]
+  hrefs = ['https://' + ecms_host + '/dctm-rest/repositories/ecmsrmr65/objects/' + obj for obj in object_ids]
   data = {'hrefs': list(set(hrefs))}
-  archive_url = 'https://' + config.documentum_prod_url + '/dctm-rest/repositories/ecmsrmr65/archived-contents'
+  archive_url = 'https://' + ecms_host + '/dctm-rest/repositories/ecmsrmr65/archived-contents'
   post_headers = {
     'cache-control': 'no-cache',
     'Content-Type': 'application/vnd.emc.documentum+json'
   }
-  archive_req = requests.post(archive_url, headers=post_headers, json=data, auth=(config.documentum_prod_username,config.documentum_prod_password))
+  archive_req = requests.post(archive_url, headers=post_headers, json=data, auth=(ecms_user,ecms_password))
   if archive_req.status_code != 200:
     app.logger.error(r.text)
-    return Response('Documentum archive request returned status ' + str(r.status_code), status=500, mimetype='text/plain')
+    return Response('Documentum archive request returned status ' + str(archive_req.status_code), status=500, mimetype='text/plain')
   b = io.BytesIO(archive_req.content)
   return send_file(b, mimetype='application/zip', as_attachment=True, attachment_filename='ecms_download.zip')
 
@@ -595,7 +604,7 @@ def convert_metadata(ecms_metadata, unid=None):
   documentum_schedule = '_'.join([schedule.function_number, schedule.schedule_number, schedule.disposition_number])
   return DocumentumMetadata(
     r_object_type='erma_content', 
-    object_name=ecms_metadata.title,
+    object_name=ecms_metadata.file_path,
     a_application_type="Ezdesktop",
     erma_content_title=ecms_metadata.title,
     erma_content_unid="Ezdesktop_" + unid,
@@ -623,4 +632,13 @@ def upload_documentum_email(upload_email_request, access_token, config):
   if content is None:
     return Response('Unable to retrieve email.', status=400, mimetype='text/plain')
   documentum_metadata = convert_metadata(ecms_metadata, upload_email_request.email_unid)
-  return upload_documentum_record(content, documentum_metadata, config, upload_email_request.documentum_env)
+  upload_resp = upload_documentum_record(content, documentum_metadata, config, upload_email_request.documentum_env)
+  if '201' not in upload_resp.status:
+    return upload_resp 
+  else:
+    save_req = MarkSavedRequest(email_id = upload_email_request.email_id, sensitivity=ecms_metadata.sensitivity)
+    save_resp = mark_saved(save_req, access_token, config)
+    if save_resp.status == '200 OK':
+      return upload_resp 
+    else:
+      return save_resp

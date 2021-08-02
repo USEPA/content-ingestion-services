@@ -288,7 +288,7 @@ def my_records():
     req = MyRecordsRequest.from_dict(req)
     if user_info.lan_id != req.lan_id:
         return Response('User ' + user_info.lan_id + ' is not authorized to download records for ' + req.lan_id + '.', status=401, mimetype='text/plain')
-    return get_documentum_records(c, user_info.lan_id, req.items_per_page, req.page_number, req.query, req.documentum_env)
+    return get_documentum_records(c, user_info.lan_id, int(req.items_per_page), int(req.page_number), req.query, req.documentum_env)
 
 @app.route('/get_user_info', methods=['GET'])
 def user_info():
