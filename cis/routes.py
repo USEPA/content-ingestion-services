@@ -24,16 +24,17 @@ def log_request_info():
             g.sharepoint_access_token = request.headers.get('X-Sharepoint-Token')
         log_headers = dict(request.headers)
         # Remove sensitive information from logs
-        del log_headers['Authorization']
-        if 'X-Access-Token' in log_headers:
-            del log_headers['X-Access-Token'] 
-        if 'Cookie' in log_headers:
-            del log_headers['Cookie']
+        log_headers.pop('Authorization', None)
+        log_headers.pop('X-Access-Token', None)
+        log_headers.pop('X-Outlook-Token', None)
+        log_headers.pop('X-Sharepoint-Token', None)
+        log_headers.pop('Cookie', None)
         log_data = {
             'request_id': g.request_id, 
             'path': request.path, 
             'user': token_data['email'], 
-            'headers': log_headers
+            'headers': log_headers,
+            'remote_addr': request.remote_addr
             }
         app.logger.info('Incoming request -- ' + json.dumps(log_data))
 

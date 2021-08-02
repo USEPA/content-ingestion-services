@@ -43,6 +43,23 @@ class RecordScheduleList:
     schedules: list[RecordScheduleInformation]
 
 @dataclass_json
+@dataclass
+class ECMSMetadata:
+    file_path: str
+    custodian: str
+    title: str
+    description: Optional[str]
+    record_schedule: RecordSchedule 
+    creator: Optional[str] 
+    creation_date: Optional[str]
+    close_date: Optional[str]
+    sensitivity: str 
+    rights: Optional[list[str]]
+    coverage: Optional[list[str]]
+    relationships: Optional[list[str]]
+    tags: Optional[list[str]]
+
+@dataclass_json
 @dataclass 
 class DocumentumDocInfo:
     title: str
@@ -53,6 +70,7 @@ class DocumentumDocInfo:
     object_ids: list[str]
     size: float
     custodian: str
+    metadata: Optional[ECMSMetadata] = None
 
 @dataclass_json
 @dataclass 
@@ -102,23 +120,6 @@ mock_predicted_schedules = [
     Recommendation(**{"schedule": RecordSchedule(**{"function_number": "404", "schedule_number": "1012", "disposition_number": "b"}), "probability": 0.19178320467472076}), 
     Recommendation(**{"schedule": RecordSchedule(**{"function_number": "401", "schedule_number": "1006", "disposition_number": "b"}), "probability": 0.0495888851583004})]
 mock_metadata_prediction = MetadataPrediction(predicted_schedules=mock_predicted_schedules, title=mock_prediction_with_explanation, description=mock_prediction_with_explanation)
-
-@dataclass_json
-@dataclass
-class ECMSMetadata:
-    file_path: str
-    custodian: str
-    title: str
-    description: Optional[str]
-    record_schedule: RecordSchedule 
-    creator: Optional[str] 
-    creation_date: Optional[str]
-    close_date: Optional[str]
-    sensitivity: str 
-    rights: Optional[list[str]]
-    coverage: Optional[list[str]]
-    relationships: Optional[list[str]]
-    tags: Optional[list[str]]
 
 # Dates must be formatted as %Y-%m-%dT%H:%M:%S
 @dataclass_json

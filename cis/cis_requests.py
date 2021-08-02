@@ -301,69 +301,205 @@ def dql_request(config, sql, items_per_page, page_number, env):
     r = requests.get(url, headers=headers, auth=(ecms_user,ecms_password))
     return r
 
-def get_documentum_records(config, lan_id, items_per_page, page_number, query, env):
-  # TODO: Improve error handling
-  # Page across erma_content and other doc types
+def get_where_clause(lan_id, query, request_type='doc'):
+  filter_var = 'erma_doc_custodian'
+  if request_type == 'content':
+      filter_var = 'erma_custodian'
   if query is None or len(query.strip()) == 0:
-    where_clause = "where s.ERMA_DOC_CUSTODIAN = '" + lan_id + "'"
+      where = "where s." + filter_var + " = '" + lan_id + "'"
   else:
-    where_clause = "where s.ERMA_DOC_CUSTODIAN = '" + lan_id + "' and s.erma_doc_title LIKE \'%" + query + '%\''
-  count_sql = "select count(*) as total from (select s.ERMA_DOC_ID as erma_doc_id, MAX(s.R_CREATION_DATE) as creation_date from ECMSRMR65.ERMA_DOC_SV s " + where_clause + " group by erma_doc_id);"
-  count_request = dql_request(config, count_sql, items_per_page, page_number, env)
-  if count_request.status_code != 200:
-    return Response('Documentum count request returned status ' + str(count_request.status_code) + ' and error ' + str(count_request.text), status=500, mimetype='text/plain')
-  if 'entries' not in count_request.json():
-    return Response(DocumentumRecordList(total=0, records=[]).to_json(), status=200, mimetype='application/json')
-  total = count_request.json()['entries'][0]['content']['properties']['total']
-  if total == 0:
-    return Response(DocumentumRecordList(total=0, records=[]).to_json(), status=200, mimetype='application/json')
-  doc_id_sql = "select erma_doc_id, creation_date from (select s.ERMA_DOC_ID as erma_doc_id, MAX(s.R_CREATION_DATE) as creation_date from ECMSRMR65.ERMA_DOC_SV s " + where_clause + " group by erma_doc_id) ORDER BY creation_date DESC;"
+      where = "where s." + filter_var + " = '" + lan_id + "' and s.erma_doc_title LIKE \'%" + query + '%\''
+  if request_type == 'doc':
+      where = where + " and s.r_object_type != 'erma_content'"
+  return where
+    
+def get_erma_content_count(config, lan_id, query, env):
+  where_clause = get_where_clause(lan_id, query, 'content')
+  count_sql = "select count(distinct s.r_object_id) as total from erma_content s " + where_clause + ";"
+  count_request = dql_request(config, count_sql, 10, 1, env)
+  return count_request
+
+def get_erma_noncontent_count(config, lan_id, query, env):
+  where_clause = get_where_clause(lan_id, query, 'doc')
+  count_sql = "select count(distinct s.erma_doc_id) as total from erma_doc s " + where_clause + ";"
+  count_request = dql_request(config, count_sql, 10, 1, env)
+  return count_request
+
+# Returns a triple (success, data, response)
+# If some intermediate query fails, we se success to false and return a response
+# Otherwise success is true and we return the records pulled
+def get_erma_content(config, lan_id, items_per_page, page_number, query, env):
+  where_clause = get_where_clause(lan_id, query, 'content')
+  doc_info_sql = ("select s.r_object_id as r_object_id, "
+                  "s.a_content_type as content_type, "
+                  "s.r_full_content_size as r_full_content_size, "
+                  "s.erma_doc_sensitivity as sensitivity, "
+                  "s.erma_custodian as custodian, "
+                  "s.erma_content_title as title, "
+                  "s.erma_folder_path as file_path, "
+                  "s.erma_content_description as description, "
+                  "s.erma_content_schedule as record_schedule, "
+                  "s.erma_content_creator as creator, " 
+                  "s.erma_content_creation_date as creation_date, "
+                  "s.erma_content_close_date as close_date, "
+                  "s.erma_content_rights as rights, "
+                  "s.erma_content_coverage as coverage, "
+                  "s.erma_content_relation as relationships, "
+                  "s.erma_content_tags as tags "
+                  "from erma_content s " + where_clause + ";" )
+  r = dql_request(config, doc_info_sql, items_per_page, page_number, env)
+  if r.status_code != 200:
+      return False, None, Response('Documentum doc info request returned status ' + str(r.status_code) + ' and error ' + str(r.text), status=500, mimetype='text/plain')
+  if 'entries' not in r.json():
+      return True, [], None
+  doc_info = []
+  for doc in r.json()['entries']:
+      properties = doc['content']['properties']
+      object_id = properties['r_object_id']
+      size = properties['r_full_content_size']
+      if properties['sensitivity'] == '3':
+          sensitivity = 'private'
+      else:
+          sensitivity = 'shared'
+      if properties['content_type'] in ['html', 'xml', 'eml']:
+          doc_type = 'email'
+      else:
+          doc_type = 'document'
+      split_sched = properties['record_schedule'].split('_')
+      doc_data = {
+          "doc_id": object_id,
+          "size": size,
+          "object_ids": [object_id],
+          "title": properties['title'],
+          "date": properties['creation_date'],
+          "sensitivity": sensitivity,
+          "custodian": properties['custodian'],
+          "doc_type": doc_type,
+          "metadata": {
+              'file_path': properties['file_path'],
+              'custodian': properties['custodian'],
+              'title': properties['title'],
+              'description': properties['description'],
+              'record_schedule': {
+                  'function_number': split_sched[0],
+                  'schedule_number': split_sched[1],
+                  'disposition_number': split_sched[2]
+              },
+              'creator': properties['creator'],
+              'creation_date': properties['creation_date'],
+              'close_date': properties['close_date'],
+              'sensitivity': properties['sensitivity'],
+              'rights': properties['rights'],
+              'coverage': properties['coverage'],
+              'relationships': properties['relationships'],
+              'tags': properties['tags']
+          }
+      }
+      doc_info.append(doc_data)
+  doc_list = list(sorted([DocumentumDocInfo(**x) for x in doc_info], key=lambda x: x.date, reverse=True))
+  return True, doc_list, None 
+
+def get_erma_noncontent(config, lan_id, items_per_page, page_number, query, env):
+  where_clause = get_where_clause(lan_id, query, 'doc')
+  doc_id_sql = "select erma_doc_id, creation_date from (select s.ERMA_DOC_ID as erma_doc_id, MAX(s.R_CREATION_DATE) as creation_date from erma_doc s " + where_clause + " group by erma_doc_id) ORDER BY creation_date DESC;"
   r = dql_request(config, doc_id_sql, items_per_page, page_number, env)
   if r.status_code != 200:
-    return Response('Documentum doc ID request returned status ' + str(r.status_code) + ' and error ' + str(r.text), status=500, mimetype='text/plain')
+      return False, None, Response('Documentum doc ID request returned status ' + str(r.status_code) + ' and error ' + str(r.text), status=500, mimetype='text/plain')
   doc_id_resp = r.json()
   if 'entries' not in doc_id_resp:
-    return Response(DocumentumRecordList(total=0, records=[]).to_json(), status=200, mimetype='application/json')
+      return True, [], None
   doc_ids = [x['content']['properties']['erma_doc_id'] for x in doc_id_resp['entries']]
   doc_where_clause = ' OR '.join(["erma_doc_id = '" + str(x) + "'" for x in doc_ids])
-  doc_info_sql = "select s.erma_doc_sensitivity as erma_doc_sensitivity, s.R_OBJECT_TYPE as r_object_type, s.ERMA_DOC_DATE as erma_doc_date, s.ERMA_DOC_CUSTODIAN as erma_doc_custodian, s.ERMA_DOC_ID as erma_doc_id, s.R_FULL_CONTENT_SIZE as r_full_content_size, s.R_OBJECT_ID as r_object_id, s.ERMA_DOC_TITLE as erma_doc_title from ECMSRMR65.ERMA_DOC_SV s where " + doc_where_clause + ";"
-  r = dql_request(config, doc_info_sql, 3*int(items_per_page), 1, env)
+  doc_info_sql = "select s.erma_doc_sensitivity as sensitivity, s.R_OBJECT_TYPE as r_object_type, s.ERMA_DOC_DATE as erma_doc_date, s.ERMA_DOC_CUSTODIAN as erma_doc_custodian, s.ERMA_DOC_ID as erma_doc_id, s.R_FULL_CONTENT_SIZE as r_full_content_size, s.R_OBJECT_ID as r_object_id, s.ERMA_DOC_TITLE as erma_doc_title from ECMSRMR65.ERMA_DOC_SV s where " + doc_where_clause + ";"
+  r = dql_request(config, doc_info_sql, items_per_page, page_number, env)
   if r.status_code != 200:
-    app.logger.error(r.text)
-    return Response('Documentum doc info request returned status ' + str(r.status_code) + ' and error ' + str(r.text), status=500, mimetype='text/plain')
+      return False, None, Response('Documentum doc info request returned status ' + str(r.status_code) + ' and error ' + str(r.text), status=500, mimetype='text/plain')
   doc_info = {}
   for doc in r.json()['entries']:
-    properties = doc['content']['properties']
-    doc_id = properties['erma_doc_id']
-    object_id = properties['r_object_id']
-    size = properties['r_full_content_size']
-    if properties['erma_doc_sensitivity'] == '3':
-      sensitivity = 'private'
-    else:
-      sensitivity = 'shared'
-    if properties['r_object_type'] == 'erma_mail':
-      doc_type = 'email'
-    else:
-      doc_type = 'document'
-    if doc_id in doc_info:
-      data = doc_info[doc_id]
-      if doc_type == 'erma_mail':
-        data['doc_type'] = doc_type
-      data['object_ids'].append(object_id)
-      data['size'] += size
-    else:
-      doc_info[doc_id] = {
-        "doc_id": doc_id,
-        "size": size,
-        "object_ids": [object_id],
-        "title": properties['erma_doc_title'],
-        "date": properties['erma_doc_date'],
-        "sensitivity": sensitivity,
-        "custodian": properties['erma_doc_custodian'],
-        "doc_type": doc_type
-      }
-  doc_list = DocumentumRecordList(total=total, records=list(sorted([DocumentumDocInfo(**x) for x in doc_info.values()], key=lambda x: x.date, reverse=True)))
-  return Response(doc_list.to_json(), status=200, mimetype='application/json')
+      properties = doc['content']['properties']
+      doc_id = properties['erma_doc_id']
+      object_id = properties['r_object_id']
+      size = properties['r_full_content_size']
+      if properties['sensitivity'] == '3':
+          sensitivity = 'private'
+      else:
+          sensitivity = 'shared'
+      if properties['r_object_type'] == 'erma_mail':
+          doc_type = 'email'
+      else:
+          doc_type = 'document'
+      if doc_id in doc_info:
+          data = doc_info[doc_id]
+          if doc_type == 'erma_mail':
+              data['doc_type'] = doc_type
+          data['object_ids'].append(object_id)
+          data['size'] += size
+      else:
+          doc_info[doc_id] = {
+              "doc_id": doc_id,
+              "size": size,
+              "object_ids": [object_id],
+              "title": properties['erma_doc_title'],
+              "date": properties['erma_doc_date'],
+              "sensitivity": sensitivity,
+              "custodian": properties['erma_doc_custodian'],
+              "doc_type": doc_type,
+              "metadata": None
+          }
+  return True, list(sorted([DocumentumDocInfo(**x) for x in doc_info.values()], key=lambda x: x.date, reverse=True)), None
+
+def get_documentum_records(config, lan_id, items_per_page, page_number, query, env):
+  # First get count of erma_content records
+  content_count = get_erma_content_count(config, lan_id, query, env)
+  if content_count.status_code != 200:
+      return Response('Documentum content count request returned status ' + str(content_count.status_code) + ' and error ' + str(content_count.text), status=500, mimetype='text/plain')
+  content_count = int(content_count.json()['entries'][0]['content']['properties']['total'])
+  
+  # Count of records which are not erma_content (erma_doc or erma_mail)
+  noncontent_count = get_erma_noncontent_count(config, lan_id, query, env)
+  if noncontent_count.status_code != 200:
+      return Response('Documentum noncontent count request returned status ' + str(noncontent_count.status_code) + ' and error ' + str(noncontent_count.text), status=500, mimetype='text/plain')
+  noncontent_count = int(noncontent_count.json()['entries'][0]['content']['properties']['total'])
+  
+  # Determine if only need erma_content, only need erma_doc, or both
+  total_count = content_count + noncontent_count
+  offset = items_per_page * (page_number - 1)
+  
+  # Case where we need only pull erma_content
+  if content_count > (offset + items_per_page):
+      success, records, response = get_erma_content(config, lan_id, items_per_page, page_number, query, env)
+      if not success:
+          return response
+      return Response(DocumentumRecordList(records=records, total=total_count), status=200, mimetype='application/json')
+  
+  # Case where we need only pull erma_doc/email
+  elif content_count < offset:
+      noncontent_offset = offset - content_count
+      starting_page = int(noncontent_offset / items_per_page) + 1
+      page_offset = noncontent_offset - (starting_page - 1) * items_per_page
+      success, records, response = get_erma_noncontent(config, lan_id, items_per_page, starting_page, query, env)
+      if not success:
+          return response
+      second_success, second_records, second_response = get_erma_noncontent(config, lan_id, items_per_page, starting_page + 1, query, env)
+      if not second_success:
+          return second_response
+      sliced_records = records[page_offset:] + second_records[:page_offset]
+      return Response(DocumentumRecordList(records=sliced_records, total=total_count), status=200, mimetype='application/json')
+  
+  # Case where we are paging across the boundary
+  else:
+      noncontent_offset = offset - content_count
+      starting_page = int(noncontent_offset / items_per_page) + 1
+      page_offset = int(noncontent_offset - (starting_page - 1) * items_per_page)
+      success, records, response = get_erma_content(config, lan_id, items_per_page, starting_page, query, env)
+      if not success:
+          return response
+      second_success, second_records, second_response = get_erma_noncontent(config, lan_id, items_per_page, 1, query, env)
+      if not second_success:
+          return second_response
+      sliced_records = records[page_offset:] + second_records[:page_offset]
+      return Response(DocumentumRecordList(records=sliced_records, total=total_count).to_dict(), status=200, mimetype='application/json')
+      
 
 def object_id_is_valid(config, object_id):
   return re.fullmatch('[a-z0-9]{16}', object_id) is not None and object_id[2:8] == config.records_repository_id
