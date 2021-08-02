@@ -5,9 +5,13 @@ import argparse
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='The CIS backend server provides APIs which power the EZDesktop application.')
-    parser.add_argument('--model_path', 
+    parser.add_argument('--env', default='local',
+                    help='Environment where application is running. Options are local and cloud.')
+    parser.add_argument('--region_name', default=None,
+                    help='Region for cloud environment.')
+    parser.add_argument('--model_path', default='/home/models/distilbert-12-10',
                     help='Path to HuggingFace classifier model.')
-    parser.add_argument('--label_mapping_path', 
+    parser.add_argument('--label_mapping_path', default='/home/models/label_mapping.json',
                     help='Path to mapping between prediction indices and corresponding record schedules.')
     parser.add_argument('--config_path', default='dev_config.json',
                     help='Path to config file with environment dependent variables.')
