@@ -873,6 +873,7 @@ definitions:
         type: "string"
       sensitivity:
         type: "string"
+        enum: ["shared", "private"] 
       doc_id:
         type: "string"
       object_ids: 
@@ -883,6 +884,9 @@ definitions:
         type: "number"
       custodian:
         type: "string"
+      metadata:
+        type: "object"
+        $ref: "#/definitions/ECMSMetadata"
   DocumentumRecordList:
     type: "object"
     properties:
