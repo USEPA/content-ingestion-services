@@ -366,6 +366,8 @@ def get_erma_content(config, lan_id, items_per_page, page_number, query, env):
       else:
           doc_type = 'document'
       split_sched = properties['record_schedule'].split('_')
+      if len(split_sched) != 3:
+        split_sched = ['','','']
       doc_data = {
           "doc_id": object_id,
           "size": size,

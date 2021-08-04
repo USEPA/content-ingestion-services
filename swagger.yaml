@@ -737,7 +737,6 @@ definitions:
         type: "string"
         enum: ["dev", "prod"]
         default: "dev"
-        required: false
   MarkSavedRequest:
     type: "object"
     properties:
