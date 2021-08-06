@@ -398,7 +398,7 @@ def get_erma_content(config, lan_id, items_per_page, page_number, query, env):
           }
       }
       doc_info.append(doc_data)
-  doc_list = list(sorted([DocumentumDocInfo(**x) for x in doc_info], key=lambda x: x.date, reverse=True))
+  doc_list = [DocumentumDocInfo(**x) for x in doc_info]
   return True, doc_list, None 
 
 def get_erma_noncontent(config, lan_id, items_per_page, page_number, query, env):
@@ -448,7 +448,7 @@ def get_erma_noncontent(config, lan_id, items_per_page, page_number, query, env)
               "doc_type": doc_type,
               "metadata": None
           }
-  return True, list(sorted([DocumentumDocInfo(**x) for x in doc_info.values()], key=lambda x: x.date, reverse=True)), None
+  return True, [DocumentumDocInfo(**x) for x in doc_info.values()], None
 
 def get_documentum_records(config, lan_id, items_per_page, page_number, query, env):
   # First get count of erma_content records
