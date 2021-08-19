@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from dataclasses_json import dataclass_json
 from typing import Optional
-
+import datetime
 
 @dataclass_json
 @dataclass 
@@ -48,16 +48,16 @@ class ECMSMetadata:
     file_path: str
     custodian: str
     title: str
-    description: Optional[str]
+    description: Optional[str] = ''
     record_schedule: RecordSchedule 
-    creator: Optional[str] 
-    creation_date: Optional[str]
-    close_date: Optional[str]
+    creator: Optional[str] = ''
+    creation_date: Optional[str] = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+    close_date: Optional[str] = ''
     sensitivity: str 
-    rights: Optional[list[str]]
-    coverage: Optional[list[str]]
-    relationships: Optional[list[str]]
-    tags: Optional[list[str]]
+    rights: Optional[list[str]] = []
+    coverage: Optional[list[str]] = []
+    relationships: Optional[list[str]] = []
+    tags: Optional[list[str]] = []
 
 @dataclass_json
 @dataclass 
@@ -312,7 +312,7 @@ class UploadEmailRequest:
     metadata: ECMSMetadata 
     email_id: str
     email_unid: str
-    documentum_env: str
+    documentum_env: Optional[str] = 'dev'
 
 @dataclass_json
 @dataclass 
