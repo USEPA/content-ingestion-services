@@ -54,10 +54,10 @@ class ECMSMetadata:
     creation_date: Optional[str] = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
     close_date: Optional[str] = ''
     sensitivity: str 
-    rights: Optional[list[str]] = []
-    coverage: Optional[list[str]] = []
-    relationships: Optional[list[str]] = []
-    tags: Optional[list[str]] = []
+    rights: Optional[list[str]] = None
+    coverage: Optional[list[str]] = None
+    relationships: Optional[list[str]] = None
+    tags: Optional[list[str]] = None
 
 @dataclass_json
 @dataclass 
