@@ -48,12 +48,12 @@ class ECMSMetadata:
     file_path: str
     custodian: str
     title: str
+    record_schedule: RecordSchedule
+    sensitivity: str
     description: Optional[str] = ''
-    record_schedule: RecordSchedule 
     creator: Optional[str] = ''
     creation_date: Optional[str] = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
     close_date: Optional[str] = ''
-    sensitivity: str 
     rights: Optional[list[str]] = None
     coverage: Optional[list[str]] = None
     relationships: Optional[list[str]] = None
