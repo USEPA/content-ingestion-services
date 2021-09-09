@@ -352,6 +352,7 @@ class SharepointRecord:
     records_status: str
     sensitivity: str
     name: str
+    list_item_id: str
     created_date: str
     last_modified_date: str
 
@@ -381,6 +382,9 @@ class SharepointUploadRequest:
     web_url: str
     name: str
     created_date: str
+    site_id: str
+    list_id: str
+    list_item_id: str
     shared_drive_id: str
     private_drive_id: str
     metadata: ECMSMetadata 

@@ -668,6 +668,7 @@ def simplify_sharepoint_record(raw_rec, sensitivity):
     records_status = raw_rec['fields']['Records_x0020_Status'],
     sensitivity = sensitivity,
     name = raw_rec['fields']['FileLeafRef'],
+    list_item_id = raw_rec['id'],
     created_date = raw_rec['createdDateTime'],
     last_modified_date = raw_rec['lastModifiedDateTime']
   )
@@ -741,39 +742,35 @@ def upload_sharepoint_record(req: SharepointUploadRequest, access_token, c):
     return Response('Sharepoint record list request for record prediction failed with status ' + str(r.status_code), status=500, mimetype='application/json')
   sharepoint_items = r.json()['value']
   download_url = None
-  item_id = None
   for doc in sharepoint_items:
     name = doc['name']
     created_date = doc['createdDateTime']
     if name == req.name and created_date == req.created_date:
       download_url = doc['@microsoft.graph.downloadUrl']
-      item_id = doc['id']
       break
   if download_url is None:
-    return Response('Could not find provided URL', status=400, mimetype='text/plain')
+    return Response('Could not find provided file', status=400, mimetype='text/plain')
   content_req = requests.get(download_url)
   if content_req.status_code != 200:
     return Response('Content request failed with status ' + str(content_req.status_code), status=500, mimetype='text/plain')
   content = content_req.content
-  documentum_metadata = convert_metadata(req.metadata, item_id)
+  documentum_metadata = convert_metadata(req.metadata, req.list_item_id)
   upload_resp = upload_documentum_record(content, documentum_metadata, c, req.documentum_env)
   if upload_resp.status_code != 201:
-    print("UPLOAD FAILED")
     return upload_resp 
   else:
-    print('ATTEMPTING UPDATE')
-    success, response = update_sharepoint_record_status(req.site_id, req.list_id, item_id, access_token)
+    success, response = update_sharepoint_record_status(req.site_id, req.list_id, req.list_item_id, access_token)
     if not success:
       return response 
     else:
-      return Response('Record successfully uploaded.', status=200, mimetype='text/plain')
+      return upload_resp
 
 def update_sharepoint_record_status(site_id, list_id, item_id, access_token):
-  url = 'https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{list_id}/items/{item_id}'.format(site_id = site_id, list_id = list_id, item_id = item_id)
-  headers = headers = {'Authorization': 'Bearer ' + access_token}
-  data = {"Records_x0020_Status": "Successfully Uploaded"}
-  update_req = requests.patch(url, data=data, headers=headers)
-  if update_req.status_code != 201:
+  url = 'https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{list_id}/items/{item_id}/fields'.format(site_id = site_id, list_id = list_id, item_id = item_id)
+  headers = {'Authorization': 'Bearer ' + access_token}
+  data = {"Records_x0020_Status": "Uploaded"}
+  update_req = requests.patch(url, json=data, headers=headers)
+  if update_req.status_code != 200:
     return False, Response('Unable to update item with item_id = ' + item_id, status=500, mimetype='text/plain')
   else:
     return True, None

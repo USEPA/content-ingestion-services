@@ -678,7 +678,7 @@ paths:
           schema:
             $ref: "#/definitions/MetadataPrediction"
   /upload_sharepoint_record:
-    patch:
+    post:
       tags:
       - "sharepoint"
       summary: "Upload Sharepoint record to ECMS."
@@ -1057,6 +1057,12 @@ definitions:
       name: 
         type: string
       created_date: 
+        type: string
+      site_id:
+        type: string
+      list_id:
+        type: string
+      list_item_id:
         type: string
       shared_drive_id:
         type: string

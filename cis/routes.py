@@ -335,8 +335,8 @@ def sharepoint_prediction():
     req = SharepointPredictionRequest.from_dict(req)
     return sharepoint_record_prediction(req, g.access_token, c)
 
-@app.route('/upload_sharepoint_record', methods=['GET'])
+@app.route('/upload_sharepoint_record', methods=['POST'])
 def sharepoint_upload():
-    req = request.args
+    req = request.json
     req = SharepointUploadRequest.from_dict(req)
     return upload_sharepoint_record(req, g.access_token, c)
