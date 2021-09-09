@@ -11,22 +11,25 @@ tags:
 - name: "record_schedules"
   description: "APIs to access record schedule information."
 - name: "desktop"
-  description: "APIs to support desktop file upload"
+  description: "APIs to support desktop file upload."
 - name: "email"
-  description: "APIs to support email file upload"
+  description: "APIs to support email file upload."
+- name: "sharepoint"
+  description: "APIs to support Sharepoint integration."
 - name: "my_records"
-  description: "APIs for users to access their records"
+  description: "APIs for users to access their records."
 - name: "settings"
-  description: "APIs to access and edit user settings"
+  description: "APIs to access and edit user settings."
 - name: "schedule_predictions"
   description: "All APIs that provide record schedule recommendations."
 - name: "user_info"
   description: "APIs to give information about the user."
 - name: "sems"
   description: "APIs for integration with SEMS."
+
 schemes:
-- "https"
-- "http"
+- https
+- http
 paths:
   /file_metadata_prediction:
     post:
@@ -35,19 +38,19 @@ paths:
       - "desktop"
       summary: "Gets record schedule, title, and description recommendations for a document."
       consumes:
-        - "multipart/form-data"
+        - multipart/form-data
       parameters:
         - in: "formData"
           name: "file"
           type: "file"
           description: "The file to get recommendations for."
-        - in: "header"
+        - in: header
           name: "Authorization"
-          type: "string"
+          type: string
           format: "jwt"
           required: true
       responses:
-        "200":
+        200:
           description: "Recommendations were successfully given."
           schema:
             $ref: "#/definitions/MetadataPrediction"
@@ -57,19 +60,19 @@ paths:
       - "schedule_predictions"
       summary: "Gets record schedule recommendation for given text."
       consumes:
-        - "application/json"
+        - application/json
       parameters:
-        - in: "body"
+        - in: body
           name: "TextPredictionRequest"
           schema: 
             $ref: "#/definitions/TextPredictionRequest"
-        - in: "header"
+        - in: header
           name: "Authorization"
-          type: "string"
+          type: string
           format: "jwt"
           required: true
       responses:
-        "200":
+        200:
           description: "Recommendations were successfully given."
           schema:
             $ref: "#/definitions/MetadataPrediction"
@@ -80,22 +83,22 @@ paths:
       - "email"
       summary: "Gets metadata recommendations for given email."
       consumes:
-        - "application/json"
+        - application/json
       parameters:
-        - in: "query"
+        - in: query
           name: "email_id"
-          type: "string"
-        - in: "header"
+          type: string
+        - in: header
           name: "Authorization"
-          type: "string"
+          type: string
           format: "jwt"
           required: true
-        - in: "header"
-          name: "X-Outlook-Token"
-          type: "string"
+        - in: header
+          name: "X-Access-Token"
+          type: string
           required: true
       responses:
-        "200":
+        200:
           description: "Recommendations were successfully given."
           schema:
             $ref: "#/definitions/MetadataPrediction"
@@ -105,13 +108,13 @@ paths:
       - "user_info"
       summary: "Gets name, LAN ID, and department information for the user."
       parameters:
-        - in: "header"
+        - in: header
           name: "Authorization"
-          type: "string"
+          type: string
           format: "jwt"
           required: true
       responses:
-        "200":
+        200:
           description: "User information retrieved."
           schema:
             $ref: "#/definitions/UserInfo"
@@ -121,7 +124,7 @@ paths:
       - "desktop"
       summary: "Upload a file to ECMS with metadata."
       consumes:
-        - "multipart/form-data"
+        - multipart/form-data
       parameters:
         - in: "formData"
           name: "file"
@@ -129,19 +132,19 @@ paths:
           description: "The file to get recommendations for."
         - in: "formData"
           name: "metadata"
-          type: "string"
+          type: string
           description: "String of serialized JSON with ECMS metadata."
         - in: "formData"
           name: "documentum_env"
-          type: "string"
+          type: string
           description: "Environment - either dev or prod."
-        - in: "header"
+        - in: header
           name: "Authorization"
-          type: "string"
+          type: string
           format: "jwt"
           required: true
       responses:
-        "200":
+        200:
           description: "File was successfully uploaded."
           schema:
             $ref: "#/definitions/StatusResponse"
@@ -151,15 +154,15 @@ paths:
       - "email"
       summary: "List the mailboxes to which the user has access."
       consumes:
-        - "application/json"
+        - application/json
       parameters:
-        - in: "header"
+        - in: header
           name: "Authorization"
-          type: "string"
+          type: string
           format: "jwt"
           required: true
       responses:
-        "200":
+        200:
           description: "Mailboxes successfully listed."
           schema:
             $ref: "#/definitions/GetMailboxesResponse"
@@ -169,28 +172,28 @@ paths:
       - "email"
       summary: "List the emails in a given mailbox."
       consumes:
-        - "application/json"
+        - application/json
       parameters:
-        - in: "query"
+        - in: query
           name: "mailbox"
-          type: "string"
-        - in: "query"
+          type: string
+        - in: query
           name: "items_per_page"
-          type: "integer"
-        - in: "query"
+          type: integer
+        - in: query
           name: "page_number"
-          type: "integer"
-        - in: "header"
+          type: integer
+        - in: header
           name: "Authorization"
-          type: "string"
+          type: string
           format: "jwt"
           required: true
-        - in: "header"
-          name: "X-Outlook-Token"
-          type: "string"
+        - in: header
+          name: "X-Access-Token"
+          type: string
           required: true
       responses:
-        "200":
+        200:
           description: "Emails successfully retrieved."
           schema:
             $ref: "#/definitions/GetEmailResponse"
@@ -200,22 +203,22 @@ paths:
       - "email"
       summary: "Get the details for a specific email."
       consumes:
-        - "application/json"
+        - application/json
       parameters:
-        - in: "query"
+        - in: query
           name: "email_id"
-          type: "string"
-        - in: "header"
+          type: string
+        - in: header
           name: "Authorization"
-          type: "string"
+          type: string
           format: "jwt"
           required: true
-        - in: "header"
-          name: "X-Outlook-Token"
-          type: "string"
+        - in: header
+          name: "X-Access-Token"
+          type: string
           required: true
       responses:
-        "200":
+        200:
           description: "Email information provided."
           schema:
             $ref: "#/definitions/DescribeEmailResponse"
@@ -225,24 +228,24 @@ paths:
       - "email"
       summary: "Get the body of a specific email."
       consumes:
-        - "application/json"
+        - application/json
       parameters:
-        - in: "query"
+        - in: query
           name: "email_id"
-          type: "string"
-        - in: "header"
+          type: string
+        - in: header
           name: "Authorization"
-          type: "string"
+          type: string
           format: "jwt"
           required: true
-        - in: "header"
-          name: "X-Outlook-Token"
-          type: "string"
+        - in: header
+          name: "X-Access-Token"
+          type: string
           required: true
       produces:
         - text/html
       responses:
-        "200":
+        200:
           description: "Email body provided."
   /upload_email:
     post:
@@ -250,23 +253,23 @@ paths:
         - "email"
       summary: "Upload email to ECMS with metadata."
       consumes:
-        - "application/json"
+        - application/json
       parameters:
-        - in: "body"
+        - in: body
           name: "upload_request"
           schema: 
             $ref: "#/definitions/UploadEmailRequest"
-        - in: "header"
+        - in: header
           name: "Authorization"
-          type: "string"
+          type: string
           format: "jwt"
           required: true
-        - in: "header"
-          name: "X-Outlook-Token"
-          type: "string"
+        - in: header
+          name: "X-Access-Token"
+          type: string
           required: true
       responses:
-        "200":
+        200:
           description: "Email successfully uploaded."
           schema:
             $ref: "#/definitions/StatusResponse"
@@ -276,25 +279,25 @@ paths:
       - "email"
       summary: "Download an email as an EML file."
       consumes:
-        - "application/json"
+        - application/json
       parameters:
-        - in: "query"
+        - in: query
           name: "file_name"
-          type: "string"
-        - in: "query"
+          type: string
+        - in: query
           name: "email_id"
-          type: "string"
-        - in: "header"
+          type: string
+        - in: header
           name: "Authorization"
-          type: "string"
+          type: string
           format: "jwt"
           required: true
-        - in: "header"
-          name: "X-Outlook-Token"
-          type: "string"
+        - in: header
+          name: "X-Access-Token"
+          type: string
           required: true
       responses:
-        "200":
+        200:
           description: "EML file downloaded."
           schema:
             type: "file"
@@ -304,25 +307,25 @@ paths:
       - "email"
       summary: "Download an email attachment."
       consumes:
-        - "application/json"
+        - application/json
       parameters:
-        - in: "query"
+        - in: query
           name: "file_name"
-          type: "string"
-        - in: "query"
+          type: string
+        - in: query
           name: "attachment_id"
-          type: "string"
-        - in: "header"
+          type: string
+        - in: header
           name: "Authorization"
-          type: "string"
+          type: string
           format: "jwt"
           required: true
-        - in: "header"
-          name: "X-Outlook-Token"
-          type: "string"
+        - in: header
+          name: "X-Access-Token"
+          type: string
           required: true
       responses:
-        "200":
+        200:
           description: "Attachment downloaded."
           schema:
             type: "file"
@@ -332,23 +335,23 @@ paths:
       - "email"
       summary: "Mark an email with the saved tag in Outlook."
       consumes:
-        - "application/json"
+        - application/json
       parameters:
-        - in: "body"
+        - in: body
           name: "MarkSavedRequest"
           schema: 
             $ref: "#/definitions/MarkSavedRequest"
-        - in: "header"
+        - in: header
           name: "Authorization"
-          type: "string"
+          type: string
           format: "jwt"
           required: true
-        - in: "header"
-          name: "X-Outlook-Token"
-          type: "string"
+        - in: header
+          name: "X-Access-Token"
+          type: string
           required: true
       responses:
-        "200":
+        200:
           description: "Email marked as saved."
           schema:
             $ref: "#/definitions/StatusResponse"
@@ -358,23 +361,23 @@ paths:
       - "email"
       summary: "Remove record tag in Outlook."
       consumes:
-        - "application/json"
+        - application/json
       parameters:
-        - in: "body"
+        - in: body
           name: "UntagRequest"
           schema: 
             $ref: "#/definitions/UntagRequest"
-        - in: "header"
+        - in: header
           name: "Authorization"
-          type: "string"
+          type: string
           format: "jwt"
           required: true
-        - in: "header"
-          name: "X-Outlook-Token"
-          type: "string"
+        - in: header
+          name: "X-Access-Token"
+          type: string
           required: true
       responses:
-        "200":
+        200:
           description: "Record tag for email has been removed."
           schema:
             $ref: "#/definitions/StatusResponse"
@@ -384,15 +387,15 @@ paths:
       - "settings"
       summary: "Get record schedules favorited by user."
       consumes:
-        - "application/json"
+        - application/json
       parameters:
-        - in: "header"
+        - in: header
           name: "Authorization"
-          type: "string"
+          type: string
           format: "jwt"
           required: true
       responses:
-        "200":
+        200:
           description: "Favorites were added."
           schema:
             $ref: "#/definitions/GetFavoritesResponse"
@@ -402,24 +405,24 @@ paths:
       - "settings"
       summary: "Add favorites for user."
       consumes:
-        - "application/json"
+        - application/json
       parameters:
-        - in: "body"
+        - in: body
           name: "favs"
           description: "Lan ID for the user whose favorites are to be added and the IDs of the new favs."
           schema:
             $ref: "#/definitions/AddFavoritesRequest"
-        - in: "header"
+        - in: header
           name: "Authorization"
-          type: "string"
+          type: string
           format: "jwt"
           required: true
       responses:
-        "200":
+        200:
           description: "Favorites were added."
           schema:
             $ref: "#/definitions/StatusResponse"
-        "500":
+        500:
           description: "Server side failure with explanation."
           schema:
             $ref: "#/definitions/StatusResponse"
@@ -429,24 +432,24 @@ paths:
       - "settings"
       summary: "Remove favorites for user."
       consumes:
-        - "application/json"
+        - application/json
       parameters:
-        - in: "body"
+        - in: body
           name: "RemoveFavoritesRequest"
           description: "Lan ID for the user whose favorites are to be removed and the IDs of the favs."
           schema:
             $ref: "#/definitions/RemoveFavoritesRequest"
-        - in: "header"
+        - in: header
           name: "Authorization"
-          type: "string"
+          type: string
           format: "jwt"
           required: true
       responses:
-        "200":
+        200:
           description: "Favorites were removed."
           schema:
             $ref: "#/definitions/StatusResponse"
-        "500":
+        500:
           description: "Server side failure with explanation."
           schema:
             $ref: "#/definitions/StatusResponse"
@@ -456,15 +459,15 @@ paths:
       - "record_schedules"
       summary: "Get record schedule information."
       consumes:
-        - "application/json"
+        - application/json
       parameters:
-        - in: "header"
+        - in: header
           name: "Authorization"
-          type: "string"
+          type: string
           format: "jwt"
           required: true
       responses:
-        "200":
+        200:
           description: "Record schedule information retrieved."
           schema:
             $ref: "#/definitions/StatusResponse"
@@ -474,36 +477,36 @@ paths:
       - "my_records"
       summary: "Get information for existing records."
       consumes:
-        - "application/json"
+        - application/json
       parameters:
-        - in: "header"
+        - in: header
           name: "Authorization"
-          type: "string"
+          type: string
           format: "jwt"
           required: true
-        - in: "query"
+        - in: query
           name: "lan_id"
-          type: "string"
+          type: string
           required: true
-        - in: "query"
-          name: "query"
-          type: "string"
+        - in: query
+          name: query
+          type: string
           required: false
-        - in: "query"
+        - in: query
           name: "items_per_page"
-          type: "number"
+          type: number
           required: true
-        - in: "query"
+        - in: query
           name: "page_number"
-          type: "number"
+          type: number
           required: true
-        - in: "query"
+        - in: query
           name: "documentum_env"
-          type: "string"
+          type: string
           required: false
           default: "dev"
       responses:
-        "200":
+        200:
           description: "Record information retrieved."
           schema:
             $ref: "#/definitions/DocumentumRecordList"
@@ -513,30 +516,30 @@ paths:
       - "my_records"
       summary: "Download existing records."
       consumes:
-        - "application/json"
+        - application/json
       parameters:
-        - in: "header"
+        - in: header
           name: "Authorization"
-          type: "string"
+          type: string
           format: "jwt"
           required: true
-        - in: "query"
+        - in: query
           name: "lan_id"
-          type: "string"
+          type: string
           required: true
-        - in: "query"
+        - in: query
           name: "object_ids"
-          type: "array"
+          type: array
           items:
-            type: "string"
+            type: string
           required: true
-        - in: "query"
+        - in: query
           name: "documentum_env"
-          type: "string"
+          type: string
           required: false
           default: "dev"
       responses:
-        "200":
+        200:
           description: "Records zip file downloaded."
           schema:
             type: "file"
@@ -546,17 +549,17 @@ paths:
       - "sems"
       summary: "Gets SEMS site information."
       parameters:
-        - in: "header"
+        - in: header
           name: "Authorization"
-          type: "string"
+          type: string
           format: "jwt"
           required: true
-        - in: "query"
+        - in: query
           name: "region"
-          type: "string"
+          type: string
           required: true
       responses:
-        "200":
+        200:
           description: "Site information retrieved."
           schema:
             $ref: "#/definitions/GetSitesResponse"
@@ -566,338 +569,489 @@ paths:
       - "sems"
       summary: "Gets SEMS special processing information."
       parameters:
-        - in: "header"
+        - in: header
           name: "Authorization"
-          type: "string"
+          type: string
           format: "jwt"
           required: true
-        - in: "query"
+        - in: query
           name: "region"
-          type: "string"
+          type: string
           required: true
       responses:
-        "200":
+        200:
           description: "Special processing information retrieved."
           schema:
             $ref: "#/definitions/GetSpecialProcessingResponse"
+  /get_sharepoint_ids:
+    get:
+      tags:
+      - "sharepoint"
+      summary: "Get sharepoint list and site IDs for the user."
+      consumes:
+        - application/json
+      parameters:
+        - in: header
+          name: "Authorization"
+          type: string
+          format: "jwt"
+          required: true
+        - in: header
+          name: "X-Access-Token"
+          type: string
+          required: true
+      responses:
+        200:
+          description: "Sharepoint IDs were successfully returned."
+          schema:
+            $ref: "#/definitions/SharepointIdsResponse"
+  /get_sharepoint_records:
+    get:
+      tags:
+      - "sharepoint"
+      summary: "Get sharepoint list and site IDs for the user."
+      consumes:
+        - application/json
+      parameters:
+        - in: query
+          name: "site_id"
+          type: string
+          required: true
+        - in: query
+          name: "list_id"
+          type: string
+          required: true
+        - in: header
+          name: "Authorization"
+          type: string
+          format: "jwt"
+          required: true
+        - in: header
+          name: "X-Access-Token"
+          type: string
+          required: true
+      responses:
+        200:
+          description: "Sharepoint records were successfully returned."
+          schema:
+            $ref: "#/definitions/SharepointListResponse"
+  /sharepoint_metadata_prediction:
+    get:
+      tags:
+      - "sharepoint"
+      summary: "Get record schedule predictions for a Sharepoint record."
+      consumes:
+        - application/json
+      parameters:
+        - in: query
+          name: "web_url"
+          type: string
+          required: true
+        - in: query
+          name: "shared_drive_id"
+          type: string
+          required: true
+        - in: query
+          name: "private_drive_id"
+          type: string
+          required: true
+        - in: header
+          name: "Authorization"
+          type: string
+          format: "jwt"
+          required: true
+        - in: header
+          name: "X-Access-Token"
+          type: string
+          required: true
+      responses:
+        200:
+          description: "Sharepoint metadata predictions were successfully returned."
+          schema:
+            $ref: "#/definitions/MetadataPrediction"
+  /upload_sharepoint_record:
+    patch:
+      tags:
+      - "sharepoint"
+      summary: "Upload Sharepoint record to ECMS."
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: "data"
+          description: "ID fields and metadata needed to upload the record."
+          schema:
+            $ref: "#/definitions/SharepointUploadRequest"
+        - in: header
+          name: "Authorization"
+          type: string
+          format: "jwt"
+          required: true
+        - in: header
+          name: "X-Access-Token"
+          type: string
+          required: true
+      responses:
+        200:
+          description: "Record successfully uploaded."
 
 definitions:
   MetadataPrediction:
-    type: "object"
+    type: object
     properties:
       predicted_schedules:
-        type: "array"
+        type: array
         items: 
-          type: "object"
+          type: object
           properties:
             schedule: 
               $ref: "#/definitions/RecordSchedule"
             probability:
-              type: "number"
+              type: number
       title:
-        type: "object"
+        type: object
         properties:
           value: 
-            type: "string"
+            type: string
           prediction_type:
-            type: "string"
+            type: string
       description:
-        type: "object"
+        type: object
         properties:
           value: 
-            type: "string"
+            type: string
           prediction_type:
-            type: "string"
+            type: string
   AddFavoritesRequest:
-    type: "object"
+    type: object
     properties:
       record_schedules:
-        type: "array"
+        type: array
         items: 
           $ref: "#/definitions/RecordSchedule"
   RemoveFavoritesRequest:
-    type: "object"
+    type: object
     properties:
       record_schedules:
-        type: "array"
+        type: array
         items: 
           $ref: "#/definitions/RecordSchedule"
   StatusResponse:
-    type: "object"
+    type: object
     properties:
       status:
-        type: "string"
+        type: string
       reason: 
-        type: "string"
+        type: string
   TextPredictionRequest:
-    type: "object"
+    type: object
     properties:
       text:
-        type: "string"
+        type: string
   GetMailboxesResponse:
-    type: "object"
+    type: object
     properties:
       mailboxes:
-        type: "array"
+        type: array
         items: 
-          type: "string"
+          type: string
   SemsSite:
-    type: "object"
+    type: object
     properties:
       _id:
-        type: "string"
+        type: string
       region:
-        type: "string"
+        type: string
       epaid:
-        type: "string"
+        type: string
       sitename:
-        type: "string"
+        type: string
   GetSitesResponse:
-    type: "object"
+    type: object
     properties:
       sites:
-        type: "array"
+        type: array
         items:
           $ref: "#/definitions/SemsSite"
   SemsSpecialProcessing:
-    type: "object"
+    type: object
     properties:
       description: 
-        type: "string"
+        type: string
       code:
-        type: "string"
+        type: string
   GetSpecialProcessingResponse:
-    type: "object"
+    type: object
     properties:
       special_processing:
-        type: "array"
+        type: array
         items:
           $ref: "#/definitions/SemsSpecialProcessing"
   GetEmailResponse:
-    type: "object"
+    type: object
     properties:
       total_count: 
-        type: "integer"
+        type: integer
       page_number: 
-        type: "integer"
+        type: integer
       items_per_page: 
-        type: "integer"
+        type: integer
       emails:
-        type: "array"
+        type: array
         items:
-          type: "object"
+          type: object
           properties:
             unid:
-              type: "string"
+              type: string
             email_id: 
-              type: "string"
+              type: string
             _from:
-              type: "string"
+              type: string
             to:
-              type: "string"
+              type: string
             subject:
-              type: "string"
+              type: string
             sent:
-              type: "string"
+              type: string
             received:
-              type: "string"
+              type: string
             mailbox_source:
-              type: "string"
+              type: string
   DescribeEmailResponse:
-    type: "object"
+    type: object
     properties:
       email_id: 
-        type: "string"
+        type: string
       _from:
-        type: "string"
+        type: string
       to:
-        type: "string"
+        type: string
       subject:
-        type: "string"
+        type: string
       sent:
-        type: "string"
+        type: string
       received:
-        type: "string"
+        type: string
       body:
-        type: "string"
+        type: string
       attachments:
-        type: "array"
+        type: array
         items:
-          type: "string"  
+          type: string  
   UploadEmailRequest:
-    type: "object"
+    type: object
     properties:
       email_id:
-        type: "string"
+        type: string
       email_unid:
-        type: "string"
+        type: string
       metadata:
         $ref: "#/definitions/ECMSMetadata"
       documentum_env:
-        type: "string"
+        type: string
         enum: ["dev", "prod"]
         default: "dev"
   MarkSavedRequest:
-    type: "object"
+    type: object
     properties:
       email_id:
-        type: "string"
+        type: string
       sensitivity:
-        type: "string"
+        type: string
         enum: ["shared", "private"]
   UntagRequest:
-    type: "object"
+    type: object
     properties:
       email_id:
-        type: "string"
+        type: string
   ECMSMetadata:
-    type: "object"
+    type: object
     properties:
       file_path: 
-        type: "string"
+        type: string
       custodian: 
-        type: "string"
+        type: string
       title: 
-        type: "string"
+        type: string
       description:
-        type: "string"
+        type: string
       record_schedule:
         $ref: "#/definitions/RecordSchedule"
       creator: 
-        type: "string"
+        type: string
       creation_date: 
-        type: "string"
+        type: string
       close_date: 
-        type: "string"  
+        type: string  
       sensitivity:
-        type: "string"
+        type: string
         enum: ["shared", "private"]
       rights:
-        type: "array"
+        type: array
         items:
-          type: "string"
+          type: string
       coverage:
-        type: "array"
+        type: array
         items:
-          type: "string"
+          type: string
       tags:
-        type: "array"
+        type: array
         items:
-          type: "string"
+          type: string
       relationships:
-        type: "array"
+        type: array
         items:
-          type: "string"
+          type: string
   RecordSchedule:
-    type: "object"
+    type: object
     properties:
       function_number: 
-        type: "string"
+        type: string
       schedule_number: 
-        type: "string"
+        type: string
       disposition_number: 
-        type: "string"
+        type: string
   RecordScheduleInformation:
-    type: "object"
+    type: object
     properties:
       function_number: 
-        type: "string"
+        type: string
       schedule_number: 
-        type: "string"
+        type: string
       disposition_number: 
-        type: "string"
+        type: string
       display_name:
-        type: "string"
+        type: string
       schedule_title: 
-        type: "string" 
+        type: string 
       disposition_title:
-        type: "string" 
+        type: string 
       disposition_instructions:
-        type: "string" 
+        type: string 
       cutoff_instructions:
-        type: "string" 
+        type: string 
       function_title:
-        type: "string" 
+        type: string 
       program:
-        type: "string" 
+        type: string 
       applicability:
-        type: "string" 
+        type: string 
       nara_disposal_authority_item_level:
-        type: "string" 
+        type: string 
       nara_disposal_authority_schedule_level:
-        type: "string" 
+        type: string 
       final_disposition:
-        type: "string" 
+        type: string 
       disposition_summary:
-        type: "string" 
+        type: string 
       description:
-        type: "string" 
+        type: string 
       guidance:
-        type: "string" 
+        type: string 
       keywords:
-        type: "string" 
+        type: string 
   GetFavoritesResponse:
-    type: "object"
+    type: object
     properties:
       favorites:
-        type: "array"
+        type: array
         items:
           $ref: "#/definitions/RecordSchedule"
   GetRecordSchedulesResponse:
-    type: "object"
+    type: object
     properties:
       schedules:
-        type: "array"
+        type: array
         items:
           $ref: "#/definitions/RecordScheduleInformation"
   UserInfo:
-    type: "object"
+    type: object
     properties:
       lan_id: 
-        type: "string"
+        type: string
       display_name: 
-        type: "string"
+        type: string
       email: 
-        type: "string"
+        type: string
       department: 
-        type: "string"
+        type: string
   DocumentumDocInfo:
-    type: "object"
+    type: object
     properties:
       title: 
-        type: "string"
+        type: string
       doc_type: 
-        type: "string"
+        type: string
       date: 
-        type: "string"
+        type: string
       sensitivity:
-        type: "string"
+        type: string
         enum: ["shared", "private"] 
       doc_id:
-        type: "string"
+        type: string
       object_ids: 
-        type: "array"
+        type: array
         items: 
-          type: "string"
+          type: string
       size: 
-        type: "number"
+        type: number
       custodian:
-        type: "string"
+        type: string
       metadata:
-        type: "object"
         $ref: "#/definitions/ECMSMetadata"
   DocumentumRecordList:
-    type: "object"
+    type: object
     properties:
       total:
-        type: "number"
+        type: number
       records:
-        type: "array"
+        type: array
         items: 
           $ref: "#/definitions/DocumentumDocInfo"
-  RecordCountResponse:
-    type: "object"
+  SharepointIdsResponse:
+    type: object
     properties:
-      count:
-        type: "number"
+      site_id:
+        type: string
+      list_id:
+        type: string
+      shared_drive_id:
+        type: string
+      private_drive_id: 
+        type: string
+  SharepointRecord:
+    type: object
+    properties:
+      web_url:
+        type: string
+      records_status:
+        type: string
+      sensitivity:
+        type: string
+      file_leaf_ref:
+        type: string
+      created_date:
+        type: string
+      last_modified_date:
+        type: string
+  SharepointListResponse:
+    type: object
+    properties:
+      records:
+        type: array
+        items:
+          $ref: "#/definitions/SharepointRecord"
+  SharepointUploadRequest:
+    type: object
+    properties:
+      web_url: 
+        type: string
+      shared_drive_id:
+        type: string
+      private_drive_id:
+        type: string
+      metadata:
+        $ref: "#/definitions/ECMSMetadata"
+      documentum_env:
+        type: string
 

@@ -336,3 +336,48 @@ class GetFavoritesResponse:
     favorites: list[RecordSchedule]
 
 mock_get_favorites_response = GetFavoritesResponse(favorites = mock_schedules)
+
+@dataclass_json
+@dataclass 
+class SharepointIdsResponse:
+    site_id: str
+    list_id: str
+    shared_drive_id: str
+    private_drive_id: str
+
+@dataclass_json
+@dataclass 
+class SharepointRecord:
+    web_url: str
+    records_status: str
+    sensitivity: str
+    file_leaf_ref: str
+    created_date: str
+    last_modified_date: str
+
+@dataclass_json
+@dataclass 
+class SharepointListResponse:
+    records: list[SharepointRecord]
+
+@dataclass_json
+@dataclass 
+class GetSharepointRecordsRequest:
+    site_id: str
+    list_id: str
+
+@dataclass_json
+@dataclass 
+class SharepointPredictionRequest:
+    web_url: str
+    shared_drive_id: str
+    private_drive_id: str
+
+@dataclass_json
+@dataclass 
+class SharepointUploadRequest:
+    web_url: str
+    shared_drive_id: str
+    private_drive_id: str
+    metadata: ECMSMetadata 
+    documentum_env: Optional[str] = 'dev'

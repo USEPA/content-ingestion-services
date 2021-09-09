@@ -8,6 +8,7 @@ import urllib
 import io
 import re
 import uuid
+from . import model
 
 TIKA_CUTOFF = 20
 
@@ -308,7 +309,7 @@ def get_where_clause(lan_id, query, request_type='doc'):
   if query is None or len(query.strip()) == 0:
       where = "where s." + filter_var + " = '" + lan_id + "'"
   else:
-      where = "where s." + filter_var + " = '" + lan_id + "' and s.erma_doc_title LIKE \'%" + query + '%\''
+      where = "where s." + filter_var + " = '" + lan_id + "' and (s.erma_doc_title LIKE \'%" + query + '%\'' + "' or s.erma_content_title LIKE \'%" + query + '%\')'
   if request_type == 'doc':
       where = where + " and s.r_object_type != 'erma_content'"
   return where
@@ -644,3 +645,132 @@ def upload_documentum_email(upload_email_request, access_token, config):
       return upload_resp 
     else:
       return save_resp
+
+def get_sharepoint_ids(access_token):
+  r = requests.get('https://graph.microsoft.com/v1.0/me/drive/root?$select=sharepointIds', headers={'Authorization': 'Bearer ' + access_token})
+  if r.status_code != 200:
+    return Response('Sharepoint IDs failed with status ' + str(r.status_code), status=500, mimetype='application/json')
+  ids = r.json()['sharepointIds']
+  r = requests.get('https://graph.microsoft.com/v1.0/me/drive/root:/EZ Records - Shared/', headers={'Authorization': 'Bearer ' + access_token})
+  if r.status_code != 200:
+    return Response('Sharepoint shared ID request failed with status ' + str(r.status_code), status=500, mimetype='application/json')
+  shared_drive_id = r.json()['id']
+  r = requests.get('https://graph.microsoft.com/v1.0/me/drive/root:/EZ Records - Private/', headers={'Authorization': 'Bearer ' + access_token})
+  if r.status_code != 200:
+    return Response('Sharepoint private ID request failed with status ' + str(r.status_code), status=500, mimetype='application/json')
+  private_drive_id = r.json()['id']
+  response = SharepointIdsResponse(site_id=ids['siteId'], list_id=ids['listId'], shared_drive_id=shared_drive_id, private_drive_id=private_drive_id)
+  return Response(response.to_json(), status=200, mimetype='application/json')
+
+def simplify_sharepoint_record(raw_rec, sensitivity):
+  return SharepointRecord(
+    web_url = raw_rec['webUrl'],
+    records_status = raw_rec['fields']['Records_x0020_Status'],
+    sensitivity = sensitivity,
+    file_leaf_ref = raw_rec['fields']['FileLeafRef'],
+    created_date = raw_rec['createdDateTime'],
+    last_modified_date = raw_rec['lastModifiedDateTime']
+  )
+
+def list_sharepoint_records(req: GetSharepointRecordsRequest, access_token):
+  # TODO: Remove Prefer header when Sharepoint is updated to index the Records Status  field
+  headers = {'Authorization': 'Bearer ' + access_token, 'Prefer': 'HonorNonIndexedQueriesWarningMayFailRandomly'}
+  r = requests.get("https://graph.microsoft.com/v1.0/sites/" + req.site_id + "/lists/" + req.list_id + "/items?$filter=fields/Records_x0020_Status eq 'Pending'&$expand=fields", headers=headers)
+  if r.status_code != 200:
+    return Response('Sharepoint request failed with status ' + str(r.status_code), status=500, mimetype='application/json')
+  sharepoint_items = r.json()['values']
+  all_records = []
+  for doc in sharepoint_items:
+    web_url = doc['webUrl']
+    content_type = doc['fields']['ContentType']
+    if 'EZ%20Records%20-%20Shared' in web_url and content_type == 'Document':
+      all_records.append(simplify_sharepoint_record(doc, 'Shared'))
+    elif 'EZ%20Records%20-%20Private' in web_url and content_type == 'Document':
+      all_records.append(simplify_sharepoint_record(doc, 'Private'))
+  response = SharepointListResponse(all_records)
+  return Response(response.to_json(), status=200, mimetype='application/json')
+
+def sharepoint_record_prediction(req: SharepointPredictionRequest, access_token, c):
+  # TODO: Remove Prefer header when Sharepoint is updated to index the Records Status  field
+  headers = {'Authorization': 'Bearer ' + access_token}
+  if 'EZ%20Records%20-%20Shared' in req.web_url:
+      relevant_drive = req.shared_drive_id
+  elif 'EZ%20Records%20-%20Private' in req.web_url:
+      relevant_drive = req.private_drive_id
+  else:
+    return Response('Provided URL does not refer to an EZRecords folder.', status=400, mimetype='application/json')
+  url = 'https://graph.microsoft.com/v1.0/me/drive/items/' + relevant_drive + '/children'
+  r = requests.get(url, headers=headers)
+  if r.status_code != 200:
+    return Response('Sharepoint record list request for record prediction failed with status ' + str(r.status_code), status=500, mimetype='application/json')
+  sharepoint_items = r.json()['value']
+  download_url = None
+  for doc in sharepoint_items:
+    web_url = doc['webUrl']
+    if web_url == req.web_url:
+      download_url = doc['@microsoft.graph.downloadUrl']
+      break
+  if download_url is None:
+    return Response('Could not find provided URL', status=400, mimetype='application/json')
+  content_req = requests.get(download_url)
+  if content_req.status != 200:
+    return Response('Content request failed with status ' + str(content_req.status_code), status=500, mimetype='application/json')
+  content = content_req.content
+  success, text, response = tika(content, c, extraction_type='text')
+  if not success:
+      return response
+  predicted_schedules = model.predict(text)
+  predicted_title = mock_prediction_with_explanation
+  predicted_description = mock_prediction_with_explanation
+  prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description)
+  return Response(prediction.to_json(), status=200, mimetype='application/json')
+
+def upload_sharepoint_record(req: SharepointUploadRequest, access_token, c):
+  # TODO: Remove Prefer header when Sharepoint is updated to index the Records Status  field
+  headers = {'Authorization': 'Bearer ' + access_token}
+  if 'EZ%20Records%20-%20Shared' in req.web_url:
+      relevant_drive = req.shared_drive_id
+  elif 'EZ%20Records%20-%20Private' in req.web_url:
+      relevant_drive = req.private_drive_id
+  else:
+    return Response('Provided URL does not refer to an EZRecords folder.', status=400, mimetype='application/json')
+  url = 'https://graph.microsoft.com/v1.0/me/drive/items/' + relevant_drive + '/children'
+  r = requests.get(url, headers=headers)
+  if r.status_code != 200:
+    return Response('Sharepoint record list request for record prediction failed with status ' + str(r.status_code), status=500, mimetype='application/json')
+  sharepoint_items = r.json()['value']
+  download_url = None
+  item_id = None
+  for doc in sharepoint_items:
+    web_url = doc['webUrl']
+    if web_url == req.web_url:
+      download_url = doc['@microsoft.graph.downloadUrl']
+      item_id = doc['id']
+      break
+  if download_url is None:
+    return Response('Could not find provided URL', status=400, mimetype='text/plain')
+  content_req = requests.get(download_url)
+  if content_req.status != 200:
+    return Response('Content request failed with status ' + str(content_req.status_code), status=500, mimetype='text/plain')
+  content = content_req.content
+  documentum_metadata = convert_metadata(req.metadata, item_id)
+  upload_resp = upload_documentum_record(content, documentum_metadata, c, req.documentum_env)
+  if upload_resp.status_code != 201:
+    return upload_resp 
+  else:
+    success, response = update_sharepoint_record_status(req.site_id, req.list_id, item_id, access_token)
+    if not success:
+      return response 
+    else:
+      return Response('Record successfully uploaded.', status=200, mimetype='text/plain')
+
+def update_sharepoint_record_status(site_id, list_id, item_id, access_token):
+  url = 'https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{list_id}/items/{item_id}'.format(site_id = site_id, list_id = list_id, item_id = item_id)
+  headers = headers = {'Authorization': 'Bearer ' + access_token}
+  data = {"Records_x0020_Status": "Successfully Uploaded"}
+  update_req = requests.patch(url, data=data, headers=headers)
+  if update_req.status_code != 201:
+    return False, Response('Unable to update item with item_id = ' + item_id, status=500, mimetype='text/plain')
+  else:
+    return True, None
+  
