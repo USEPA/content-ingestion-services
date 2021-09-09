@@ -62,9 +62,9 @@ def file_metadata_prediction():
     else:
         return Response("No file found.", status=400, mimetype='text/plain')
 
-@app.route('/text_metadata_prediction', methods=['GET'])
+@app.route('/text_metadata_prediction', methods=['POST'])
 def text_metadata_prediction():  
-    req = request.args
+    req = request.json
     req = TextPredictionRequest.from_dict(req)
     predicted_schedules = model.predict(req.text)
     predicted_title = mock_prediction_with_explanation
