@@ -351,7 +351,7 @@ class SharepointRecord:
     web_url: str
     records_status: str
     sensitivity: str
-    file_leaf_ref: str
+    name: str
     created_date: str
     last_modified_date: str
 
@@ -370,6 +370,8 @@ class GetSharepointRecordsRequest:
 @dataclass 
 class SharepointPredictionRequest:
     web_url: str
+    name: str
+    created_date: str
     shared_drive_id: str
     private_drive_id: str
 
@@ -377,6 +379,8 @@ class SharepointPredictionRequest:
 @dataclass 
 class SharepointUploadRequest:
     web_url: str
+    name: str
+    created_date: str
     shared_drive_id: str
     private_drive_id: str
     metadata: ECMSMetadata 

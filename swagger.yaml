@@ -648,6 +648,14 @@ paths:
           type: string
           required: true
         - in: query
+          name: "name"
+          type: string
+          required: true
+        - in: query
+          name: "created_date"
+          type: string
+          required: true
+        - in: query
           name: "shared_drive_id"
           type: string
           required: true
@@ -1028,7 +1036,7 @@ definitions:
         type: string
       sensitivity:
         type: string
-      file_leaf_ref:
+      name:
         type: string
       created_date:
         type: string
@@ -1044,7 +1052,11 @@ definitions:
   SharepointUploadRequest:
     type: object
     properties:
-      web_url: 
+      web_url:
+        type: string
+      name: 
+        type: string
+      created_date: 
         type: string
       shared_drive_id:
         type: string

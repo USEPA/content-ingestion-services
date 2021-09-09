@@ -667,7 +667,7 @@ def simplify_sharepoint_record(raw_rec, sensitivity):
     web_url = raw_rec['webUrl'],
     records_status = raw_rec['fields']['Records_x0020_Status'],
     sensitivity = sensitivity,
-    file_leaf_ref = raw_rec['fields']['FileLeafRef'],
+    name = raw_rec['fields']['FileLeafRef'],
     created_date = raw_rec['createdDateTime'],
     last_modified_date = raw_rec['lastModifiedDateTime']
   )
@@ -678,14 +678,14 @@ def list_sharepoint_records(req: GetSharepointRecordsRequest, access_token):
   r = requests.get("https://graph.microsoft.com/v1.0/sites/" + req.site_id + "/lists/" + req.list_id + "/items?$filter=fields/Records_x0020_Status eq 'Pending'&$expand=fields", headers=headers)
   if r.status_code != 200:
     return Response('Sharepoint request failed with status ' + str(r.status_code), status=500, mimetype='application/json')
-  sharepoint_items = r.json()['values']
+  sharepoint_items = r.json()['value']
   all_records = []
   for doc in sharepoint_items:
     web_url = doc['webUrl']
     content_type = doc['fields']['ContentType']
-    if 'EZ%20Records%20-%20Shared' in web_url and content_type == 'Document':
+    if 'EZ%20Records%20-%20Shared' in web_url and 'EZ%20Records%20-%20Shared.lnk' not in web_url:
       all_records.append(simplify_sharepoint_record(doc, 'Shared'))
-    elif 'EZ%20Records%20-%20Private' in web_url and content_type == 'Document':
+    elif 'EZ%20Records%20-%20Private' in web_url and 'EZ%20Records%20-%20Private.lnk' not in web_url:
       all_records.append(simplify_sharepoint_record(doc, 'Private'))
   response = SharepointListResponse(all_records)
   return Response(response.to_json(), status=200, mimetype='application/json')
@@ -706,14 +706,15 @@ def sharepoint_record_prediction(req: SharepointPredictionRequest, access_token,
   sharepoint_items = r.json()['value']
   download_url = None
   for doc in sharepoint_items:
-    web_url = doc['webUrl']
-    if web_url == req.web_url:
+    name = doc['name']
+    created_date = doc['createdDateTime']
+    if name == req.name and created_date == req.created_date:
       download_url = doc['@microsoft.graph.downloadUrl']
       break
   if download_url is None:
     return Response('Could not find provided URL', status=400, mimetype='application/json')
   content_req = requests.get(download_url)
-  if content_req.status != 200:
+  if content_req.status_code != 200:
     return Response('Content request failed with status ' + str(content_req.status_code), status=500, mimetype='application/json')
   content = content_req.content
   success, text, response = tika(content, c, extraction_type='text')
@@ -742,22 +743,25 @@ def upload_sharepoint_record(req: SharepointUploadRequest, access_token, c):
   download_url = None
   item_id = None
   for doc in sharepoint_items:
-    web_url = doc['webUrl']
-    if web_url == req.web_url:
+    name = doc['name']
+    created_date = doc['createdDateTime']
+    if name == req.name and created_date == req.created_date:
       download_url = doc['@microsoft.graph.downloadUrl']
       item_id = doc['id']
       break
   if download_url is None:
     return Response('Could not find provided URL', status=400, mimetype='text/plain')
   content_req = requests.get(download_url)
-  if content_req.status != 200:
+  if content_req.status_code != 200:
     return Response('Content request failed with status ' + str(content_req.status_code), status=500, mimetype='text/plain')
   content = content_req.content
   documentum_metadata = convert_metadata(req.metadata, item_id)
   upload_resp = upload_documentum_record(content, documentum_metadata, c, req.documentum_env)
   if upload_resp.status_code != 201:
+    print("UPLOAD FAILED")
     return upload_resp 
   else:
+    print('ATTEMPTING UPDATE')
     success, response = update_sharepoint_record_status(req.site_id, req.list_id, item_id, access_token)
     if not success:
       return response 

@@ -323,6 +323,12 @@ def get_special_processing():
 def get_sharepoint_id():
     return get_sharepoint_ids(g.access_token)
 
+@app.route('/get_sharepoint_records', methods=['GET'])
+def get_sharepoint_records():
+    req = request.args
+    req = GetSharepointRecordsRequest.from_dict(req)
+    return list_sharepoint_records(req, g.access_token)
+
 @app.route('/sharepoint_metadata_prediction', methods=['GET'])
 def sharepoint_prediction():
     req = request.args
