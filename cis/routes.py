@@ -290,7 +290,29 @@ def user_info():
     success, message, user_info = get_user_info(c, g.token_data)
     if not success:
         return Response(message, status=400, mimetype='text/plain')
-    return Response(user_info.to_json(), status=200, mimetype='application/json')
+    r = requests.get('https://graph.microsoft.com/v1.0/me/drive/root?$select=sharepointIds', headers={'Authorization': 'Bearer ' + g.access_token})
+    if r.status_code != 200:
+        return Response('Sharepoint IDs failed with status ' + str(r.status_code), status=500, mimetype='application/json')
+    ids = r.json()['sharepointIds']
+    r = requests.get('https://graph.microsoft.com/v1.0/me/drive/root:/EZ Records - Shared/', headers={'Authorization': 'Bearer ' + g.access_token})
+    if r.status_code != 200:
+        return Response('Sharepoint shared ID request failed with status ' + str(r.status_code), status=500, mimetype='application/json')
+    shared_drive_id = r.json()['id']
+    r = requests.get('https://graph.microsoft.com/v1.0/me/drive/root:/EZ Records - Private/', headers={'Authorization': 'Bearer ' + g.access_token})
+    if r.status_code != 200:
+        return Response('Sharepoint private ID request failed with status ' + str(r.status_code), status=500, mimetype='application/json')
+    private_drive_id = r.json()['id']
+    user_data = UserData(
+        email = user_info.email,
+        display_name = user_info.display_name,
+        lan_id = user_info.lan_id,
+        department = user_info.department,
+        site_id = ids['siteId'],
+        list_id = ids['listId'],
+        shared_drive_id = shared_drive_id,
+        private_drive_id = private_drive_id
+    )
+    return Response(user_data.to_json(), status=200, mimetype='application/json')
 
 @app.route('/my_records_download', methods=['GET'])
 def my_records_download():

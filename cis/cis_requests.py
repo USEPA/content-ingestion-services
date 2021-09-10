@@ -692,7 +692,6 @@ def list_sharepoint_records(req: GetSharepointRecordsRequest, access_token):
   return Response(response.to_json(), status=200, mimetype='application/json')
 
 def sharepoint_record_prediction(req: SharepointPredictionRequest, access_token, c):
-  # TODO: Remove Prefer header when Sharepoint is updated to index the Records Status  field
   headers = {'Authorization': 'Bearer ' + access_token}
   if 'EZ%20Records%20-%20Shared' in req.web_url:
       relevant_drive = req.shared_drive_id
