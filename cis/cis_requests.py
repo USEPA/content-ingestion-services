@@ -674,21 +674,28 @@ def simplify_sharepoint_record(raw_rec, sensitivity):
   )
 
 def list_sharepoint_records(req: GetSharepointRecordsRequest, access_token):
+  page_number = int(req.page_number)
+  items_per_page = int(req.items_per_page)
+  if page_number <= 0:
+    return Response('Invalid page number. ', status=400, mimetype='text/plain')
+  if items_per_page <= 0:
+    return Response('Items per page must be > 0.', status=400, mimetype='text/plain')
   # TODO: Remove Prefer header when Sharepoint is updated to index the Records Status  field
   headers = {'Authorization': 'Bearer ' + access_token, 'Prefer': 'HonorNonIndexedQueriesWarningMayFailRandomly'}
   r = requests.get("https://graph.microsoft.com/v1.0/sites/" + req.site_id + "/lists/" + req.list_id + "/items?$filter=fields/Records_x0020_Status eq 'Pending'&$expand=fields", headers=headers)
   if r.status_code != 200:
-    return Response('Sharepoint request failed with status ' + str(r.status_code), status=500, mimetype='application/json')
+    return Response('Sharepoint request failed with status ' + str(r.status_code), status=500, mimetype='text/plain')
   sharepoint_items = r.json()['value']
   all_records = []
   for doc in sharepoint_items:
     web_url = doc['webUrl']
-    content_type = doc['fields']['ContentType']
     if 'EZ%20Records%20-%20Shared' in web_url and 'EZ%20Records%20-%20Shared.lnk' not in web_url:
       all_records.append(simplify_sharepoint_record(doc, 'Shared'))
     elif 'EZ%20Records%20-%20Private' in web_url and 'EZ%20Records%20-%20Private.lnk' not in web_url:
       all_records.append(simplify_sharepoint_record(doc, 'Private'))
-  response = SharepointListResponse(all_records)
+  all_records = sorted(all_records, key=lambda x: x.created_date, reverse=True)
+  paged_records = all_records[(page_number - 1) * items_per_page : page_number * items_per_page]
+  response = SharepointListResponse(paged_records)
   return Response(response.to_json(), status=200, mimetype='application/json')
 
 def sharepoint_record_prediction(req: SharepointPredictionRequest, access_token, c):

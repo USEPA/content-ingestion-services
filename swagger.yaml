@@ -621,6 +621,14 @@ paths:
           name: "list_id"
           type: string
           required: true
+        - in: query
+          name: "page_number"
+          type: integer
+          required: false
+        - in: query
+          name: "items_per_page"
+          type: integer
+          required: false
         - in: header
           name: "Authorization"
           type: string

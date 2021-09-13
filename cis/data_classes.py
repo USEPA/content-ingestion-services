@@ -378,6 +378,8 @@ class SharepointListResponse:
 class GetSharepointRecordsRequest:
     site_id: str
     list_id: str
+    page_number: Optional[int] = 1
+    items_per_page: Optional[int] = 10
 
 @dataclass_json
 @dataclass 
