@@ -1044,6 +1044,8 @@ definitions:
         type: string
       sensitivity:
         type: string
+      list_item_id:
+        type: string
       name:
         type: string
       created_date:
