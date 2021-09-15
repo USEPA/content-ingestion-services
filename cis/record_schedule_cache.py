@@ -7,8 +7,6 @@ from gql.transport.requests import RequestsHTTPTransport
 
 class RecordScheduleCache:
     def __init__(self, config, dnul_path):
-        #dnul = pd.read_csv(dnul_path)
-        #self.dnu_items = list(dnul['Disposition Item '])
         dnu_items = []
         with open(dnul_path, 'r') as f:
           for line in f:
@@ -16,15 +14,20 @@ class RecordScheduleCache:
             dnu_items.append(csv[1])
         self.dnu_items = dnu_items
         self.config = config
-        self.schedules = get_record_schedules(config, self.dnu_items)
+        _, self.schedules = get_record_schedules(config, self.dnu_items)
         self.update_ts = datetime.now()
         self.lock = threading.Lock()
 
     def get_schedules(self):
         diff = datetime.now() - self.update_ts
         with self.lock:
-          if diff.total_seconds() > 30 * 60:
-            self.schedules = get_record_schedules(self.config, self.dnu_items)
+          if diff.total_seconds() > 24 * 60 * 60:
+            request_success, schedules = get_record_schedules(self.config, self.dnu_items)
+            if request_success:
+              self.schedules = schedules
+            elif len(self.schedules) == 0:
+                print('Record schedule refresh failed and no data is cached. Defaulting to local data.')
+                self.schedules = schedules
             self.update_ts = datetime.now()
           return self.schedules
     
@@ -55,60 +58,67 @@ def process_schedule_data(schedule_dict):
     )
 
 def get_record_schedules(config, dnu_items):
-  transport = RequestsHTTPTransport(
-    url="https://" + config.record_schedules_server + "/ecms-graphql/graphql", verify=True, retries=3,
-  )
+  # If API request fails, fall back to local data.
+  try:
+    transport = RequestsHTTPTransport(
+      url="https://" + config.record_schedules_server + "/ecms-graphql/graphql", verify=True, retries=0,
+    )
 
-  client = Client(transport=transport, fetch_schema_from_transport=True)
+    client = Client(transport=transport, fetch_schema_from_transport=True)
 
-  query = gql(
-    """
-    query schedulesQuery {
-      recordSchedules(
-        orderBy: [SCHEDULE_NUMBER_DESC]
-      ) {
-        nodes {
-          id
-          scheduleItemNumber
-          scheduleNumber
-          scheduleTitle
-          itemNumber
-          itemTitle
-          functionCode
-          functionTitle
-          program
-          applicability
-          naraDisposalAuthorityRecordScheduleLevel
-          naraDisposalAuthorityItemLevel
-          finalDisposition
-          cutoffInstructions
-          dispositionInstructions
-          scheduleDescription
-          reservedFlag
-          dispositionSummary
-          guidance
-          retention
-          tenYear
-          status
-          revisedDate
-          reasonsForDisposition
-          custodians
-          relatedSchedules
-          previousNaraDisposalAuthority
-          entryDate
-          epaApproval
-          naraApproval
-          keywords
-          keywordsTitle
-          keywordsSubject
-          keywordsOrg
-          relatedTerms
+    query = gql(
+      """
+      query schedulesQuery {
+        recordSchedules(
+          orderBy: [SCHEDULE_NUMBER_DESC]
+        ) {
+          nodes {
+            id
+            scheduleItemNumber
+            scheduleNumber
+            scheduleTitle
+            itemNumber
+            itemTitle
+            functionCode
+            functionTitle
+            program
+            applicability
+            naraDisposalAuthorityRecordScheduleLevel
+            naraDisposalAuthorityItemLevel
+            finalDisposition
+            cutoffInstructions
+            dispositionInstructions
+            scheduleDescription
+            reservedFlag
+            dispositionSummary
+            guidance
+            retention
+            tenYear
+            status
+            revisedDate
+            reasonsForDisposition
+            custodians
+            relatedSchedules
+            previousNaraDisposalAuthority
+            entryDate
+            epaApproval
+            naraApproval
+            keywords
+            keywordsTitle
+            keywordsSubject
+            keywordsOrg
+            relatedTerms
+          }
         }
       }
-    }
-  """
-  )
-
-  result = client.execute(query)
+    """
+    )
+    result = client.execute(query)
+    request_success = True
+  except:
+    print('Failed to fetch record schedule data. Defaulting to local data.')
+    with open('record_schedule_data.json', 'r') as f:
+      result = json.loads(f.read())
+    request_success = False
   filtered_results = list(filter(lambda x: x['scheduleItemNumber'] not in dnu_items, result['recordSchedules']['nodes']))
-  return RecordScheduleList([process_schedule_data(x) for x in filtered_results])
+  return request_success, RecordScheduleList([process_schedule_data(x) for x in filtered_results])
