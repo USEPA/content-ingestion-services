@@ -54,10 +54,10 @@ def file_metadata_prediction():
         success, text, response = tika(file, c)
         if not success:
             return response
-        predicted_schedules = model.predict(text)
+        predicted_schedules, default_schedule = model.predict(text)
         predicted_title = mock_prediction_with_explanation
         predicted_description = mock_prediction_with_explanation
-        prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description)
+        prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description, default_schedule=default_schedule)
         return Response(prediction.to_json(), status=200, mimetype='application/json')
     else:
         return Response("No file found.", status=400, mimetype='text/plain')
@@ -66,10 +66,10 @@ def file_metadata_prediction():
 def text_metadata_prediction():  
     req = request.json
     req = TextPredictionRequest.from_dict(req)
-    predicted_schedules = model.predict(req.text)
+    predicted_schedules, default_schedule = model.predict(req.text)
     predicted_title = mock_prediction_with_explanation
     predicted_description = mock_prediction_with_explanation
-    prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description)
+    prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description, default_schedule=default_schedule)
     return Response(prediction.to_json(), status=200, mimetype='application/json')
 
 @app.route('/email_metadata_prediction', methods=['GET'])
@@ -84,10 +84,10 @@ def email_metadata_prediction():
     success, text, response = tika(eml_file, c, extraction_type='text')
     if not success:
         return response
-    predicted_schedules = model.predict(text)
+    predicted_schedules, default_schedule = model.predict(text)
     predicted_title = mock_prediction_with_explanation
     predicted_description = mock_prediction_with_explanation
-    prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description)
+    prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description, default_schedule=default_schedule)
     return Response(prediction.to_json(), status=200, mimetype='application/json')
 
 @app.route('/upload_file', methods=['POST'])

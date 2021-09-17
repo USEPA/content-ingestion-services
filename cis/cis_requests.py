@@ -703,10 +703,10 @@ def sharepoint_record_prediction(req: SharepointPredictionRequest, access_token,
   success, text, response = tika(content, c, extraction_type='text')
   if not success:
       return response
-  predicted_schedules = model.predict(text)
+  predicted_schedules, default_schedule = model.predict(text)
   predicted_title = mock_prediction_with_explanation
   predicted_description = mock_prediction_with_explanation
-  prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description)
+  prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description, default_schedule=default_schedule)
   return Response(prediction.to_json(), status=200, mimetype='application/json')
 
 def upload_sharepoint_record(req: SharepointUploadRequest, access_token, c):

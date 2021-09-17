@@ -46,5 +46,5 @@ def get_sems_sites(config):
         grouped_by_region[site.region].append(site)
     return grouped_by_region
   except:
-    return {}
+    return None
     

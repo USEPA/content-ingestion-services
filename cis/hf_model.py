@@ -20,7 +20,7 @@ class HuggingFaceModel():
             self.label_mapping = json.loads(f.read())
             self.reverse_mapping = {v:k for k,v in self.label_mapping.items()}
         
-    def predict(self, text, k=3):
+    def predict(self, text, k=3, default_categorization_threshold=0.95):
         # Tokenize text
         # thread lock tokenization https://github.com/huggingface/tokenizers/issues/537
         with self.lock:
@@ -39,4 +39,9 @@ class HuggingFaceModel():
         # Prepare response
         final_preds = [Recommendation(probability=selected_probs[i], schedule = classes[i]) for i in range(k)]
         final_preds = sorted(final_preds, key=lambda x:-x.probability)
-        return final_preds
+        # Automatically categorize if top prediction exceeds threshold
+        default_schedule = None
+        highest_pred = final_preds[0]
+        if highest_pred.probability > default_categorization_threshold:
+            default_schedule = highest_pred.schedule
+        return final_preds, default_schedule

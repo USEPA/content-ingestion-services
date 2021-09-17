@@ -111,7 +111,8 @@ mock_prediction_with_explanation = PredictionWithExplanation(value="None", predi
 @dataclass_json
 @dataclass 
 class MetadataPrediction:
-    predicted_schedules: list[Recommendation] 
+    predicted_schedules: list[Recommendation]
+    default_schedule: Optional[RecordSchedule]
     title: PredictionWithExplanation
     description: PredictionWithExplanation
 
