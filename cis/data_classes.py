@@ -208,6 +208,8 @@ class SemsSite:
     region: str
     epaid: str
     sitename: str
+    ssid: str
+    ou: str
 
 @dataclass_json
 @dataclass 

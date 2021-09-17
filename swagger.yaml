@@ -782,6 +782,10 @@ definitions:
         type: string
       sitename:
         type: string
+      ssid:
+        type: string
+      ou: 
+        type: string
   GetSitesResponse:
     type: object
     properties:

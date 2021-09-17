@@ -333,6 +333,8 @@ def get_sites():
     req = request.args
     req = GetSitesRequest.from_dict(req)
     sites = sems_site_cache.get_sites(req.region)
+    if sites is None:
+        return Response('Unable to retrieve SEMS sites.', status=500, mimetype='text/plain')
     return Response(GetSitesResponse(sites).to_json(), status=200, mimetype='application/json')
 
 @app.route('/get_special_processing', methods=['GET'])
