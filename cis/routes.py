@@ -343,10 +343,6 @@ def get_special_processing():
     req = GetSpecialProcessingRequest.from_dict(req)
     return get_sems_special_processing(c, req.region)
 
-@app.route('/get_sharepoint_ids', methods=['GET'])
-def get_sharepoint_id():
-    return get_sharepoint_ids(g.access_token)
-
 @app.route('/get_sharepoint_records', methods=['GET'])
 def get_sharepoint_records():
     req = request.args

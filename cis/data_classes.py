@@ -366,7 +366,7 @@ class SharepointRecord:
     records_status: str
     sensitivity: str
     name: str
-    list_item_id: str
+    drive_item_id: str
     created_date: str
     last_modified_date: str
 
@@ -374,34 +374,22 @@ class SharepointRecord:
 @dataclass 
 class SharepointListResponse:
     records: list[SharepointRecord]
+    total_count: int
 
 @dataclass_json
 @dataclass 
 class GetSharepointRecordsRequest:
-    site_id: str
-    list_id: str
     page_number: Optional[int] = 1
     items_per_page: Optional[int] = 10
 
 @dataclass_json
 @dataclass 
 class SharepointPredictionRequest:
-    web_url: str
-    name: str
-    created_date: str
-    shared_drive_id: str
-    private_drive_id: str
+    drive_item_id: str
 
 @dataclass_json
 @dataclass 
 class SharepointUploadRequest:
-    web_url: str
-    name: str
-    created_date: str
-    site_id: str
-    list_id: str
-    list_item_id: str
-    shared_drive_id: str
-    private_drive_id: str
+    drive_item_id: str
     metadata: ECMSMetadata 
     documentum_env: Optional[str] = 'dev'

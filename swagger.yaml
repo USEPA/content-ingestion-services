@@ -583,28 +583,6 @@ paths:
           description: "Special processing information retrieved."
           schema:
             $ref: "#/definitions/GetSpecialProcessingResponse"
-  /get_sharepoint_ids:
-    get:
-      tags:
-      - "sharepoint"
-      summary: "Get sharepoint list and site IDs for the user."
-      consumes:
-        - application/json
-      parameters:
-        - in: header
-          name: "Authorization"
-          type: string
-          format: "jwt"
-          required: true
-        - in: header
-          name: "X-Access-Token"
-          type: string
-          required: true
-      responses:
-        200:
-          description: "Sharepoint IDs were successfully returned."
-          schema:
-            $ref: "#/definitions/SharepointIdsResponse"
   /get_sharepoint_records:
     get:
       tags:
@@ -613,14 +591,6 @@ paths:
       consumes:
         - application/json
       parameters:
-        - in: query
-          name: "site_id"
-          type: string
-          required: true
-        - in: query
-          name: "list_id"
-          type: string
-          required: true
         - in: query
           name: "page_number"
           type: integer
@@ -652,23 +622,7 @@ paths:
         - application/json
       parameters:
         - in: query
-          name: "web_url"
-          type: string
-          required: true
-        - in: query
-          name: "name"
-          type: string
-          required: true
-        - in: query
-          name: "created_date"
-          type: string
-          required: true
-        - in: query
-          name: "shared_drive_id"
-          type: string
-          required: true
-        - in: query
-          name: "private_drive_id"
+          name: "drive_item_id"
           type: string
           required: true
         - in: header
@@ -1028,17 +982,6 @@ definitions:
         type: array
         items: 
           $ref: "#/definitions/DocumentumDocInfo"
-  SharepointIdsResponse:
-    type: object
-    properties:
-      site_id:
-        type: string
-      list_id:
-        type: string
-      shared_drive_id:
-        type: string
-      private_drive_id: 
-        type: string
   SharepointRecord:
     type: object
     properties:
@@ -1066,21 +1009,7 @@ definitions:
   SharepointUploadRequest:
     type: object
     properties:
-      web_url:
-        type: string
-      name: 
-        type: string
-      created_date: 
-        type: string
-      site_id:
-        type: string
-      list_id:
-        type: string
-      list_item_id:
-        type: string
-      shared_drive_id:
-        type: string
-      private_drive_id:
+      drive_item_id:
         type: string
       metadata:
         $ref: "#/definitions/ECMSMetadata"

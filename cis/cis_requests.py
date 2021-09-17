@@ -646,33 +646,18 @@ def upload_documentum_email(upload_email_request, access_token, config):
     else:
       return save_resp
 
-def get_sharepoint_ids(access_token):
-  r = requests.get('https://graph.microsoft.com/v1.0/me/drive/root?$select=sharepointIds', headers={'Authorization': 'Bearer ' + access_token})
-  if r.status_code != 200:
-    return Response('Sharepoint IDs failed with status ' + str(r.status_code), status=500, mimetype='application/json')
-  ids = r.json()['sharepointIds']
-  r = requests.get('https://graph.microsoft.com/v1.0/me/drive/root:/EZ Records - Shared/', headers={'Authorization': 'Bearer ' + access_token})
-  if r.status_code != 200:
-    return Response('Sharepoint shared ID request failed with status ' + str(r.status_code), status=500, mimetype='application/json')
-  shared_drive_id = r.json()['id']
-  r = requests.get('https://graph.microsoft.com/v1.0/me/drive/root:/EZ Records - Private/', headers={'Authorization': 'Bearer ' + access_token})
-  if r.status_code != 200:
-    return Response('Sharepoint private ID request failed with status ' + str(r.status_code), status=500, mimetype='application/json')
-  private_drive_id = r.json()['id']
-  response = SharepointIdsResponse(site_id=ids['siteId'], list_id=ids['listId'], shared_drive_id=shared_drive_id, private_drive_id=private_drive_id)
-  return Response(response.to_json(), status=200, mimetype='application/json')
-
 def simplify_sharepoint_record(raw_rec, sensitivity):
   return SharepointRecord(
     web_url = raw_rec['webUrl'],
-    records_status = raw_rec['fields']['Records_x0020_Status'],
+    records_status = raw_rec['listItem']['fields']['Records_x0020_Status'],
     sensitivity = sensitivity,
-    name = raw_rec['fields']['FileLeafRef'],
-    list_item_id = raw_rec['id'],
+    name = raw_rec['name'],
+    drive_item_id = raw_rec['id'],
     created_date = raw_rec['createdDateTime'],
     last_modified_date = raw_rec['lastModifiedDateTime']
   )
 
+# TODO: handle case when shared/private folders contain more than 5000 records.
 def list_sharepoint_records(req: GetSharepointRecordsRequest, access_token):
   page_number = int(req.page_number)
   items_per_page = int(req.items_per_page)
@@ -680,46 +665,37 @@ def list_sharepoint_records(req: GetSharepointRecordsRequest, access_token):
     return Response('Invalid page number. ', status=400, mimetype='text/plain')
   if items_per_page <= 0:
     return Response('Items per page must be > 0.', status=400, mimetype='text/plain')
-  # TODO: Remove Prefer header when Sharepoint is updated to index the Records Status  field
-  headers = {'Authorization': 'Bearer ' + access_token, 'Prefer': 'HonorNonIndexedQueriesWarningMayFailRandomly'}
-  r = requests.get("https://graph.microsoft.com/v1.0/sites/" + req.site_id + "/lists/" + req.list_id + "/items?$filter=fields/Records_x0020_Status eq 'Pending'&$expand=fields", headers=headers)
-  if r.status_code != 200:
-    return Response('Sharepoint request failed with status ' + str(r.status_code), status=500, mimetype='text/plain')
-  sharepoint_items = r.json()['value']
   all_records = []
-  for doc in sharepoint_items:
-    web_url = doc['webUrl']
-    if 'EZ%20Records%20-%20Shared' in web_url and 'EZ%20Records%20-%20Shared.lnk' not in web_url:
-      all_records.append(simplify_sharepoint_record(doc, 'Shared'))
-    elif 'EZ%20Records%20-%20Private' in web_url and 'EZ%20Records%20-%20Private.lnk' not in web_url:
-      all_records.append(simplify_sharepoint_record(doc, 'Private'))
-  all_records = sorted(all_records, key=lambda x: x.created_date, reverse=True)
-  paged_records = all_records[(page_number - 1) * items_per_page : page_number * items_per_page]
-  response = SharepointListResponse(paged_records)
+  # Get shared records
+  headers = {'Authorization': 'Bearer ' + access_token}
+  shared = requests.get("https://graph.microsoft.com/v1.0/me/drive/root:/EZ Records - Shared:/children/?$expand=listitem", headers=headers)
+  if shared.status_code != 200:
+    return Response('Failed to retrieve shared OneDrive items.', status=500, mimetype='text/plain')
+  shared_items = shared.json()['value']
+  for doc in shared_items:
+    all_records.append(simplify_sharepoint_record(doc, 'Shared'))
+  # Get private records
+  private = requests.get("https://graph.microsoft.com/v1.0/me/drive/root:/EZ Records - Private:/children/?$expand=listitem", headers=headers)
+  if shared.status_code != 200:
+    return Response('Failed to retrieve private OneDrive items.', status=500, mimetype='text/plain')
+  private_items = private.json()['value']
+  for doc in private_items:
+    all_records.append(simplify_sharepoint_record(doc, 'Private'))
+  filtered_records = list(filter(lambda x: x.records_status == 'Pending', all_records))
+  filtered_records = sorted(filtered_records, key=lambda x: x.last_modified_date, reverse=True)
+  total_count = len(filtered_records)
+  paged_records = filtered_records[(page_number - 1) * items_per_page : page_number * items_per_page]
+  response = SharepointListResponse(records=paged_records, total_count=total_count)
   return Response(response.to_json(), status=200, mimetype='application/json')
 
 def sharepoint_record_prediction(req: SharepointPredictionRequest, access_token, c):
   headers = {'Authorization': 'Bearer ' + access_token}
-  if 'EZ%20Records%20-%20Shared' in req.web_url:
-      relevant_drive = req.shared_drive_id
-  elif 'EZ%20Records%20-%20Private' in req.web_url:
-      relevant_drive = req.private_drive_id
-  else:
-    return Response('Provided URL does not refer to an EZRecords folder.', status=400, mimetype='application/json')
-  url = 'https://graph.microsoft.com/v1.0/me/drive/items/' + relevant_drive + '/children'
+  url = 'https://graph.microsoft.com/v1.0/me/drive/items/' + req.drive_item_id
   r = requests.get(url, headers=headers)
   if r.status_code != 200:
-    return Response('Sharepoint record list request for record prediction failed with status ' + str(r.status_code), status=500, mimetype='application/json')
-  sharepoint_items = r.json()['value']
-  download_url = None
-  for doc in sharepoint_items:
-    name = doc['name']
-    created_date = doc['createdDateTime']
-    if name == req.name and created_date == req.created_date:
-      download_url = doc['@microsoft.graph.downloadUrl']
-      break
-  if download_url is None:
-    return Response('Could not find provided URL', status=400, mimetype='application/json')
+    app.logger.error('Unable to find OneDrive item: ' + r.text)
+    return Response('Unable to find OneDrive item: ' + str(r.text), status=400, mimetype='application/json')
+  download_url = r.json()['@microsoft.graph.downloadUrl']
   content_req = requests.get(download_url)
   if content_req.status_code != 200:
     return Response('Content request failed with status ' + str(content_req.status_code), status=500, mimetype='application/json')
@@ -734,38 +710,28 @@ def sharepoint_record_prediction(req: SharepointPredictionRequest, access_token,
   return Response(prediction.to_json(), status=200, mimetype='application/json')
 
 def upload_sharepoint_record(req: SharepointUploadRequest, access_token, c):
-  # TODO: Remove Prefer header when Sharepoint is updated to index the Records Status  field
   headers = {'Authorization': 'Bearer ' + access_token}
-  if 'EZ%20Records%20-%20Shared' in req.web_url:
-      relevant_drive = req.shared_drive_id
-  elif 'EZ%20Records%20-%20Private' in req.web_url:
-      relevant_drive = req.private_drive_id
-  else:
-    return Response('Provided URL does not refer to an EZRecords folder.', status=400, mimetype='application/json')
-  url = 'https://graph.microsoft.com/v1.0/me/drive/items/' + relevant_drive + '/children'
+  url = 'https://graph.microsoft.com/v1.0/me/drive/items/' + req.drive_item_id + '?expand=listItem,sharepointIds'
   r = requests.get(url, headers=headers)
   if r.status_code != 200:
-    return Response('Sharepoint record list request for record prediction failed with status ' + str(r.status_code), status=500, mimetype='application/json')
-  sharepoint_items = r.json()['value']
-  download_url = None
-  for doc in sharepoint_items:
-    name = doc['name']
-    created_date = doc['createdDateTime']
-    if name == req.name and created_date == req.created_date:
-      download_url = doc['@microsoft.graph.downloadUrl']
-      break
-  if download_url is None:
-    return Response('Could not find provided file', status=400, mimetype='text/plain')
+    app.logger.error('Unable to find OneDrive item: ' + r.text)
+    return Response('Unable to find OneDrive item: ' + str(r.text), status=400, mimetype='application/json')
+  drive_item = r.json()
+  download_url = drive_item['@microsoft.graph.downloadUrl']
   content_req = requests.get(download_url)
   if content_req.status_code != 200:
+    app.logger.error('Content request failed: ' + r.text)
     return Response('Content request failed with status ' + str(content_req.status_code), status=500, mimetype='text/plain')
   content = content_req.content
-  documentum_metadata = convert_metadata(req.metadata, req.list_item_id)
+  documentum_metadata = convert_metadata(req.metadata, req.drive_item_id)
   upload_resp = upload_documentum_record(content, documentum_metadata, c, req.documentum_env)
   if upload_resp.status_code != 201:
     return upload_resp 
   else:
-    success, response = update_sharepoint_record_status(req.site_id, req.list_id, req.list_item_id, access_token)
+    site_id = drive_item['sharepointIds']['siteId']
+    list_id = drive_item['sharepointIds']['listId']
+    list_item_id = drive_item['sharepointIds']['listItemId']
+    success, response = update_sharepoint_record_status(site_id, list_id, list_item_id, access_token)
     if not success:
       return response 
     else:
@@ -774,9 +740,10 @@ def upload_sharepoint_record(req: SharepointUploadRequest, access_token, c):
 def update_sharepoint_record_status(site_id, list_id, item_id, access_token):
   url = 'https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{list_id}/items/{item_id}/fields'.format(site_id = site_id, list_id = list_id, item_id = item_id)
   headers = {'Authorization': 'Bearer ' + access_token}
-  data = {"Records_x0020_Status": "Uploaded"}
+  data = {"Records_x0020_Status": "Saved to ECMS Staging"}
   update_req = requests.patch(url, json=data, headers=headers)
   if update_req.status_code != 200:
+    app.logger.error('Unable to update item with item_id = ' + item_id + ': ' + update_req.text)
     return False, Response('Unable to update item with item_id = ' + item_id, status=500, mimetype='text/plain')
   else:
     return True, None
