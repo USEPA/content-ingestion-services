@@ -678,6 +678,8 @@ definitions:
               $ref: "#/definitions/RecordSchedule"
             probability:
               type: number
+      default_schedule:
+        $ref: "#/definitions/RecordSchedule"
       title:
         type: object
         properties:
