@@ -304,12 +304,15 @@ def dql_request(config, sql, items_per_page, page_number, env):
 
 def get_where_clause(lan_id, query, request_type='doc'):
   filter_var = 'erma_doc_custodian'
+  query = query.lower()
   if request_type == 'content':
       filter_var = 'erma_custodian'
   if query is None or len(query.strip()) == 0:
       where = "where s." + filter_var + " = '" + lan_id + "'"
+  elif request_type == 'content':
+      where = "where s." + filter_var + " = '" + lan_id + "' and (LOWER(s.erma_doc_title) LIKE \'%" + query + '%\'' + " or LOWER(s.erma_content_title) LIKE \'%" + query + '%\')'
   else:
-      where = "where s." + filter_var + " = '" + lan_id + "' and (s.erma_doc_title LIKE \'%" + query + '%\'' + "' or s.erma_content_title LIKE \'%" + query + '%\')'
+      where = "where s." + filter_var + " = '" + lan_id + "' and LOWER(s.erma_doc_title) LIKE \'%" + query + '%\''
   if request_type == 'doc':
       where = where + " and s.r_object_type != 'erma_content'"
   return where
