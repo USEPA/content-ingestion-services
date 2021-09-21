@@ -106,9 +106,9 @@ def describe_email(req: DescribeEmailRequest, access_token, config):
   
 
 def list_email_metadata(req: GetEmailRequest, user_email, access_token, config):
-  # First get total
+  # First get regular total
   headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}
-  body = {"mailbox": 'Regular&Archive', "count": 1, 'pageSize': 1, "offset": 0}
+  body = {"mailbox": 'Regular', "count": 1, 'pageSize': 1, "offset": 0}
   if req.mailbox != user_email:
     body['shared_mailbox'] = req.mailbox
   p = requests.get(
@@ -117,16 +117,33 @@ def list_email_metadata(req: GetEmailRequest, user_email, access_token, config):
     headers=headers
   )
   if p.status_code != 200:
-    app.logger.info("getrecords request failed with status " + str(p.status_code) + ". " + p.text)
+    app.logger.info("Regular getrecords count request failed for mailbox " + req.mailbox + " with status " + str(p.status_code) + ". " + p.text)
     return Response("Unable to retrieve records.", status=400, mimetype='text/plain')
   resp = p.json()
-  archive_count = 0
   regular_count = 0
   for count in resp["total_count"]:
     if 'regular' in count:
       regular_count = int(count['regular'])
-    if 'archive' in count:
-      archive_count = int(count['archive'])
+  
+  # Then get archive total and check if archive request failed
+  archive_count = 0
+  headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}
+  body = {"mailbox": 'Archive', "count": 1, 'pageSize': 1, "offset": 0}
+  if req.mailbox != user_email:
+    body['shared_mailbox'] = req.mailbox
+  p = requests.get(
+    "http://" + config.ezemail_server + "/ezemail/v1/getrecords/", 
+    data=json.dumps(body), 
+    headers=headers
+  )
+  if p.status_code != 200:
+    app.logger.info("Archive getrecords count request failed for mailbox " + req.mailbox + " with status " + str(p.status_code) + ". " + p.text)
+  else:
+    resp = p.json()
+  
+    for count in resp["total_count"]:
+      if 'archive' in count:
+        archive_count = int(count['archive'])
   total_count = regular_count + archive_count
 
   # Find total offset needed and determine what parameters are needed
@@ -143,7 +160,7 @@ def list_email_metadata(req: GetEmailRequest, user_email, access_token, config):
       headers=headers
     )
     if p.status_code != 200:
-      app.logger.info("getrecords request failed with status " + str(p.status_code) + ". " + p.text)
+      app.logger.info("Regular getrecords request failed for mailbox " + req.mailbox + " with status " + str(p.status_code) + ". " + p.text)
       return Response("Unable to retrieve records.", status=400, mimetype='text/plain')
     resp = p.json() 
     emails = [ EmailMetadata(
@@ -159,31 +176,34 @@ def list_email_metadata(req: GetEmailRequest, user_email, access_token, config):
     ) for x in resp['email_items']
     ]
 
-  # If offset is larger than the number of regular items, just tak from archive
+  # If offset is larger than the number of regular items, just take from archive
   elif total_offset > regular_count:
-    body['mailbox'] = 'Archive'
-    body['offset'] = total_offset - regular_count
-    p = requests.get(
-      "http://" + config.ezemail_server + "/ezemail/v1/getrecords/", 
-      data=json.dumps(body), 
-      headers=headers
-    )
-    if p.status_code != 200:
-      app.logger.info("getrecords request failed with status " + str(p.status_code) + ". " + p.text)
-      return Response("Unable to retrieve records.", status=400, mimetype='text/plain')
-    resp = p.json()
-    emails = [ EmailMetadata(
-      unid=x['unid'], 
-      subject=x['subject'], 
-      email_id=x['emailid'], 
-      received=x['received'], 
-      _from=x['from'], 
-      to=x['to'], 
-      sent=x['sent'],
-      attachments=extract_attachments_from_response(x),
-      mailbox_source='archive'
-    ) for x in resp['email_items']
-    ]
+    if archive_count == 0:
+      emails = [] 
+    else:
+      body['mailbox'] = 'Archive'
+      body['offset'] = total_offset - regular_count
+      p = requests.get(
+        "http://" + config.ezemail_server + "/ezemail/v1/getrecords/", 
+        data=json.dumps(body), 
+        headers=headers
+      )
+      if p.status_code != 200:
+        app.logger.info("getrecords request failed with status " + str(p.status_code) + ". " + p.text)
+        return Response("Unable to retrieve records.", status=400, mimetype='text/plain')
+      resp = p.json()
+      emails = [ EmailMetadata(
+        unid=x['unid'], 
+        subject=x['subject'], 
+        email_id=x['emailid'], 
+        received=x['received'], 
+        _from=x['from'], 
+        to=x['to'], 
+        sent=x['sent'],
+        attachments=extract_attachments_from_response(x),
+        mailbox_source='archive'
+      ) for x in resp['email_items']
+      ]
   # Otherwise we need some emails from both Regular and Archive
   else:
     body['mailbox'] = 'Regular'
@@ -211,31 +231,34 @@ def list_email_metadata(req: GetEmailRequest, user_email, access_token, config):
     ]
 
     # Determine how many to pull from Archive
-    remaining_archive_count = req.items_per_page - len(regular_emails)
-    body['mailbox'] = 'Archive'
-    body['offset'] = 0
-    body['count'] = remaining_archive_count
-    p = requests.get(
-      "http://" + config.ezemail_server + "/ezemail/v1/getrecords/", 
-      data=json.dumps(body), 
-      headers=headers
-    )
-    if p.status_code != 200:
-      app.logger.info("getrecords request failed with status " + str(p.status_code) + ". " + p.text)
-      return Response("Unable to retrieve records.", status=400, mimetype='text/plain')
-    resp = p.json()
-    archive_emails = [ EmailMetadata(
-      unid=x['unid'], 
-      subject=x['subject'], 
-      email_id=x['emailid'], 
-      received=x['received'], 
-      _from=x['from'], 
-      to=x['to'], 
-      sent=x['sent'],
-      attachments=extract_attachments_from_response(x),
-      mailbox_source='archive'
-    ) for x in resp['email_items']
-    ]
+    if archive_count == 0:
+      archive_emails = [] 
+    else:
+      remaining_archive_count = req.items_per_page - len(regular_emails)
+      body['mailbox'] = 'Archive'
+      body['offset'] = 0
+      body['count'] = remaining_archive_count
+      p = requests.get(
+        "http://" + config.ezemail_server + "/ezemail/v1/getrecords/", 
+        data=json.dumps(body), 
+        headers=headers
+      )
+      if p.status_code != 200:
+        app.logger.info("getrecords request failed with status " + str(p.status_code) + ". " + p.text)
+        return Response("Unable to retrieve records.", status=400, mimetype='text/plain')
+      resp = p.json()
+      archive_emails = [ EmailMetadata(
+        unid=x['unid'], 
+        subject=x['subject'], 
+        email_id=x['emailid'], 
+        received=x['received'], 
+        _from=x['from'], 
+        to=x['to'], 
+        sent=x['sent'],
+        attachments=extract_attachments_from_response(x),
+        mailbox_source='archive'
+      ) for x in resp['email_items']
+      ]
     emails = regular_emails + archive_emails
 
   return Response(GetEmailResponse(total_count=total_count, items_per_page=req.items_per_page, page_number=req.page_number, emails=emails).to_json(), status=200, mimetype="application/json")
