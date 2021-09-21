@@ -757,20 +757,21 @@ def upload_sharepoint_record(req: SharepointUploadRequest, access_token, c):
     site_id = drive_item['sharepointIds']['siteId']
     list_id = drive_item['sharepointIds']['listId']
     list_item_id = drive_item['sharepointIds']['listItemId']
-    success, response = update_sharepoint_record_status(site_id, list_id, list_item_id, access_token)
+    status = "Saved to ECMS Staging"
+    success, response = update_sharepoint_record_status(site_id, list_id, list_item_id, status, access_token)
     if not success:
       return response 
     else:
       return upload_resp
 
-def update_sharepoint_record_status(site_id, list_id, item_id, access_token):
+def update_sharepoint_record_status(site_id, list_id, item_id, status, access_token):
   url = 'https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{list_id}/items/{item_id}/fields'.format(site_id = site_id, list_id = list_id, item_id = item_id)
   headers = {'Authorization': 'Bearer ' + access_token}
-  data = {"Records_x0020_Status": "Saved to ECMS Staging"}
+  data = {"Records_x0020_Status": status}
   update_req = requests.patch(url, json=data, headers=headers)
   if update_req.status_code != 200:
     app.logger.error('Unable to update item with item_id = ' + item_id + ': ' + update_req.text)
     return False, Response('Unable to update item with item_id = ' + item_id, status=500, mimetype='text/plain')
   else:
     return True, None
-  
+    
