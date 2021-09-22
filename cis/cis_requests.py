@@ -327,7 +327,8 @@ def dql_request(config, sql, items_per_page, page_number, env):
 
 def get_where_clause(lan_id, query, request_type='doc'):
   filter_var = 'erma_doc_custodian'
-  query = query.lower()
+  if query is not None:
+    query = query.lower()
   if request_type == 'content':
       filter_var = 'erma_custodian'
   if query is None or len(query.strip()) == 0:
@@ -483,50 +484,46 @@ def get_documentum_records(config, lan_id, items_per_page, page_number, query, e
   if content_count.status_code != 200:
       return Response('Documentum content count request returned status ' + str(content_count.status_code) + ' and error ' + str(content_count.text), status=500, mimetype='text/plain')
   content_count = int(content_count.json()['entries'][0]['content']['properties']['total'])
-  
   # Count of records which are not erma_content (erma_doc or erma_mail)
   noncontent_count = get_erma_noncontent_count(config, lan_id, query, env)
   if noncontent_count.status_code != 200:
       return Response('Documentum noncontent count request returned status ' + str(noncontent_count.status_code) + ' and error ' + str(noncontent_count.text), status=500, mimetype='text/plain')
   noncontent_count = int(noncontent_count.json()['entries'][0]['content']['properties']['total'])
-  
+
   # Determine if only need erma_content, only need erma_doc, or both
   total_count = content_count + noncontent_count
   offset = items_per_page * (page_number - 1)
-  
+
   # Case where we need only pull erma_content
-  if content_count > (offset + items_per_page):
-      success, records, response = get_erma_content(config, lan_id, items_per_page, page_number, query, env)
-      if not success:
-          return response
-      return Response(DocumentumRecordList(records=records, total=total_count).to_json(), status=200, mimetype='application/json')
-  
+  if content_count >= (offset + items_per_page):
+    success, records, response = get_erma_content(config, lan_id, items_per_page, page_number, query, env)
+    if not success:
+        return response
+    return Response(DocumentumRecordList(records=records, total=total_count).to_json(), status=200, mimetype='application/json')
+
   # Case where we need only pull erma_doc/email
   elif content_count < offset:
-      noncontent_offset = offset - content_count
-      starting_page = int(noncontent_offset / items_per_page) + 1
-      page_offset = noncontent_offset - (starting_page - 1) * items_per_page
-      success, records, response = get_erma_noncontent(config, lan_id, items_per_page, starting_page, query, env)
-      if not success:
-          return response
-      second_success, second_records, second_response = get_erma_noncontent(config, lan_id, items_per_page, starting_page + 1, query, env)
-      if not second_success:
-          return second_response
-      sliced_records = records[page_offset:] + second_records[:page_offset]
-      return Response(DocumentumRecordList(records=sliced_records, total=total_count).to_json(), status=200, mimetype='application/json')
-  
+    noncontent_offset = offset - content_count
+    starting_page = int(noncontent_offset / items_per_page) + 1
+    page_offset = noncontent_offset - (starting_page - 1) * items_per_page
+    success, records, response = get_erma_noncontent(config, lan_id, items_per_page, starting_page, query, env)
+    if not success:
+        return response
+    second_success, second_records, second_response = get_erma_noncontent(config, lan_id, items_per_page, starting_page + 1, query, env)
+    if not second_success:
+        return second_response
+    sliced_records = records[page_offset:] + second_records[:page_offset]
+    return Response(DocumentumRecordList(records=sliced_records, total=total_count).to_json(), status=200, mimetype='application/json')
+
   # Case where we are paging across the boundary
   else:
-      noncontent_offset = offset - content_count
-      starting_page = int(noncontent_offset / items_per_page) + 1
-      page_offset = int(noncontent_offset - (starting_page - 1) * items_per_page)
-      success, records, response = get_erma_content(config, lan_id, items_per_page, starting_page, query, env)
+      success, records, response = get_erma_content(config, lan_id, items_per_page, page_number, query, env)
       if not success:
-          return response
+        return response
       second_success, second_records, second_response = get_erma_noncontent(config, lan_id, items_per_page, 1, query, env)
       if not second_success:
-          return second_response
-      sliced_records = records[page_offset:] + second_records[:page_offset]
+        return second_response
+      sliced_records = records + second_records[0:(items_per_page - len(records))]
       return Response(DocumentumRecordList(records=sliced_records, total=total_count).to_json(), status=200, mimetype='application/json')
       
 
