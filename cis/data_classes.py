@@ -70,6 +70,7 @@ class DocumentumDocInfo:
     object_ids: list[str]
     size: float
     custodian: str
+    upload_date: str
     metadata: Optional[ECMSMetadata] = None
 
 @dataclass_json

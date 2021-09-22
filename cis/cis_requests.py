@@ -360,6 +360,7 @@ def get_erma_content(config, lan_id, items_per_page, page_number, query, env):
   where_clause = get_where_clause(lan_id, query, 'content')
   doc_info_sql = ("select s.r_object_id as r_object_id, "
                   "s.a_content_type as content_type, "
+                  "s.r_creation_date as upload_date,"
                   "s.r_full_content_size as r_full_content_size, "
                   "s.erma_doc_sensitivity as sensitivity, "
                   "s.erma_custodian as custodian, "
@@ -374,7 +375,7 @@ def get_erma_content(config, lan_id, items_per_page, page_number, query, env):
                   "s.erma_content_coverage as coverage, "
                   "s.erma_content_relation as relationships, "
                   "s.erma_content_tags as tags "
-                  "from erma_content s " + where_clause + ";" )
+                  "from erma_content s " + where_clause + " order by s.r_creation_date desc;" )
   r = dql_request(config, doc_info_sql, items_per_page, page_number, env)
   if r.status_code != 200:
       return False, None, Response('Documentum doc info request returned status ' + str(r.status_code) + ' and error ' + str(r.text), status=500, mimetype='text/plain')
@@ -405,6 +406,7 @@ def get_erma_content(config, lan_id, items_per_page, page_number, query, env):
           "sensitivity": sensitivity,
           "custodian": properties['custodian'],
           "doc_type": doc_type,
+          "upload_date": properties['upload_date'],
           "metadata": {
               'file_path': properties['file_path'],
               'custodian': properties['custodian'],
@@ -440,7 +442,7 @@ def get_erma_noncontent(config, lan_id, items_per_page, page_number, query, env)
       return True, [], None
   doc_ids = [x['content']['properties']['erma_doc_id'] for x in doc_id_resp['entries']]
   doc_where_clause = ' OR '.join(["erma_doc_id = '" + str(x) + "'" for x in doc_ids])
-  doc_info_sql = "select s.erma_doc_sensitivity as sensitivity, s.R_OBJECT_TYPE as r_object_type, s.ERMA_DOC_DATE as erma_doc_date, s.ERMA_DOC_CUSTODIAN as erma_doc_custodian, s.ERMA_DOC_ID as erma_doc_id, s.R_FULL_CONTENT_SIZE as r_full_content_size, s.R_OBJECT_ID as r_object_id, s.ERMA_DOC_TITLE as erma_doc_title from ECMSRMR65.ERMA_DOC_SV s where " + doc_where_clause + ";"
+  doc_info_sql = "select s.erma_doc_sensitivity as sensitivity, s.r_creation_date as upload_date, s.R_OBJECT_TYPE as r_object_type, s.ERMA_DOC_DATE as erma_doc_date, s.ERMA_DOC_CUSTODIAN as erma_doc_custodian, s.ERMA_DOC_ID as erma_doc_id, s.R_FULL_CONTENT_SIZE as r_full_content_size, s.R_OBJECT_ID as r_object_id, s.ERMA_DOC_TITLE as erma_doc_title from ECMSRMR65.ERMA_DOC_SV s where " + doc_where_clause + " order by s.r_creation_date desc;"
   r = dql_request(config, doc_info_sql, items_per_page, page_number, env)
   if r.status_code != 200:
       return False, None, Response('Documentum doc info request returned status ' + str(r.status_code) + ' and error ' + str(r.text), status=500, mimetype='text/plain')
@@ -474,6 +476,7 @@ def get_erma_noncontent(config, lan_id, items_per_page, page_number, query, env)
               "sensitivity": sensitivity,
               "custodian": properties['erma_doc_custodian'],
               "doc_type": doc_type,
+              "upload_date": properties['upload_date'],
               "metadata": None
           }
   return True, [DocumentumDocInfo(**x) for x in doc_info.values()], None

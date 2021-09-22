@@ -973,6 +973,8 @@ definitions:
         type: number
       custodian:
         type: string
+      upload_date:
+        type: string
       metadata:
         $ref: "#/definitions/ECMSMetadata"
   DocumentumRecordList:
