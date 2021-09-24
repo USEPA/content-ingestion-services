@@ -54,7 +54,8 @@ def process_schedule_data(schedule_dict):
         disposition_summary=schedule_dict['dispositionSummary'],
         description=schedule_dict['scheduleDescription'],
         guidance=schedule_dict['guidance'],
-        keywords=schedule_dict['keywords']
+        keywords=schedule_dict['keywords'],
+        ten_year=schedule_dict['tenYear'] == 1
     )
 
 def get_record_schedules(config, dnu_items):

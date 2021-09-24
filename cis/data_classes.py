@@ -36,6 +36,7 @@ class RecordScheduleInformation:
     description: str
     guidance: str
     keywords: str
+    ten_year: bool
 
 @dataclass_json
 @dataclass 

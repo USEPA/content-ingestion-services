@@ -925,7 +925,9 @@ definitions:
       guidance:
         type: string 
       keywords:
-        type: string 
+        type: string
+      ten_year:
+        type: boolean
   GetFavoritesResponse:
     type: object
     properties:

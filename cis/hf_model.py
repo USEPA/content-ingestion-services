@@ -19,8 +19,10 @@ class HuggingFaceModel():
         with open(label_mapping_path, 'r') as f:
             self.label_mapping = json.loads(f.read())
             self.reverse_mapping = {v:k for k,v in self.label_mapping.items()}
+        # Convert indices to record schedules using mapping saved at model training time
+        self.classes = [format_record_schedule(self.reverse_mapping[x]) for x in range(len(self.label_mapping))]
         
-    def predict(self, text, k=3, default_categorization_threshold=0.95):
+    def predict(self, text, k=3, default_categorization_threshold=0.95, valid_schedules=None):
         # Tokenize text
         # thread lock tokenization https://github.com/huggingface/tokenizers/issues/537
         with self.lock:
@@ -28,20 +30,17 @@ class HuggingFaceModel():
         # Apply model, get logits
         outputs = self.model(**tokens)
         preds = outputs[0][0].detach().cpu().numpy()
-        # Find indices of the highest k predictions
-        ind = list(np.argpartition(preds, -k)[-k:])
         # Convert logits to probabilities and select top k
-        probs = softmax(preds)
-        selected_probs = list(probs[ind])
-        selected_probs = [float(x) for x in selected_probs]
-        # Convert indices to record schedules using mapping saved at model training time
-        classes = [format_record_schedule(self.reverse_mapping[x]) for x in ind]
+        probs = [float(x) for x in list(softmax(preds))] 
         # Prepare response
-        final_preds = [Recommendation(probability=selected_probs[i], schedule = classes[i]) for i in range(k)]
+        final_preds = [Recommendation(probability=probs[i], schedule = self.classes[i]) for i in range(len(self.label_mapping))]
         final_preds = sorted(final_preds, key=lambda x:-x.probability)
+        if valid_schedules is not None:
+            final_preds = list(filter(lambda x: "{fn}-{sn}-{dn}".format(fn=x.schedule.function_number, sn=x.schedule.schedule_number, dn=x.schedule.disposition_number) in valid_schedules, final_preds))
+        filtered_preds = final_preds[0:k]
         # Automatically categorize if top prediction exceeds threshold
         default_schedule = None
-        highest_pred = final_preds[0]
+        highest_pred = filtered_preds[0]
         if highest_pred.probability > default_categorization_threshold:
             default_schedule = highest_pred.schedule
-        return final_preds, default_schedule
+        return filtered_preds, default_schedule
