@@ -35,9 +35,13 @@ def create_app(env, region_name, model_path, label_mapping_path, config_path, ma
     global model, c, mailbox_manager, schedule_cache, sems_site_cache
     
     mailbox_manager = SharedMailboxManager(mailbox_data_path)
+    app.logger.info('Mailboxes loaded.')
     c = config_from_file(config_path)
+    app.logger.info('Config loaded.')
     schedule_cache = RecordScheduleCache(c, dnul_path)
+    app.logger.info('Record schedule cache loaded.')
     sems_site_cache = SemsSiteCache(c)
+    app.logger.info('SEMS site cache loaded.')
     if tika_server:
         c.tika_server = tika_server
     if cis_server:
@@ -60,11 +64,14 @@ def create_app(env, region_name, model_path, label_mapping_path, config_path, ma
         c.wam_host = wam_host
     if env == 'cloud':
         load_all_secrets(c, region_name)
+        app.logger.info('Secrets loaded.')
     app.config['SQLALCHEMY_DATABASE_URI'] = c.database_uri
     app.app_context().push()
     db.init_app(app)
     migrate.init_app(app, db)
+    app.logger.info('Database initialized.')
     model = HuggingFaceModel(model_path, label_mapping_path)
+    app.logger.info('Model loaded.')
     swagger_yml['host'] = c.cis_server
     blueprint = get_swaggerui_blueprint(SWAGGER_URL, SWAGGER_PATH, config={'spec': swagger_yml})
     app.register_blueprint(blueprint)
