@@ -4,11 +4,12 @@ import threading
 import requests 
 
 class SemsSiteCache:
-    def __init__(self, config):
+    def __init__(self, config, logger):
         self.config = config
+        self.logger = logger
         self.sites = get_sems_sites(config)
         if self.sites is None:
-          print('Failed to load SEMS sites on startup.')
+          self.logger.info('Failed to load SEMS sites on startup.')
         self.update_ts = datetime.now()
         self.lock = threading.Lock()
 
@@ -18,7 +19,7 @@ class SemsSiteCache:
           if diff.total_seconds() > 24 * 60 * 60:
             updated_sites = get_sems_sites(self.config)
             if updated_sites is None:
-                print('Failed to get site information.')
+                self.logger.info('Failed to get site information.')
             else:
               self.sites = updated_sites
             self.update_ts = datetime.now()
@@ -27,7 +28,7 @@ class SemsSiteCache:
             if updated_sites is not None:
               self.sites = updated_sites
             else:
-              print('Failed to retrieve sites on demand.')
+              self.logger.info('Failed to retrieve sites on demand.')
               return None
           return self.sites[region]
 

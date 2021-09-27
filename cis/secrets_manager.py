@@ -53,11 +53,12 @@ def get_secret(secret_name, region_name):
             decoded_binary_secret = base64.b64decode(get_secret_value_response['SecretBinary'])
             return decoded_binary_secret
             
-def load_all_secrets(c, region_name):
+def load_all_secrets(c, region_name, logger):
+    logger.info('Beginning to load secrets.')
     db_creds = json.loads(get_secret('cis-db-credentials', region_name))
     wam = json.loads(get_secret('wam-credentials', region_name))
     documentum = json.loads(get_secret('documentum-credentials', region_name))
-
+    logger.info('Finished loading secrets.')
     c.documentum_prod_username = documentum['documentum_production_username']
     #c.documentum_prod_password = documentum['documentum_production_password']
     c.documentum_prod_api_key = documentum['documentum_production_api_key']

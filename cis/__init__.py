@@ -38,9 +38,9 @@ def create_app(env, region_name, model_path, label_mapping_path, config_path, ma
     app.logger.info('Mailboxes loaded.')
     c = config_from_file(config_path)
     app.logger.info('Config loaded.')
-    schedule_cache = RecordScheduleCache(c, dnul_path)
+    schedule_cache = RecordScheduleCache(c, dnul_path, app.logger)
     app.logger.info('Record schedule cache loaded.')
-    sems_site_cache = SemsSiteCache(c)
+    sems_site_cache = SemsSiteCache(c, app.logger)
     app.logger.info('SEMS site cache loaded.')
     if tika_server:
         c.tika_server = tika_server
