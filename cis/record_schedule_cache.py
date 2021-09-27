@@ -62,10 +62,10 @@ def get_record_schedules(config, dnu_items):
   # If API request fails, fall back to local data.
   try:
     transport = RequestsHTTPTransport(
-      url="https://" + config.record_schedules_server + "/ecms-graphql/graphql", verify=True, retries=0,
+      url="https://" + config.record_schedules_server + "/ecms-graphql/graphql", verify=True, retries=0, timeout=30
     )
 
-    client = Client(transport=transport, fetch_schema_from_transport=True)
+    client = Client(transport=transport, fetch_schema_from_transport=True, )
 
     query = gql(
       """
