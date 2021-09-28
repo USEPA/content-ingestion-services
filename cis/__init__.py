@@ -63,7 +63,7 @@ def create_app(env, region_name, model_path, label_mapping_path, config_path, ma
     if wam_host:
         c.wam_host = wam_host
     if env == 'cloud':
-        load_all_secrets(c, region_name)
+        load_all_secrets(c, region_name, app.logger)
         app.logger.info('Secrets loaded.')
     app.config['SQLALCHEMY_DATABASE_URI'] = c.database_uri
     app.app_context().push()
