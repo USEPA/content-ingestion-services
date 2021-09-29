@@ -24,7 +24,7 @@ def tika(file, config, extraction_type='text'):
             "accept": accept
           }
   server = "http://" + config.tika_server + "/tika"
-  r = requests.put(server, data=file, headers=headers)
+  r = requests.put(server, data=file, headers=headers, timeout=30)
   if r.status_code != 200 or len(r.text) < TIKA_CUTOFF:
       headers = {
           "X-Tika-PDFOcrStrategy": "ocr_only",
@@ -43,7 +43,7 @@ def tika(file, config, extraction_type='text'):
 def get_eml_file(email_id, file_name, access_token, config):
   headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}
   body = {"filename":file_name, "emailid":email_id}
-  r = requests.get("http://" + config.ezemail_server + "/ezemail/v1/getemlfile", data=json.dumps(body), headers=headers)
+  r = requests.get("http://" + config.ezemail_server + "/ezemail/v1/getemlfile", data=json.dumps(body), headers=headers, timeout=30)
   if r.status_code == 200:
     return r.content
   else:
@@ -65,7 +65,8 @@ def get_email_html(email_id, access_token, config):
   p = requests.get(
     "http://" + config.ezemail_server + "/ezemail/v1/gethtmlfile/", 
     data=json.dumps(body), 
-    headers=headers
+    headers=headers,
+    timeout=30
   )
   if p.status_code != 200:
     app.logger.info("Email HTML request failed with status " + str(p.status_code) + ". " + p.text)
@@ -114,7 +115,8 @@ def list_email_metadata(req: GetEmailRequest, user_email, access_token, config):
   p = requests.get(
     "http://" + config.ezemail_server + "/ezemail/v1/getrecords/", 
     data=json.dumps(body), 
-    headers=headers
+    headers=headers,
+    timeout=60
   )
   if p.status_code != 200:
     app.logger.info("Regular getrecords count request failed for mailbox " + req.mailbox + " with status " + str(p.status_code) + ". " + p.text)
@@ -134,7 +136,8 @@ def list_email_metadata(req: GetEmailRequest, user_email, access_token, config):
   p = requests.get(
     "http://" + config.ezemail_server + "/ezemail/v1/getrecords/", 
     data=json.dumps(body), 
-    headers=headers
+    headers=headers,
+    timeout=60
   )
   if p.status_code != 200:
     app.logger.info("Archive getrecords count request failed for mailbox " + req.mailbox + " with status " + str(p.status_code) + ". " + p.text)
@@ -157,7 +160,8 @@ def list_email_metadata(req: GetEmailRequest, user_email, access_token, config):
     p = requests.get(
       "http://" + config.ezemail_server + "/ezemail/v1/getrecords/", 
       data=json.dumps(body), 
-      headers=headers
+      headers=headers,
+      timeout=60
     )
     if p.status_code != 200:
       app.logger.info("Regular getrecords request failed for mailbox " + req.mailbox + " with status " + str(p.status_code) + ". " + p.text)
@@ -186,7 +190,8 @@ def list_email_metadata(req: GetEmailRequest, user_email, access_token, config):
       p = requests.get(
         "http://" + config.ezemail_server + "/ezemail/v1/getrecords/", 
         data=json.dumps(body), 
-        headers=headers
+        headers=headers,
+        timeout=60
       )
       if p.status_code != 200:
         app.logger.info("getrecords request failed with status " + str(p.status_code) + ". " + p.text)
@@ -211,7 +216,8 @@ def list_email_metadata(req: GetEmailRequest, user_email, access_token, config):
     p = requests.get(
       "http://" + config.ezemail_server + "/ezemail/v1/getrecords/", 
       data=json.dumps(body), 
-      headers=headers
+      headers=headers,
+      timeout=60
     )
     if p.status_code != 200:
       app.logger.info("getrecords request failed with status " + str(p.status_code) + ". " + p.text)
@@ -241,7 +247,8 @@ def list_email_metadata(req: GetEmailRequest, user_email, access_token, config):
       p = requests.get(
         "http://" + config.ezemail_server + "/ezemail/v1/getrecords/", 
         data=json.dumps(body), 
-        headers=headers
+        headers=headers,
+        timeout=60
       )
       if p.status_code != 200:
         app.logger.info("getrecords request failed with status " + str(p.status_code) + ". " + p.text)
@@ -275,7 +282,8 @@ def download_attachment(req: DownloadAttachmentRequest, access_token, config):
   p = requests.get(
     "http://" + config.ezemail_server + "/ezemail/v1/getattachment/", 
     data=json.dumps(body), 
-    headers=headers
+    headers=headers,
+    timeout=30
   )
   if p.status_code != 200:
     app.logger.info("Attachment download request failed with status " + str(p.status_code) + ". " + p.text)
@@ -291,7 +299,8 @@ def mark_saved(req: MarkSavedRequest, access_token, config):
   p = requests.post(
     "http://" + config.ezemail_server + "/ezemail/v1/setcategory", 
     json=body, 
-    headers=headers
+    headers=headers,
+    timeout=30
   )
   if p.status_code != 204:
     return Response("Unable to mark as saved.", status=400, mimetype='text/plain')
@@ -304,7 +313,8 @@ def untag(req: UntagRequest, access_token, config):
   p = requests.post(
     "http://" + config.ezemail_server + "/ezemail/v1/removecategory", 
     json=body, 
-    headers=headers
+    headers=headers,
+    timeout=30
   )
   if p.status_code != 204:
     return Response("Unable to remove Record category.", status=400, mimetype='text/plain')
@@ -322,7 +332,7 @@ def dql_request(config, sql, items_per_page, page_number, env):
     ecms_password = config.documentum_dev_password
   url = "https://" + ecms_host + "/dctm-rest/repositories/ecmsrmr65?items-per-page=" + str(items_per_page) + "&page=" + str(page_number) + "&dql=" + urllib.parse.quote(sql)
   headers = {'cache-control': 'no-cache'}
-  r = requests.get(url, headers=headers, auth=(ecms_user,ecms_password))
+  r = requests.get(url, headers=headers, auth=(ecms_user,ecms_password), timeout=30)
   return r
 
 def get_where_clause(lan_id, query, request_type='doc'):
@@ -569,7 +579,7 @@ def download_documentum_record(config, lan_id, object_ids, env):
     'cache-control': 'no-cache',
     'Content-Type': 'application/vnd.emc.documentum+json'
   }
-  archive_req = requests.post(archive_url, headers=post_headers, json=data, auth=(ecms_user,ecms_password))
+  archive_req = requests.post(archive_url, headers=post_headers, json=data, auth=(ecms_user,ecms_password), timeout=30)
   if archive_req.status_code != 200:
     app.logger.error(r.text)
     return Response('Documentum archive request returned status ' + str(archive_req.status_code), status=500, mimetype='text/plain')
@@ -579,7 +589,7 @@ def download_documentum_record(config, lan_id, object_ids, env):
 def get_user_info(config, token_data):
   url = 'https://' + config.wam_host + '/iam/governance/scim/v1/Users?attributes=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:Department&attributes=userName&attributes=Active&attributes=displayName&filter=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:Upn eq "' + token_data['email'] + '"'
   try:
-    wam = requests.get(url, auth=(config.wam_username, config.wam_password))
+    wam = requests.get(url, auth=(config.wam_username, config.wam_password), timeout=30)
     if wam.status_code != 200:
       return False, 'WAM request failed with status ' + str(wam.status_code) + ' and error ' + str(wam.text), None
     user_data = wam.json()['Resources'][0]
@@ -594,7 +604,7 @@ def get_user_info(config, token_data):
     return False, 'WAM request failed.', None
 
 def get_sems_special_processing(config, region):
-  special_processing = requests.get('http://' + config.sems_host + '/sems-ws/outlook/getSpecialProcessing/' + region)
+  special_processing = requests.get('http://' + config.sems_host + '/sems-ws/outlook/getSpecialProcessing/' + region, timeout=30)
   if special_processing.status_code == 200:
     response_object = GetSpecialProcessingResponse([SemsSpecialProcessing(**obj) for obj in special_processing.json()])
     return Response(response_object.to_json(), status=200, mimetype='application/json')
@@ -615,7 +625,7 @@ def upload_documentum_record(content, documentum_metadata, config, env):
   
   url = "https://" + ecms_host + "/ecms/save/1.2?apiKey=" + api_key
   files = {'metadata': json.dumps({'properties': documentum_metadata.to_dict()}), 'contents': content}
-  r = requests.post(url, files=files, auth=HTTPBasicAuth(ecms_user, ecms_password))
+  r = requests.post(url, files=files, auth=HTTPBasicAuth(ecms_user, ecms_password), timeout=30)
   if r.status_code == 200 and 'r_object_id' in r.json()['properties']:
     return Response(r.json(), status=200, mimetype='text/plain')
   else:
@@ -694,14 +704,14 @@ def list_sharepoint_records(req: GetSharepointRecordsRequest, access_token):
   all_records = []
   # Get shared records
   headers = {'Authorization': 'Bearer ' + access_token}
-  shared = requests.get("https://graph.microsoft.com/v1.0/me/drive/root:/EZ Records - Shared:/children/?$expand=listitem", headers=headers)
+  shared = requests.get("https://graph.microsoft.com/v1.0/me/drive/root:/EZ Records - Shared:/children/?$expand=listitem", headers=headers, timeout=30)
   if shared.status_code != 200:
     return Response('Failed to retrieve shared OneDrive items.', status=500, mimetype='text/plain')
   shared_items = shared.json()['value']
   for doc in shared_items:
     all_records.append(simplify_sharepoint_record(doc, 'Shared'))
   # Get private records
-  private = requests.get("https://graph.microsoft.com/v1.0/me/drive/root:/EZ Records - Private:/children/?$expand=listitem", headers=headers)
+  private = requests.get("https://graph.microsoft.com/v1.0/me/drive/root:/EZ Records - Private:/children/?$expand=listitem", headers=headers, timeout=30)
   if shared.status_code != 200:
     return Response('Failed to retrieve private OneDrive items.', status=500, mimetype='text/plain')
   private_items = private.json()['value']
@@ -717,12 +727,12 @@ def list_sharepoint_records(req: GetSharepointRecordsRequest, access_token):
 def sharepoint_record_prediction(req: SharepointPredictionRequest, access_token, c):
   headers = {'Authorization': 'Bearer ' + access_token}
   url = 'https://graph.microsoft.com/v1.0/me/drive/items/' + req.drive_item_id
-  r = requests.get(url, headers=headers)
+  r = requests.get(url, headers=headers, timeout=30)
   if r.status_code != 200:
     app.logger.error('Unable to find OneDrive item: ' + r.text)
     return Response('Unable to find OneDrive item: ' + str(r.text), status=400, mimetype='application/json')
   download_url = r.json()['@microsoft.graph.downloadUrl']
-  content_req = requests.get(download_url)
+  content_req = requests.get(download_url, timeout=30)
   if content_req.status_code != 200:
     return Response('Content request failed with status ' + str(content_req.status_code), status=500, mimetype='application/json')
   content = content_req.content
@@ -738,13 +748,13 @@ def sharepoint_record_prediction(req: SharepointPredictionRequest, access_token,
 def upload_sharepoint_record(req: SharepointUploadRequest, access_token, c):
   headers = {'Authorization': 'Bearer ' + access_token}
   url = 'https://graph.microsoft.com/v1.0/me/drive/items/' + req.drive_item_id + '?expand=listItem,sharepointIds'
-  r = requests.get(url, headers=headers)
+  r = requests.get(url, headers=headers, timeout=30)
   if r.status_code != 200:
     app.logger.error('Unable to find OneDrive item: ' + r.text)
     return Response('Unable to find OneDrive item: ' + str(r.text), status=400, mimetype='application/json')
   drive_item = r.json()
   download_url = drive_item['@microsoft.graph.downloadUrl']
-  content_req = requests.get(download_url)
+  content_req = requests.get(download_url, timeout=30)
   if content_req.status_code != 200:
     app.logger.error('Content request failed: ' + r.text)
     return Response('Content request failed with status ' + str(content_req.status_code), status=500, mimetype='text/plain')
@@ -768,7 +778,7 @@ def update_sharepoint_record_status(site_id, list_id, item_id, status, access_to
   url = 'https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{list_id}/items/{item_id}/fields'.format(site_id = site_id, list_id = list_id, item_id = item_id)
   headers = {'Authorization': 'Bearer ' + access_token}
   data = {"Records_x0020_Status": status}
-  update_req = requests.patch(url, json=data, headers=headers)
+  update_req = requests.patch(url, json=data, headers=headers, timeout=30)
   if update_req.status_code != 200:
     app.logger.error('Unable to update item with item_id = ' + item_id + ': ' + update_req.text)
     return False, Response('Unable to update item with item_id = ' + item_id, status=500, mimetype='text/plain')
