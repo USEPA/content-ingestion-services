@@ -685,7 +685,7 @@ def upload_documentum_email(upload_email_request, access_token, config):
 def simplify_sharepoint_record(raw_rec, sensitivity):
   return SharepointRecord(
     web_url = raw_rec['webUrl'],
-    records_status = raw_rec['listItem']['fields']['Records_x0020_Status'],
+    records_status = raw_rec['listItem']['fields'].get('Records_x0020_Status', None),
     sensitivity = sensitivity,
     name = raw_rec['name'],
     drive_item_id = raw_rec['id'],
@@ -784,4 +784,18 @@ def update_sharepoint_record_status(site_id, list_id, item_id, status, access_to
     return False, Response('Unable to update item with item_id = ' + item_id, status=500, mimetype='text/plain')
   else:
     return True, None
-    
+
+def get_help_item(req: GetHelpItemRequest, c):
+  r = requests.get("https://" + c.patt_host + "/app/helptext/?pages/" + req.help_id +  "&output=json", timeout=10)
+  if r.status_code != 200:
+    if r.status_code == 404:
+      app.logger.error('Page not found for help_id = ' + req.help_id)
+      return Response('Page not found for help_id = ' + req.help_id, status=400, mimetype='text/plain')
+    else:
+      app.logger.error('Help content request failed for help_id = ' + req.help_id)
+      return Response('Help content request failed for help_id = ' + req.help_id, status=500, mimetype='text/plain')
+  content = r.json()
+  html_content = content.get('content', None)
+  markdown_content = content.get('raw_content', None)
+  response = HelpItemResponse(html_content=html_content, markdown_content=markdown_content)
+  return Response(response.to_json(), status=200, mimetype='application/json')

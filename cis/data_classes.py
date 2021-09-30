@@ -396,3 +396,14 @@ class SharepointUploadRequest:
     drive_item_id: str
     metadata: ECMSMetadata 
     documentum_env: Optional[str] = 'dev'
+
+@dataclass_json
+@dataclass 
+class GetHelpItemRequest:
+    help_id: str
+
+@dataclass_json
+@dataclass 
+class HelpItemResponse:
+    html_content: str
+    markdown_content: str

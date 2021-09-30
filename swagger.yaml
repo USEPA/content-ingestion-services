@@ -26,6 +26,8 @@ tags:
   description: "APIs to give information about the user."
 - name: "sems"
   description: "APIs for integration with SEMS."
+- name: "help"
+  description: "APIs for accessing help content."
 
 schemes:
 - https
@@ -664,6 +666,32 @@ paths:
       responses:
         200:
           description: "Record successfully uploaded."
+  /get_help_item:
+    get:
+      tags:
+      - "help"
+      summary: "Get help item content by item id."
+      consumes:
+        - application/json
+      parameters:
+        - in: query
+          name: "help_id"
+          type: string
+          required: true
+        - in: header
+          name: "Authorization"
+          type: string
+          format: "jwt"
+          required: true
+      responses:
+        200:
+          description: "Help item successfully returned."
+          schema:
+            $ref: "#/definitions/HelpItemResponse"
+        400:
+          description: "Help id not found."
+        500:
+          description: "Help content request failed."
 
 definitions:
   MetadataPrediction:
@@ -1020,5 +1048,12 @@ definitions:
       metadata:
         $ref: "#/definitions/ECMSMetadata"
       documentum_env:
+        type: string
+  HelpItemResponse:
+    type: object
+    properties:
+      html_content:
+        type: string
+      markdown_content:
         type: string
 

@@ -363,3 +363,9 @@ def sharepoint_upload():
     req = request.json
     req = SharepointUploadRequest.from_dict(req)
     return upload_sharepoint_record(req, g.access_token, c)
+
+@app.route('/get_help_item', methods=['GET'])
+def get_help_by_id():
+    req = request.args
+    req = GetHelpItemRequest.from_dict(req)
+    return get_help_item(req, c)
