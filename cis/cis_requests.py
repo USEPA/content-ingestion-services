@@ -704,19 +704,12 @@ def list_sharepoint_records(req: GetSharepointRecordsRequest, access_token):
   all_records = []
   # Get shared records
   headers = {'Authorization': 'Bearer ' + access_token}
-  shared = requests.get("https://graph.microsoft.com/v1.0/me/drive/root:/EZ Records - Shared:/children/?$expand=listitem", headers=headers, timeout=30)
+  shared = requests.get("https://graph.microsoft.com/v1.0/me/drive/root:/EPA Records:/children/?$expand=listitem", headers=headers, timeout=30)
   if shared.status_code != 200:
     return Response('Failed to retrieve shared OneDrive items.', status=500, mimetype='text/plain')
   shared_items = shared.json()['value']
   for doc in shared_items:
     all_records.append(simplify_sharepoint_record(doc, 'Shared'))
-  # Get private records
-  private = requests.get("https://graph.microsoft.com/v1.0/me/drive/root:/EZ Records - Private:/children/?$expand=listitem", headers=headers, timeout=30)
-  if shared.status_code != 200:
-    return Response('Failed to retrieve private OneDrive items.', status=500, mimetype='text/plain')
-  private_items = private.json()['value']
-  for doc in private_items:
-    all_records.append(simplify_sharepoint_record(doc, 'Private'))
   filtered_records = list(filter(lambda x: x.records_status == 'Pending', all_records))
   filtered_records = sorted(filtered_records, key=lambda x: x.last_modified_date, reverse=True)
   total_count = len(filtered_records)
