@@ -675,7 +675,7 @@ paths:
         - application/json
       parameters:
         - in: query
-          name: "help_id"
+          name: "name"
           type: string
           required: true
         - in: header
@@ -692,6 +692,24 @@ paths:
           description: "Help id not found."
         500:
           description: "Help content request failed."
+  /get_all_help_items:
+    get:
+      tags:
+      - "help"
+      summary: "Get all help items."
+      consumes:
+        - application/json
+      parameters:
+        - in: header
+          name: "Authorization"
+          type: string
+          format: "jwt"
+          required: true
+      responses:
+        200:
+          description: "Help items successfully returned."
+          schema:
+            $ref: "#/definitions/AllHelpItemsResponse"
 
 definitions:
   MetadataPrediction:
@@ -1052,8 +1070,20 @@ definitions:
   HelpItemResponse:
     type: object
     properties:
+      name:
+        type: string
       html_content:
         type: string
       markdown_content:
         type: string
+      is_faq:
+        type: boolean
+  AllHelpItemsResponse:
+    type: object
+    properties:
+      help_items:
+        type: array
+        items:
+          $ref: "#/definitions/HelpItemResponse"
+
 

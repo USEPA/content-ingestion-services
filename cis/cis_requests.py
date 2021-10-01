@@ -8,7 +8,7 @@ import urllib
 import io
 import re
 import uuid
-from . import model
+from . import model, help_item_cache
 
 TIKA_CUTOFF = 20
 
@@ -778,17 +778,13 @@ def update_sharepoint_record_status(site_id, list_id, item_id, status, access_to
   else:
     return True, None
 
-def get_help_item(req: GetHelpItemRequest, c):
-  r = requests.get("https://" + c.patt_host + "/app/helptext/?pages/" + req.help_id +  "&output=json", timeout=10)
-  if r.status_code != 200:
-    if r.status_code == 404:
-      app.logger.error('Page not found for help_id = ' + req.help_id)
-      return Response('Page not found for help_id = ' + req.help_id, status=400, mimetype='text/plain')
-    else:
-      app.logger.error('Help content request failed for help_id = ' + req.help_id)
-      return Response('Help content request failed for help_id = ' + req.help_id, status=500, mimetype='text/plain')
-  content = r.json()
-  html_content = content.get('content', None)
-  markdown_content = content.get('raw_content', None)
-  response = HelpItemResponse(html_content=html_content, markdown_content=markdown_content)
-  return Response(response.to_json(), status=200, mimetype='application/json')
+def get_help_item(req: GetHelpItemRequest):
+  items = help_item_cache.get_help_items()
+  for item in items:
+    if item.name == req.name:
+      return Response(item.to_json(), status=200, mimetype='application/json')
+  return Response('Item not found.', status=400, mimetype='text/plain')
+
+def get_all_help_items():
+  items = AllHelpItemsResponse(help_items=help_item_cache.get_help_items())
+  return Response(items.to_json(), status=200, mimetype='application/json')

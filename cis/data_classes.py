@@ -398,10 +398,23 @@ class SharepointUploadRequest:
 @dataclass_json
 @dataclass 
 class GetHelpItemRequest:
-    help_id: str
+    name: str
 
 @dataclass_json
 @dataclass 
-class HelpItemResponse:
+class HelpItem:
+    name: str
     html_content: str
     markdown_content: str
+    is_faq: str
+
+@dataclass_json
+@dataclass 
+class AllHelpItemsResponse:
+    help_items: list[HelpItem]
+
+@dataclass_json
+@dataclass 
+class HelpId:
+    name: str
+    is_faq: bool
