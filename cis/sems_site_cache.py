@@ -38,7 +38,7 @@ def get_sems_sites(config):
     sites = requests.get('http://' + config.sems_host + '/sems-ws/outlook/getSites', timeout=10)
     if sites.status_code != 200:
       return None
-    site_objects = [SemsSite(_id=site['id'], region=site['region'], epaid=site.get('epaid', ''), sitename=site['sitename'], ssid=site.get('ssid', ''), ou=site.get('operable_unit', '')) for site in sites.json()]
+    site_objects = [SemsSite(_id=site['id'], region=site['region'], epaid=site.get('epaid', ''), sitename=site['sitename']) for site in sites.json()]
     grouped_by_region = {}
     for site in site_objects:
       if site.region not in grouped_by_region:
