@@ -108,7 +108,7 @@ class PredictionWithExplanation:
     value: str 
     prediction_type: str
 
-mock_prediction_with_explanation = PredictionWithExplanation(value="None", prediction_type="None")
+mock_prediction_with_explanation = PredictionWithExplanation(value="", prediction_type="")
 
 @dataclass_json
 @dataclass 

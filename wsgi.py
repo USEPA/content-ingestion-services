@@ -29,7 +29,7 @@ if __name__ == "__main__":
                     help='Path to dictionary of shared mailboxes.')
     parser.add_argument('--dnul_path', default='dnul.csv', 
                     help='Do not use list for record schedules.')
-    parser.add_argument('--help_id_path', default='dnul.csv', 
+    parser.add_argument('--help_id_path', default='help_ids.json', 
                     help='Path to dictionary of help item information.')
     parser.add_argument('--documentum_prod_url', default=None, 
                     help='URL for production Documentum instance.')
