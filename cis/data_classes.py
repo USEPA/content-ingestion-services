@@ -395,6 +395,7 @@ class HelpItem:
     html_content: str
     markdown_content: str
     is_faq: str
+    question: Optional[str]
 
 @dataclass_json
 @dataclass 

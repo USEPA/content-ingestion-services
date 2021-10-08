@@ -5,12 +5,10 @@ import threading
 import requests 
 
 class HelpItemCache:
-    def __init__(self, config, help_id_path, logger):
+    def __init__(self, config,  logger):
         self.config = config
         self.logger = logger
-        with open(help_id_path, 'r') as f:
-            self.help_item_ids = json.loads(f.read())
-            self.help_item_ids = [HelpId(**x) for x in self.help_item_ids]
+        self.help_item_ids = fetch_help_item_list(config, logger)
         self.help_items = fetch_help_items(config, self.help_item_ids, self.logger)
         if self.help_items is None:
           self.logger.info('Failed to load help items on startup.')
@@ -29,28 +27,76 @@ class HelpItemCache:
             self.update_ts = datetime.now()
           return self.help_items
 
+def query_help_id(config, name, logger):
+    r = requests.get("https://" + config.patt_host + "/app/helptext/?pages/" + name +  "&output=json", timeout=30)
+    if r.status_code != 200:
+        if r.status_code == 404:
+            logger.error('Page not found for help_id = ' + name)
+            return None, None
+        else:
+            logger.error('Help content request failed for help_id = ' + name)
+            return None, None
+    content = r.json()
+    html_content = content.get('content', None)
+    markdown_content = content.get('raw_content', None)
+    return html_content, markdown_content
 
-def fetch_help_items(config, help_ids, logger):
+def fetch_help_items(config, help_item_ids, logger):
     try:
         help_items = []
-        for help_id in help_ids:
-            r = requests.get("https://" + config.patt_host + "/app/helptext/?pages/" + help_id.name +  "&output=json", timeout=30)
-            if r.status_code != 200:
-                if r.status_code == 404:
-                    logger.error('Page not found for help_id = ' + help_id.name)
-                    continue
+        for prefix, item in help_item_ids.items():
+            if item['is_faq']:
+                _, question = query_help_id(config, item['question_index'], logger)
+                html_content, markdown_content = query_help_id(config, item['content_index'], logger)
+                if question is None or html_content is None or markdown_content is None:
+                    logger.info('Failed to load non-FAQ item with name ' + prefix)
                 else:
-                    logger.error('Help content request failed for help_id = ' + help_id.name)
-                    continue
-            content = r.json()
-            html_content = content.get('content', None)
-            markdown_content = content.get('raw_content', None)
-            response = HelpItem(name=help_id.name, html_content=html_content, markdown_content=markdown_content, is_faq=help_id.is_faq)
-            help_items.append(response)
+                    help_items.append(HelpItem(name=prefix, html_content=html_content, markdown_content=markdown_content, is_faq=True, question=question))
+            else:
+                html_content, markdown_content = query_help_id(config, prefix, logger)
+                if html_content is None or markdown_content is None:
+                    logger.info('Failed to load non-FAQ item with name ' + prefix)
+                else:
+                    help_items.append(HelpItem(name=prefix, html_content=html_content, markdown_content=markdown_content, is_faq=False, question=None))
         if len(help_items) == 0:
             return None
         else:
             return help_items
+    except:
+        return None
+
+def fetch_help_item_list(config, logger):
+    try:
+        help_item_list = {}
+        r = requests.get("https://" + config.patt_host + "/app/plugins/markdown-editor/scripts/json.php", timeout=30)
+        if r.status_code != 200:
+            logger.error('Help list request failed.')
+            return None
+        files = r.json()['files']
+        for f in files:
+            name = f['file']
+            # determine whether the file is an FAQ. If it is, find both the question and answer for that FAQ.
+            if name[:3] == 'faq':
+                split = name.split('-')
+                question_answer = split[-1]
+                prefix = '-'.join(split[:-1])
+                if prefix not in help_item_list:
+                    help_item_list[prefix] = {
+                        'is_faq':True, 
+                        'content_index': None, 
+                        'question_index': None
+                        }
+                if question_answer == 'question':
+                    help_item_list[prefix]['question_index'] = name 
+                else:
+                    help_item_list[prefix]['content_index'] = name
+            else:
+                help_item_list[name] = {
+                    'content_index': name,
+                    'is_faq': False,
+                    'question_index': None
+                }
+        return help_item_list
     except:
         return None
     
