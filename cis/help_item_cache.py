@@ -5,7 +5,7 @@ import threading
 import requests 
 
 class HelpItemCache:
-    def __init__(self, config, help_id_path, logger):
+    def __init__(self, config,  logger):
         self.config = config
         self.logger = logger
         with open(help_id_path, 'r') as f:
@@ -47,6 +47,27 @@ def fetch_help_items(config, help_ids, logger):
             markdown_content = content.get('raw_content', None)
             response = HelpItem(name=help_id.name, html_content=html_content, markdown_content=markdown_content, is_faq=help_id.is_faq)
             help_items.append(response)
+        if len(help_items) == 0:
+            return None
+        else:
+            return help_items
+    except:
+        return None
+
+def fetch_help_item_list(config, logger):
+    try:
+        help_item_list = []
+        r = requests.get("https://" + config.patt_host + "/app/plugins/markdown-editor/scripts/json.php", timeout=30)
+        if r.status_code != 200:
+            logger.error('Help list request failed.')
+            return None
+        files = r.json()['files']
+        for f in files:
+            name = f['file']
+            # determine whether the file is an FAQ. If it is, find both the question and answer for that FAQ.
+            if name[:3] == 'faq':
+                prefix = 
+        help_items.append(response)
         if len(help_items) == 0:
             return None
         else:
