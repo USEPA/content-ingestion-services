@@ -236,18 +236,6 @@ class UserInfo:
     lan_id: str
     department: str
 
-@dataclass_json
-@dataclass
-class UserData:
-    email: str
-    display_name: str
-    lan_id: str
-    department: str
-    site_id: str
-    list_id: str
-    shared_drive_id: str
-    private_drive_id: str
-
 mock_email_metadata = EmailMetadata(**{
     'unid': '<DM6PR09MB549690B3AC3ED29A07A4B0B0B78D9@DM6PR09MB5496.namprd09.prod.outlook.com>',
     'subject': 'Test Subject',
