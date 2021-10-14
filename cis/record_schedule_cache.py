@@ -58,7 +58,7 @@ def get_record_schedules(config, dnu_items, logger):
   # If API request fails, fall back to local data.
   try:
     data = {"query": "{ ecms__record_Schedule (orderBy: {id: \"asc\"}) {  __all_columns__  }}"}
-    r = requests.post('https://' + config.record_schedules_server + '/dmapservice/query', data=data)
+    r = requests.post('https://' + config.record_schedules_server + '/dmapservice/query', data=data, timeout=30)
     result = r.json()['data']['ecms__record_schedule']
     request_success = True
   except:
