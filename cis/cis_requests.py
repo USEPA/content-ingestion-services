@@ -72,13 +72,6 @@ def get_email_html(email_id, access_token, config):
     app.logger.info("Email HTML request failed with status " + str(p.status_code) + ". " + p.text)
     return False, None, Response("Unable to retrieve email HTML.", status=400, mimetype='text/plain')
   return True, p.text, None
-
-def get_email_body(req: GetEmailBodyRequest, access_token, config):
-  success, html, failure_response = get_email_html(req.email_id, access_token, config)
-  if not success:
-    return failure_response
-  else:
-    return Response(html, status=200, mimetype='text/html')
   
 
 def describe_email(req: DescribeEmailRequest, access_token, config):
@@ -275,21 +268,6 @@ def extract_attachments_from_response(ezemail_response):
     return []
   else:
     return [EmailAttachment(name=attachment['name'], attachment_id=attachment['attachment_id']) for attachment in ezemail_response['attachments']]
-
-def download_attachment(req: DownloadAttachmentRequest, access_token, config):
-  body = {"attachmentid": req.attachment_id, "filename": req.file_name}
-  headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}
-  p = requests.get(
-    "http://" + config.ezemail_server + "/ezemail/v1/getattachment/", 
-    data=json.dumps(body), 
-    headers=headers,
-    timeout=30
-  )
-  if p.status_code != 200:
-    app.logger.info("Attachment download request failed with status " + str(p.status_code) + ". " + p.text)
-    return Response("Unable to retrieve attachment.", status=400, mimetype='text/plain')
-  response_headers = {'Content-Type': 'application/octet-stream', 'Content-Disposition': 'attachment; filename=' + req.file_name}
-  return Response(p.content, headers=response_headers, status=200)
 
 def mark_saved(req: MarkSavedRequest, access_token, config):
   headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}

@@ -127,14 +127,6 @@ def get_emails():
         return Response("User " + g.token_data['email'] + " is not authorized to access " + req.mailbox + ".", status=401, mimetype='text/plain')
     return list_email_metadata(req, g.token_data['email'], g.access_token, c)
 
-@app.route('/get_attachment', methods=['GET'])
-def get_attachment():
-    if g.access_token is None:
-        return Response("X-Outlook-Token is required.", status=400, mimetype='text/plain')
-    req = request.args
-    req = DownloadAttachmentRequest.from_dict(req)
-    return download_attachment(req, g.access_token, c)
-
 @app.route('/describe_email', methods=['GET'])
 def get_email_description():
     if g.access_token is None:
@@ -142,14 +134,6 @@ def get_email_description():
     req = request.args
     req = DescribeEmailRequest.from_dict(req)
     return describe_email(req, g.access_token, c)
-
-@app.route('/get_email_body', methods=['GET'])
-def get_body():
-    if g.access_token is None:
-        return Response("X-Outlook-Token is required.", status=400, mimetype='text/plain')
-    req = request.args
-    req = GetEmailBodyRequest.from_dict(req)
-    return get_email_body(req, g.access_token, c)
 
 @app.route('/upload_email', methods=['POST'])
 def upload_email():

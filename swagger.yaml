@@ -224,31 +224,6 @@ paths:
           description: "Email information provided."
           schema:
             $ref: "#/definitions/DescribeEmailResponse"
-  /get_email_body:
-    get:
-      tags:
-      - "email"
-      summary: "Get the body of a specific email."
-      consumes:
-        - application/json
-      parameters:
-        - in: query
-          name: "email_id"
-          type: string
-        - in: header
-          name: "Authorization"
-          type: string
-          format: "jwt"
-          required: true
-        - in: header
-          name: "X-Access-Token"
-          type: string
-          required: true
-      produces:
-        - text/html
-      responses:
-        200:
-          description: "Email body provided."
   /upload_email:
     post:
       tags:
@@ -301,34 +276,6 @@ paths:
       responses:
         200:
           description: "EML file downloaded."
-          schema:
-            type: "file"
-  /get_attachment:
-    get:
-      tags:
-      - "email"
-      summary: "Download an email attachment."
-      consumes:
-        - application/json
-      parameters:
-        - in: query
-          name: "file_name"
-          type: string
-        - in: query
-          name: "attachment_id"
-          type: string
-        - in: header
-          name: "Authorization"
-          type: string
-          format: "jwt"
-          required: true
-        - in: header
-          name: "X-Access-Token"
-          type: string
-          required: true
-      responses:
-        200:
-          description: "Attachment downloaded."
           schema:
             type: "file"
   /mark_email_saved:
@@ -1078,6 +1025,8 @@ definitions:
         type: string
       is_faq:
         type: boolean
+      question:
+        type: string
   AllHelpItemsResponse:
     type: object
     properties:
