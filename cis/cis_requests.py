@@ -546,9 +546,9 @@ def download_documentum_record(config, lan_id, object_ids, env):
   if len(missing_ids) != 0:
     return Response('The following object_ids could not be found: ' + ', '.join(list(missing_ids)), status=400, mimetype='text/plain')
   # TODO: Reenable custodian validation
-  #for doc in r.json()['entries']:
-  #  if doc['content']['properties']['erma_doc_custodian'] != lan_id:
-  #    return Response('User ' + lan_id + ' is not the custodian of all files requested.', status=401, mimetype='text/plain')
+  for doc in r.json()['entries']:
+    if doc['content']['properties'].get('erma_doc_custodian', '') != lan_id and doc['content']['properties'].get('erma_custodian', '') != lan_id:
+      return Response('User ' + lan_id + ' is not the custodian of all files requested.', status=401, mimetype='text/plain')
   
   hrefs = ['https://' + ecms_host + '/dctm-rest/repositories/ecmsrmr65/objects/' + obj for obj in object_ids]
   data = {'hrefs': list(set(hrefs))}
