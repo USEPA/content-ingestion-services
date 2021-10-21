@@ -657,6 +657,27 @@ paths:
           description: "Help items successfully returned."
           schema:
             $ref: "#/definitions/AllHelpItemsResponse"
+  /save_sems_email:
+    post:
+      tags:
+      - "sems"
+      summary: "Save email record to SEMS."
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: "metadata"
+          description: "Metadata needed for submissions to SEMS."
+          schema:
+            $ref: "#/definitions/SEMSEmailUploadRequest"
+        - in: header
+          name: "Authorization"
+          type: string
+          format: "jwt"
+          required: true
+      responses:
+        200:
+          description: "Record successfully uploaded."
 
 definitions:
   MetadataPrediction:
@@ -1034,5 +1055,35 @@ definitions:
         type: array
         items:
           $ref: "#/definitions/HelpItemResponse"
+  SEMSEmailUploadRequest:
+    type: object
+    properties:
+      tags:
+        type: array
+        items:
+          type: string
+      title:
+        type: string
+      creation_date: 
+        type: string
+      region:
+        type: string
+      program_type:
+        type: string
+      site:
+        type: string
+      access_control:
+        type: string
+      program_area:
+        type: string
+      special_processing:
+        type: string
+      comments:
+        type: string
+      description:
+        type: string
+      email_uid:
+        type: string
+      
 
 

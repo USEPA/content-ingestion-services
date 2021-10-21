@@ -407,3 +407,22 @@ class AllHelpItemsResponse:
 class HelpId:
     name: str
     is_faq: bool
+
+@dataclass_json
+@dataclass
+class SEMSEmailUploadRequest:
+    tags: list[str]
+    title: str
+    creation_date: str
+    region: str
+    program_type: str
+    site: str
+    access_control: str
+    program_area: str
+    special_processing: str
+    comments: str
+    description: str
+    email_uid: str
+
+
+

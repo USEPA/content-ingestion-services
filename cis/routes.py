@@ -335,3 +335,9 @@ def get_help_by_id():
 @app.route('/get_all_help_items', methods=['GET'])
 def get_all_help():
     return get_all_help_items()
+
+@app.route('/submit_sems_email', methods=['POST'])
+def submit_email_sems():
+    req = request.json
+    req = SEMSEmailUploadRequest.from_dict(req)
+    return submit_sems_email(req, c)

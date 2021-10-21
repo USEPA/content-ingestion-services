@@ -585,7 +585,7 @@ def get_user_info(config, token_data):
     return False, 'WAM request failed.', None
 
 def get_sems_special_processing(config, region):
-  special_processing = requests.get('http://' + config.sems_host + '/sems-ws/outlook/getSpecialProcessing/' + region, timeout=30)
+  special_processing = requests.get('http://' + config.sems_host + '/sems-ws/outlook/getSpecialProcessing/' + region, timeout=10)
   if special_processing.status_code == 200:
     response_object = GetSpecialProcessingResponse([SemsSpecialProcessing(**obj) for obj in special_processing.json()])
     return Response(response_object.to_json(), status=200, mimetype='application/json')
@@ -769,3 +769,10 @@ def get_help_item(req: GetHelpItemRequest):
 def get_all_help_items():
   items = AllHelpItemsResponse(help_items=help_item_cache.get_help_items())
   return Response(items.to_json(), status=200, mimetype='application/json')
+
+def submit_sems_email(req: SEMSEmailUploadRequest, config):
+  data = req.to_json()
+  r = requests.post('http://' + config.sems_host + '/sems-ws/outlook/saveMails', data=data, timeout=10)
+  if r.status_code != 200:
+    return Response('Failed to send email to SEMS.', status=500, mimetype='text/plain')
+  return Response(r.json(), status=200, mimetype='application/json')

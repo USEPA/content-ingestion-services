@@ -19,15 +19,15 @@ class RecordScheduleCache:
       self.lock = threading.Lock()
 
     def get_schedules(self):
-      diff = datetime.now() - self.update_ts
       with self.lock:
+        diff = datetime.now() - self.update_ts
         if diff.total_seconds() > 24 * 60 * 60:
           request_success, schedules = get_record_schedules(self.config, self.dnu_items, self.logger)
           if request_success:
             self.schedules = schedules
-          elif len(self.schedules) == 0:
-              print('Record schedule refresh failed and no data is cached. Defaulting to local data.')
-              self.schedules = schedules
+          else:
+            print('Record schedule refresh failed and no data is cached. Defaulting to local data.')
+            self.schedules = schedules
           self.update_ts = datetime.now()
         return self.schedules
     
