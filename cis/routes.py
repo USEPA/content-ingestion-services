@@ -324,7 +324,10 @@ def sharepoint_prediction():
 def sharepoint_upload():
     req = request.json
     req = SharepointUploadRequest.from_dict(req)
-    return upload_sharepoint_record(req, g.access_token, c)
+    success, message, user_info = get_user_info(c, g.token_data)
+    if not success:
+        return Response(message, status=400, mimetype='text/plain')
+    return upload_sharepoint_record(req, g.access_token, user_info.lan_id, c)
 
 @app.route('/get_help_item', methods=['GET'])
 def get_help_by_id():

@@ -8,6 +8,8 @@ import urllib
 import io
 import re
 import uuid
+from .models import User, RecordSubmission, db
+from sqlalchemy import null
 from . import model, help_item_cache
 
 TIKA_CUTOFF = 20
@@ -719,7 +721,7 @@ def sharepoint_record_prediction(req: SharepointPredictionRequest, access_token,
   prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description, default_schedule=default_schedule)
   return Response(prediction.to_json(), status=200, mimetype='application/json')
 
-def upload_sharepoint_record(req: SharepointUploadRequest, access_token, c):
+def upload_sharepoint_record(req: SharepointUploadRequest, access_token, lan_id, c):
   headers = {'Authorization': 'Bearer ' + access_token}
   url = 'https://graph.microsoft.com/v1.0/me/drive/items/' + req.drive_item_id + '?expand=listItem,sharepointIds'
   r = requests.get(url, headers=headers, timeout=30)
@@ -735,18 +737,66 @@ def upload_sharepoint_record(req: SharepointUploadRequest, access_token, c):
   content = content_req.content
   documentum_metadata = convert_metadata(req.metadata, req.drive_item_id)
   upload_resp = upload_documentum_record(content, documentum_metadata, c, req.documentum_env)
+  
   if upload_resp.status_code != 201:
-    return upload_resp 
+    return upload_resp
+
+  ## If successful, update Sharepoint metadata
+  site_id = drive_item['sharepointIds']['siteId']
+  list_id = drive_item['sharepointIds']['listId']
+  list_item_id = drive_item['sharepointIds']['listItemId']
+  status = "Saved to ECMS Staging"
+  success, response = update_sharepoint_record_status(site_id, list_id, list_item_id, status, access_token)
+  if not success:
+    return response 
+  
+  ## Add submission analytics to table
+  ## TODO: find correct path to id in upload_resp
+  success, response = add_submission_analytics(req.metadata.submission_analytics, lan_id, upload_resp['r_object_id'], None)
+  if not success:
+    return response
   else:
-    site_id = drive_item['sharepointIds']['siteId']
-    list_id = drive_item['sharepointIds']['listId']
-    list_item_id = drive_item['sharepointIds']['listItemId']
-    status = "Saved to ECMS Staging"
-    success, response = update_sharepoint_record_status(site_id, list_id, list_item_id, status, access_token)
-    if not success:
-      return response 
-    else:
-      return upload_resp
+    return Response('File successfully uploaded.', status=200, mimetype='text/plain')
+
+def add_submission_analytics(data: SubmissionAnalyticsMetadata, lan_id, documentum_id, nuxeo_id):
+  # Handle nulls for documentum and nuxeo ids
+  if documentum_id is None:
+    doc_id = null()
+  else:
+    doc_id = documentum_id
+  if nuxeo_id is None:
+    nux_id = null()
+  else:
+    nux_id = nuxeo_id
+
+  # Find user in DB or add user
+  user = User.query.filter_by(lan_id = lan_id).all()
+  if len(user) == 0:
+      user = User(lan_id = lan_id)
+      db.session.add(user)
+  else:
+      user = user[0]
+  
+  sorted_predictions = list(sorted(data.predicted_schedules, key=lambda x: x.probability, reverse=True))
+  if len(sorted_predictions) > 0:
+    predicted_schedule_one = sched_to_string(sorted_predictions[0].schedule),
+    predicted_probability_one = sorted_predictions[0].probability
+  else:
+    
+  submission = RecordSubmission(
+    arms_documentum_id = doc_id,
+    arms_nuxeo_id = nux_id,
+    predicted_schedule_one = sched_to_string(sorted_predictions[0].schedule),
+    predicted_probability_one = sorted_predictions[0].probability,
+    predicted_schedule_two = sched_to_string(sorted_predictions[1].schedule),
+    predicted_probability_two = sorted_predictions[1].probability,
+    predicted_schedule_three = sched_to_string(sorted_predictions[2].schedule),
+    predicted_probability_three = sorted_predictions[2].probability,
+
+  )
+
+def sched_to_string(sched):
+  return '-'.join([sched.function_number, sched.schedule_number, sched.disposition_number])
 
 def update_sharepoint_record_status(site_id, list_id, item_id, status, access_token):
   url = 'https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{list_id}/items/{item_id}/fields'.format(site_id = site_id, list_id = list_id, item_id = item_id)

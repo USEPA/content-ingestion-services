@@ -51,6 +51,7 @@ class ECMSMetadata:
     title: str
     record_schedule: RecordSchedule
     sensitivity: str
+    submission_analytics: SubmissionAnalyticsMetadata
     description: Optional[str] = ''
     creator: Optional[str] = ''
     creation_date: Optional[str] = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
@@ -59,6 +60,19 @@ class ECMSMetadata:
     coverage: Optional[list[str]] = None
     relationships: Optional[list[str]] = None
     tags: Optional[list[str]] = None
+    
+
+@dataclass_json
+@dataclass
+class SubmissionAnalyticsMetadata:
+    predicted_schedules: list[Recommendation]
+    default_schedule: RecordSchedule
+    opened_metadata_editor: bool
+    actively_chose_suggested_schedule: bool
+    chose_from_dropdown: bool
+    chose_top_suggestion: bool
+    selected_schedule_was_favorite: bool
+
 
 @dataclass_json
 @dataclass 
