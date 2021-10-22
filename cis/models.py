@@ -17,7 +17,7 @@ class Favorite(db.Model):
     __table_args__ = (db.UniqueConstraint('user_id', 'function_number', 'disposition_number', 'schedule_number', name='_user_favorites_uc'),)
 
 class RecordSubmission(db.Model):
-    __tablename__ = 'user'
+    __tablename__ = 'record_submission'
     id = db.Column(db.Integer, primary_key=True)
     arms_documentum_id = db.Column(db.String(30))
     arms_nuxeo_id = db.Column(db.String(30))

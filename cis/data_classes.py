@@ -44,23 +44,18 @@ class RecordScheduleList:
     schedules: list[RecordScheduleInformation]
 
 @dataclass_json
-@dataclass
-class ECMSMetadata:
-    file_path: str
-    custodian: str
-    title: str
-    record_schedule: RecordSchedule
-    sensitivity: str
-    submission_analytics: SubmissionAnalyticsMetadata
-    description: Optional[str] = ''
-    creator: Optional[str] = ''
-    creation_date: Optional[str] = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
-    close_date: Optional[str] = ''
-    rights: Optional[list[str]] = None
-    coverage: Optional[list[str]] = None
-    relationships: Optional[list[str]] = None
-    tags: Optional[list[str]] = None
-    
+@dataclass 
+class Recommendation:
+    schedule: RecordSchedule 
+    probability: float 
+
+@dataclass_json
+@dataclass 
+class PredictionWithExplanation:
+    value: str 
+    prediction_type: str
+
+mock_prediction_with_explanation = PredictionWithExplanation(value="", prediction_type="")
 
 @dataclass_json
 @dataclass
@@ -73,7 +68,24 @@ class SubmissionAnalyticsMetadata:
     chose_top_suggestion: bool
     selected_schedule_was_favorite: bool
 
-
+@dataclass_json
+@dataclass
+class ECMSMetadata:
+    file_path: str
+    custodian: str
+    title: str
+    record_schedule: RecordSchedule
+    sensitivity: str
+    submission_analytics: Optional[SubmissionAnalyticsMetadata]
+    description: Optional[str] = ''
+    creator: Optional[str] = ''
+    creation_date: Optional[str] = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+    close_date: Optional[str] = ''
+    rights: Optional[list[str]] = None
+    coverage: Optional[list[str]] = None
+    relationships: Optional[list[str]] = None
+    tags: Optional[list[str]] = None
+    
 @dataclass_json
 @dataclass 
 class DocumentumDocInfo:
@@ -110,19 +122,6 @@ class RecordDownloadRequest:
     object_ids: list[str]
     documentum_env: Optional[str] = "dev"
 
-@dataclass_json
-@dataclass 
-class Recommendation:
-    schedule: RecordSchedule 
-    probability: float 
-
-@dataclass_json
-@dataclass 
-class PredictionWithExplanation:
-    value: str 
-    prediction_type: str
-
-mock_prediction_with_explanation = PredictionWithExplanation(value="", prediction_type="")
 
 @dataclass_json
 @dataclass 

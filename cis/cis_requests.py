@@ -414,7 +414,8 @@ def get_erma_content(config, lan_id, items_per_page, page_number, query, env):
               'rights': properties['rights'],
               'coverage': properties['coverage'],
               'relationships': properties['relationships'],
-              'tags': properties['tags']
+              'tags': properties['tags'],
+              'submission_analytics': None
           }
       }
       doc_info.append(doc_data)
@@ -610,9 +611,9 @@ def upload_documentum_record(content, documentum_metadata, config, env):
   files = {'metadata': json.dumps({'properties': documentum_metadata.to_dict()}), 'contents': content}
   r = requests.post(url, files=files, auth=HTTPBasicAuth(ecms_user, ecms_password), timeout=30)
   if r.status_code == 200 and 'r_object_id' in r.json()['properties']:
-    return Response(r.json(), status=200, mimetype='text/plain')
+    return True, r.json()['properties']['r_object_id'], None
   else:
-    return Response(r.text, r.status_code, mimetype='text/plain')
+    return False, None, Response(r.text, r.status_code, mimetype='text/plain')
 
 # Converts ECMS metadata to metadata compatible with Documentum
 def convert_metadata(ecms_metadata, unid=None):
@@ -648,23 +649,27 @@ def convert_metadata(ecms_metadata, unid=None):
     erma_content_tags=ecms_metadata.tags
   )
 
-def upload_documentum_email(upload_email_request, access_token, config):
+def upload_documentum_email(upload_email_request, access_token, lan_id, config):
   ecms_metadata = upload_email_request.metadata
   content = get_eml_file(upload_email_request.email_id, ecms_metadata.title, access_token, config)
   if content is None:
     return Response('Unable to retrieve email.', status=400, mimetype='text/plain')
   documentum_metadata = convert_metadata(ecms_metadata, upload_email_request.email_unid)
-  upload_resp = upload_documentum_record(content, documentum_metadata, config, upload_email_request.documentum_env)
-  if '201' not in upload_resp.status:
-    return upload_resp 
+  success, r_object_id, resp = upload_documentum_record(content, documentum_metadata, config, upload_email_request.documentum_env)
+  if not success:
+    return resp 
+  
+  save_req = MarkSavedRequest(email_id = upload_email_request.email_id, sensitivity=ecms_metadata.sensitivity)
+  save_resp = mark_saved(save_req, access_token, config)
+  if save_resp.status != '200 OK':
+    return save_resp
+  
+  success, response = add_submission_analytics(ecms_metadata.submission_analytics, lan_id, r_object_id, None)
+  if not success:
+    return response
   else:
-    save_req = MarkSavedRequest(email_id = upload_email_request.email_id, sensitivity=ecms_metadata.sensitivity)
-    save_resp = mark_saved(save_req, access_token, config)
-    if save_resp.status == '200 OK':
-      return upload_resp 
-    else:
-      return save_resp
-
+    return Response('File successfully uploaded.', status=200, mimetype='text/plain')
+  
 def simplify_sharepoint_record(raw_rec, sensitivity):
   return SharepointRecord(
     web_url = raw_rec['webUrl'],
@@ -736,10 +741,9 @@ def upload_sharepoint_record(req: SharepointUploadRequest, access_token, lan_id,
     return Response('Content request failed with status ' + str(content_req.status_code), status=500, mimetype='text/plain')
   content = content_req.content
   documentum_metadata = convert_metadata(req.metadata, req.drive_item_id)
-  upload_resp = upload_documentum_record(content, documentum_metadata, c, req.documentum_env)
-  
-  if upload_resp.status_code != 201:
-    return upload_resp
+  success, r_object_id, resp = upload_documentum_record(content, documentum_metadata, c, req.documentum_env)
+  if not success:
+    return resp
 
   ## If successful, update Sharepoint metadata
   site_id = drive_item['sharepointIds']['siteId']
@@ -752,11 +756,14 @@ def upload_sharepoint_record(req: SharepointUploadRequest, access_token, lan_id,
   
   ## Add submission analytics to table
   ## TODO: find correct path to id in upload_resp
-  success, response = add_submission_analytics(req.metadata.submission_analytics, lan_id, upload_resp['r_object_id'], None)
+  success, response = add_submission_analytics(req.metadata.submission_analytics, lan_id, r_object_id, None)
   if not success:
     return response
   else:
     return Response('File successfully uploaded.', status=200, mimetype='text/plain')
+
+def sched_to_string(sched):
+  return '-'.join([sched.function_number, sched.schedule_number, sched.disposition_number])
 
 def add_submission_analytics(data: SubmissionAnalyticsMetadata, lan_id, documentum_id, nuxeo_id):
   # Handle nulls for documentum and nuxeo ids
@@ -779,24 +786,52 @@ def add_submission_analytics(data: SubmissionAnalyticsMetadata, lan_id, document
   
   sorted_predictions = list(sorted(data.predicted_schedules, key=lambda x: x.probability, reverse=True))
   if len(sorted_predictions) > 0:
-    predicted_schedule_one = sched_to_string(sorted_predictions[0].schedule),
+    predicted_schedule_one = sched_to_string(sorted_predictions[0].schedule)
     predicted_probability_one = sorted_predictions[0].probability
   else:
-    
+    predicted_schedule_one = null()
+    predicted_probability_one = null()
+  
+  if len(sorted_predictions) > 1:
+    predicted_schedule_two = sched_to_string(sorted_predictions[1].schedule)
+    predicted_probability_two = sorted_predictions[1].probability
+  else:
+    predicted_schedule_two = null()
+    predicted_probability_two = null()
+  
+  if len(sorted_predictions) > 2:
+    predicted_schedule_three = sched_to_string(sorted_predictions[2].schedule)
+    predicted_probability_three = sorted_predictions[2].probability
+  else:
+    predicted_schedule_three = null()
+    predicted_probability_three = null()
+
   submission = RecordSubmission(
     arms_documentum_id = doc_id,
     arms_nuxeo_id = nux_id,
-    predicted_schedule_one = sched_to_string(sorted_predictions[0].schedule),
-    predicted_probability_one = sorted_predictions[0].probability,
-    predicted_schedule_two = sched_to_string(sorted_predictions[1].schedule),
-    predicted_probability_two = sorted_predictions[1].probability,
-    predicted_schedule_three = sched_to_string(sorted_predictions[2].schedule),
-    predicted_probability_three = sorted_predictions[2].probability,
-
+    predicted_schedule_one = predicted_schedule_one,
+    predicted_probability_one = predicted_probability_one,
+    predicted_schedule_two = predicted_schedule_two,
+    predicted_probability_two = predicted_probability_two,
+    predicted_schedule_three = predicted_schedule_three,
+    predicted_probability_three = predicted_probability_three,
+    default_schedule = sched_to_string(data.default_schedule),
+    opened_metadata_editor = data.opened_metadata_editor,
+    actively_chose_suggested_schedule = data.actively_chose_suggested_schedule,
+    chose_from_dropdown = data.chose_from_dropdown,
+    chose_top_suggestion = data.chose_top_suggestion,
+    selected_schedule_was_favorite = data.selected_schedule_was_favorite,
+    user = user
   )
 
-def sched_to_string(sched):
-  return '-'.join([sched.function_number, sched.schedule_number, sched.disposition_number])
+  user.submissions.append(submission)
+  
+  try:
+    db.session.commit()
+    return True, None
+  except:
+    return False, Response("Error committing submission analytics.", status=500, mimetype="text/plain")
+
 
 def update_sharepoint_record_status(site_id, list_id, item_id, status, access_token):
   url = 'https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{list_id}/items/{item_id}/fields'.format(site_id = site_id, list_id = list_id, item_id = item_id)
