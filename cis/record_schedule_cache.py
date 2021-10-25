@@ -23,11 +23,9 @@ class RecordScheduleCache:
         diff = datetime.now() - self.update_ts
         if diff.total_seconds() > 24 * 60 * 60:
           request_success, schedules = get_record_schedules(self.config, self.dnu_items, self.logger)
-          if request_success:
-            self.schedules = schedules
-          else:
-            print('Record schedule refresh failed and no data is cached. Defaulting to local data.')
-            self.schedules = schedules
+          if not request_success:
+            self.logger.info('Record schedule refresh failed and no data is cached. Defaulting to local data.')
+          self.schedules = schedules
           self.update_ts = datetime.now()
         return self.schedules
     
@@ -58,7 +56,7 @@ def get_record_schedules(config, dnu_items, logger):
   # If API request fails, fall back to local data.
   try:
     data = {"query": "{ ecms__record_Schedule (orderBy: {id: \"asc\"}) {  __all_columns__  }}"}
-    r = requests.post('https://' + config.record_schedules_server + '/dmapservice/query', data=data, timeout=30)
+    r = requests.post('https://' + config.record_schedules_server + '/dmapservice/query', data=data, timeout=10)
     result = r.json()['data']['ecms__record_schedule']
     request_success = True
   except:
