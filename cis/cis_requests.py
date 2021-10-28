@@ -674,8 +674,37 @@ def simplify_sharepoint_record(raw_rec, sensitivity):
     last_modified_date = raw_rec['lastModifiedDateTime']
   )
 
+def check_or_create_records_folder(access_token):
+  headers = {'Authorization': 'Bearer ' + access_token}
+  r = requests.get("https://graph.microsoft.com/v1.0/me/drive/root/children/?$filter=name eq 'EPA Records'", headers=headers, timeout=10)
+  if r.status_code != 200:
+    return False, Response('Records folder request failed. ' + r.text, status=500, mimetype='text/plain')
+  values = r.json().get('value', [])
+  if len(values) == 0:
+    # If folder is not present, create it
+    body = {
+      "name": "EPA Records",
+      "folder": {},
+      "@microsoft.graph.conflictBehavior": "fail"
+    }
+    r = requests.post("https://graph.microsoft.com/v1.0/me/drive/root/children/", data=body, headers=headers, timeout=10)
+    if r.status_code == 201:
+      return True, None
+    elif r.status_code == 409:
+      if r.json().get('error', {}).get('code', '') == 'nameAlreadyExists':
+        return True, None
+      else:
+        return False, Response('Failed to create EPA Records folder.', status=500, mimetype='text/plain')
+    else:
+      return False, Response('Failed to create EPA Records folder.', status=500, mimetype='text/plain')
+  else:
+    return True, None
+
 # TODO: handle case when shared/private folders contain more than 5000 records.
 def list_sharepoint_records(req: GetSharepointRecordsRequest, access_token):
+  success, response = check_or_create_records_folder(access_token)
+  if not success:
+    return response
   page_number = int(req.page_number)
   items_per_page = int(req.items_per_page)
   if page_number <= 0:
@@ -685,7 +714,7 @@ def list_sharepoint_records(req: GetSharepointRecordsRequest, access_token):
   all_records = []
   # Get shared records
   headers = {'Authorization': 'Bearer ' + access_token}
-  shared = requests.get("https://graph.microsoft.com/v1.0/me/drive/root:/EPA Records:/children/?$expand=listitem", headers=headers, timeout=30)
+  shared = requests.get("https://graph.microsoft.com/v1.0/me/drive/root:/EPA Records:/children/?$expand=listitem", headers=headers, timeout=10)
   if shared.status_code != 200:
     return Response('Failed to retrieve shared OneDrive items.', status=500, mimetype='text/plain')
   shared_items = shared.json()['value']
