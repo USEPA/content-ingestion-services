@@ -610,7 +610,7 @@ def upload_documentum_record(content, documentum_metadata, config, env):
   url = "https://" + ecms_host + "/ecms/save/1.2?apiKey=" + api_key
   files = {'metadata': json.dumps({'properties': documentum_metadata.to_dict()}), 'contents': content}
   r = requests.post(url, files=files, auth=HTTPBasicAuth(ecms_user, ecms_password), timeout=30)
-  if r.status_code == 200 and 'r_object_id' in r.json()['properties']:
+  if r.status_code == 201 and 'r_object_id' in r.json()['properties']:
     return True, r.json()['properties']['r_object_id'], None
   else:
     return False, None, Response(r.text, r.status_code, mimetype='text/plain')
@@ -658,17 +658,18 @@ def upload_documentum_email(upload_email_request, access_token, lan_id, config):
   success, r_object_id, resp = upload_documentum_record(content, documentum_metadata, config, upload_email_request.documentum_env)
   if not success:
     return resp 
-  
   save_req = MarkSavedRequest(email_id = upload_email_request.email_id, sensitivity=ecms_metadata.sensitivity)
   save_resp = mark_saved(save_req, access_token, config)
   if save_resp.status != '200 OK':
     return save_resp
   
-  success, response = add_submission_analytics(ecms_metadata.submission_analytics, lan_id, r_object_id, None)
-  if not success:
-    return response
-  else:
-    return Response('File successfully uploaded.', status=200, mimetype='text/plain')
+  if ecms_metadata.submission_analytics:
+    success, response = add_submission_analytics(ecms_metadata.submission_analytics, lan_id, r_object_id, None)
+    if not success:
+      return response
+    else:
+      return Response('File successfully uploaded.', status=200, mimetype='text/plain')
+  return Response('File successfully uploaded.', status=200, mimetype='text/plain')
   
 def simplify_sharepoint_record(raw_rec, sensitivity):
   return SharepointRecord(
@@ -756,11 +757,13 @@ def upload_sharepoint_record(req: SharepointUploadRequest, access_token, lan_id,
   
   ## Add submission analytics to table
   ## TODO: find correct path to id in upload_resp
-  success, response = add_submission_analytics(req.metadata.submission_analytics, lan_id, r_object_id, None)
-  if not success:
-    return response
-  else:
-    return Response('File successfully uploaded.', status=200, mimetype='text/plain')
+  if req.metadata.submission_analytics:
+    success, response = add_submission_analytics(req.metadata.submission_analytics, lan_id, r_object_id, None)
+    if not success:
+      return response
+    else:
+      return Response('File successfully uploaded.', status=200, mimetype='text/plain')
+  return Response('File successfully uploaded.', status=200, mimetype='text/plain')
 
 def sched_to_string(sched):
   return '-'.join([sched.function_number, sched.schedule_number, sched.disposition_number])
@@ -810,17 +813,17 @@ def add_submission_analytics(data: SubmissionAnalyticsMetadata, lan_id, document
     arms_documentum_id = doc_id,
     arms_nuxeo_id = nux_id,
     predicted_schedule_one = predicted_schedule_one,
-    predicted_probability_one = predicted_probability_one,
+    predicted_schedule_one_probability = predicted_probability_one,
     predicted_schedule_two = predicted_schedule_two,
-    predicted_probability_two = predicted_probability_two,
+    predicted_schedule_two_probability = predicted_probability_two,
     predicted_schedule_three = predicted_schedule_three,
-    predicted_probability_three = predicted_probability_three,
+    predicted_schedule_three_probability = predicted_probability_three,
     default_schedule = sched_to_string(data.default_schedule),
-    opened_metadata_editor = data.opened_metadata_editor,
-    actively_chose_suggested_schedule = data.actively_chose_suggested_schedule,
-    chose_from_dropdown = data.chose_from_dropdown,
-    chose_top_suggestion = data.chose_top_suggestion,
-    selected_schedule_was_favorite = data.selected_schedule_was_favorite,
+    used_modal_form = data.opened_metadata_editor,
+    used_recommended_schedule = data.actively_chose_suggested_schedule,
+    used_schedule_dropdown = data.chose_from_dropdown,
+    used_default_schedule = data.chose_top_suggestion,
+    used_favorite_schedule = data.selected_schedule_was_favorite,
     user = user
   )
 

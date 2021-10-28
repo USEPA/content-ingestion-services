@@ -62,11 +62,11 @@ mock_prediction_with_explanation = PredictionWithExplanation(value="", predictio
 class SubmissionAnalyticsMetadata:
     predicted_schedules: list[Recommendation]
     default_schedule: RecordSchedule
-    opened_metadata_editor: bool
-    actively_chose_suggested_schedule: bool
-    chose_from_dropdown: bool
-    chose_top_suggestion: bool
-    selected_schedule_was_favorite: bool
+    used_modal_form: bool
+    used_recommended_schedule: bool
+    used_schedule_dropdown: bool
+    used_default_schedule: bool
+    used_favorite_schedule: bool
 
 @dataclass_json
 @dataclass
@@ -76,7 +76,7 @@ class ECMSMetadata:
     title: str
     record_schedule: RecordSchedule
     sensitivity: str
-    submission_analytics: Optional[SubmissionAnalyticsMetadata]
+    user_activity: Optional[SubmissionAnalyticsMetadata] = None
     description: Optional[str] = ''
     creator: Optional[str] = ''
     creation_date: Optional[str] = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
