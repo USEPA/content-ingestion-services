@@ -967,6 +967,10 @@ definitions:
         type: string
       department: 
         type: string
+      parent_org_code:
+        type: string
+      employee_number:
+        type: string
   DocumentumDocInfo:
     type: object
     properties:

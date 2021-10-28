@@ -536,18 +536,29 @@ def download_documentum_record(config, lan_id, object_ids, env):
     if not valid:
       return Response('Object ID invalid: ' + object_id, status=400, mimetype='text/plain')
   doc_where_clause = ' OR '.join(["s.r_object_id = '" + str(x) + "'" for x in object_ids])
-  doc_info_sql = "select s.ERMA_DOC_CUSTODIAN as erma_doc_custodian, r_object_id, r_object_type from erma_doc s where " + doc_where_clause + ";"
+  doc_info_sql = "select s.ERMA_CUSTODIAN as erma_doc_custodian, r_object_id, r_object_type from erma_content s where " + doc_where_clause + ";"
   # This gives some buffer, even though there should be exactly len(object_ids) items to recover
   r = dql_request(config, doc_info_sql, 2*len(object_ids), 1, env)
+  entries = r.json()['entries']
   if r.status_code != 200:
     app.logger.error(r.text)
-    return Response('Documentum doc info request returned status ' + str(r.status_code), status=500, mimetype='text/plain')
-  missing_ids = set(object_ids) - set([doc['content']['properties']['r_object_id'] for doc in r.json()['entries']])
+    return Response('Documentum content info request returned status ' + str(r.status_code), status=500, mimetype='text/plain')
+  remaining_ids = set(object_ids) - set([doc['content']['properties']['r_object_id'] for doc in r.json()['entries']])
+  if len(remaining_ids) > 0:
+    remaining_where_clause = ' OR '.join(["s.r_object_id = '" + str(x) + "'" for x in remaining_ids])
+    doc_info_sql = "select s.ERMA_DOC_CUSTODIAN as erma_doc_custodian, r_object_id, r_object_type from erma_doc s where " + remaining_where_clause + ";"
+    remaining_r = dql_request(config, doc_info_sql, 2*len(object_ids), 1, env)
+    if remaining_r.status_code != 200:
+      app.logger.error(remaining_r.text)
+      return Response('Documentum doc info request returned status ' + str(r.status_code), status=500, mimetype='text/plain')
+    for x in remaining_r.json()['entries']:
+      entries.append(x)
+  missing_ids = set(object_ids) - set([doc['content']['properties']['r_object_id'] for doc in entries])
   if len(missing_ids) != 0:
     return Response('The following object_ids could not be found: ' + ', '.join(list(missing_ids)), status=400, mimetype='text/plain')
   # TODO: Reenable custodian validation
-  for doc in r.json()['entries']:
-    if doc['content']['properties'].get('erma_doc_custodian', '') != lan_id and doc['content']['properties'].get('erma_custodian', '') != lan_id:
+  for doc in entries:
+    if doc['content']['properties'].get('erma_doc_custodian', '') != lan_id:
       return Response('User ' + lan_id + ' is not the custodian of all files requested.', status=401, mimetype='text/plain')
   
   hrefs = ['https://' + ecms_host + '/dctm-rest/repositories/ecmsrmr65/objects/' + obj for obj in object_ids]
@@ -568,19 +579,22 @@ def get_user_info(config, token_data):
   # Handle service accounts separately
   if token_data['email'][:4].lower() == 'svc_':
     return True, None, UserInfo(token_data['email'], token_data['email'], token_data['email'].split('@')[0], 'SERVICE_ACCOUNT')
-  url = 'https://' + config.wam_host + '/iam/governance/scim/v1/Users?attributes=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:Department&attributes=userName&attributes=Active&attributes=displayName&filter=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:Upn eq "' + token_data['email'] + '"'
+  url = 'https://' + config.wam_host + '/iam/governance/scim/v1/Users?attributes=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:Department&attributes=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:PARENTORGCODE&attributes=urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:employeeNumber&attributes=userName&attributes=Active&attributes=displayName&filter=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:Upn eq "' + token_data['email'] + '"'
   try:
     wam = requests.get(url, auth=(config.wam_username, config.wam_password), timeout=30)
+    print(wam.json())
     if wam.status_code != 200:
       return False, 'WAM request failed with status ' + str(wam.status_code) + ' and error ' + str(wam.text), None
     user_data = wam.json()['Resources'][0]
     lan_id = user_data['userName'].lower()
     display_name = user_data['displayName']
     department = user_data['urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User']['Department']
+    parent_org_code = user_data['urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User']['PARENTORGCODE']
+    employee_number = user_data['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User']['employeeNumber']
     active = user_data['active']
     if not active:
       return False, 'User is not active.', None
-    return True, None, UserInfo(token_data['email'], display_name, lan_id, department)
+    return True, None, UserInfo(token_data['email'], display_name, lan_id, department, parent_org_code, employee_number)
   except:
     return False, 'WAM request failed.', None
 

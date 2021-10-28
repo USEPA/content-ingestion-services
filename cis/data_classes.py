@@ -235,6 +235,8 @@ class UserInfo:
     display_name: str
     lan_id: str
     department: str
+    parent_org_code: str
+    employee_number: str
 
 mock_email_metadata = EmailMetadata(**{
     'unid': '<DM6PR09MB549690B3AC3ED29A07A4B0B0B78D9@DM6PR09MB5496.namprd09.prod.outlook.com>',
