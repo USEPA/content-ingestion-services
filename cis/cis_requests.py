@@ -689,7 +689,7 @@ def simplify_sharepoint_record(raw_rec, sensitivity):
   )
 
 def check_or_create_records_folder(access_token):
-  headers = {'Authorization': 'Bearer ' + access_token}
+  headers = {'Authorization': 'Bearer ' + access_token, 'Content-Type':'application/json'}
   r = requests.get("https://graph.microsoft.com/v1.0/me/drive/root/children/?$filter=name eq 'EPA Records'", headers=headers, timeout=10)
   if r.status_code != 200:
     return False, Response('Records folder request failed. ' + r.text, status=500, mimetype='text/plain')
@@ -701,15 +701,19 @@ def check_or_create_records_folder(access_token):
       "folder": {},
       "@microsoft.graph.conflictBehavior": "fail"
     }
-    r = requests.post("https://graph.microsoft.com/v1.0/me/drive/root/children/", data=body, headers=headers, timeout=10)
+    r = requests.post("https://graph.microsoft.com/v1.0/me/drive/root/children/", json=body, headers=headers, timeout=10)
     if r.status_code == 201:
       return True, None
     elif r.status_code == 409:
       if r.json().get('error', {}).get('code', '') == 'nameAlreadyExists':
         return True, None
       else:
+        app.logger.error('Failed to create EPA Records folder with status ' + str(r.status_code))
+        app.logger.error(r.text)
         return False, Response('Failed to create EPA Records folder.', status=500, mimetype='text/plain')
     else:
+      app.logger.error('Failed to create EPA Records folder with status ' + str(r.status_code))
+      app.logger.error(r.text)
       return False, Response('Failed to create EPA Records folder.', status=500, mimetype='text/plain')
   else:
     return True, None
