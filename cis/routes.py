@@ -100,6 +100,7 @@ def upload_file():
         return Response(message, status=400, mimetype='text/plain')
     file = request.files.get('file')
     metadata = ECMSMetadata.from_json(request.form['metadata'])
+    user_activity = SubmissionAnalyticsMetadata.from_json(request.form['user_activity'])
     # Default to dev environment
     env = request.form.get('documentum_env', 'dev')
     if metadata.custodian != user_info.lan_id:
@@ -110,7 +111,7 @@ def upload_file():
     if not success:
         return response
     # Add submission analytics
-    success, response = add_submission_analytics(metadata.submission_analytics, user_info.lan_id, r_object_id, None)
+    success, response = add_submission_analytics(user_activity, metadata.record_schedule, user_info.lan_id, r_object_id, None)
     if not success:
         return response
     else:

@@ -415,7 +415,7 @@ def get_erma_content(config, lan_id, items_per_page, page_number, query, env):
               'coverage': properties['coverage'],
               'relationships': properties['relationships'],
               'tags': properties['tags'],
-              'submission_analytics': None
+              'user_activity': None
           }
       }
       doc_info.append(doc_data)
@@ -663,8 +663,8 @@ def upload_documentum_email(upload_email_request, access_token, lan_id, config):
   if save_resp.status != '200 OK':
     return save_resp
   
-  if ecms_metadata.submission_analytics:
-    success, response = add_submission_analytics(ecms_metadata.submission_analytics, lan_id, r_object_id, None)
+  if upload_email_request.user_activity:
+    success, response = add_submission_analytics(upload_email_request.user_activity, ecms_metadata.record_schedule, lan_id, r_object_id, None)
     if not success:
       return response
     else:
@@ -757,8 +757,8 @@ def upload_sharepoint_record(req: SharepointUploadRequest, access_token, lan_id,
   
   ## Add submission analytics to table
   ## TODO: find correct path to id in upload_resp
-  if req.metadata.submission_analytics:
-    success, response = add_submission_analytics(req.metadata.submission_analytics, lan_id, r_object_id, None)
+  if req.user_activity:
+    success, response = add_submission_analytics(req.user_activity, req.metadata.record_schedule, lan_id, r_object_id, None)
     if not success:
       return response
     else:
@@ -768,7 +768,7 @@ def upload_sharepoint_record(req: SharepointUploadRequest, access_token, lan_id,
 def sched_to_string(sched):
   return '-'.join([sched.function_number, sched.schedule_number, sched.disposition_number])
 
-def add_submission_analytics(data: SubmissionAnalyticsMetadata, lan_id, documentum_id, nuxeo_id):
+def add_submission_analytics(data: SubmissionAnalyticsMetadata, selected_schedule, lan_id, documentum_id, nuxeo_id):
   # Handle nulls for documentum and nuxeo ids
   if documentum_id is None:
     doc_id = null()
@@ -819,11 +819,12 @@ def add_submission_analytics(data: SubmissionAnalyticsMetadata, lan_id, document
     predicted_schedule_three = predicted_schedule_three,
     predicted_schedule_three_probability = predicted_probability_three,
     default_schedule = sched_to_string(data.default_schedule),
-    used_modal_form = data.opened_metadata_editor,
-    used_recommended_schedule = data.actively_chose_suggested_schedule,
-    used_schedule_dropdown = data.chose_from_dropdown,
-    used_default_schedule = data.chose_top_suggestion,
-    used_favorite_schedule = data.selected_schedule_was_favorite,
+    selected_schedule = sched_to_string(selected_schedule),
+    used_modal_form = data.used_modal_form,
+    used_recommended_schedule = data.used_recommended_schedule,
+    used_schedule_dropdown = data.used_schedule_dropdown,
+    used_default_schedule = data.used_default_schedule,
+    used_favorite_schedule = data.used_favorite_schedule,
     user = user
   )
 

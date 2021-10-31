@@ -28,6 +28,7 @@ class RecordSubmission(db.Model):
     predicted_schedule_three = db.Column(db.String(30))
     predicted_schedule_three_probability = db.Column(db.Float)
     default_schedule = db.Column(db.String(30))
+    selected_schedule = db.Column(db.String(30))
     used_modal_form = db.Column(db.Boolean)
     used_recommended_schedule = db.Column(db.Boolean)
     used_schedule_dropdown = db.Column(db.Boolean)

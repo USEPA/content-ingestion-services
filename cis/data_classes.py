@@ -76,7 +76,6 @@ class ECMSMetadata:
     title: str
     record_schedule: RecordSchedule
     sensitivity: str
-    user_activity: Optional[SubmissionAnalyticsMetadata] = None
     description: Optional[str] = ''
     creator: Optional[str] = ''
     creation_date: Optional[str] = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
@@ -328,6 +327,7 @@ class UploadEmailRequest:
     metadata: ECMSMetadata 
     email_id: str
     email_unid: str
+    user_activity: Optional[SubmissionAnalyticsMetadata] = None
     documentum_env: Optional[str] = 'dev'
 
 @dataclass_json
@@ -393,7 +393,8 @@ class SharepointPredictionRequest:
 @dataclass 
 class SharepointUploadRequest:
     drive_item_id: str
-    metadata: ECMSMetadata 
+    metadata: ECMSMetadata
+    user_activity: Optional[SubmissionAnalyticsMetadata] = None
     documentum_env: Optional[str] = 'dev'
 
 @dataclass_json
