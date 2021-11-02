@@ -778,6 +778,11 @@ def add_submission_analytics(data: SubmissionAnalyticsMetadata, selected_schedul
     nux_id = null()
   else:
     nux_id = nuxeo_id
+  
+  if data.default_schedule is None:
+    default_schedule = null()
+  else:
+    default_schedule = sched_to_string(data.default_schedule)
 
   # Find user in DB or add user
   user = User.query.filter_by(lan_id = lan_id).all()
@@ -818,7 +823,7 @@ def add_submission_analytics(data: SubmissionAnalyticsMetadata, selected_schedul
     predicted_schedule_two_probability = predicted_probability_two,
     predicted_schedule_three = predicted_schedule_three,
     predicted_schedule_three_probability = predicted_probability_three,
-    default_schedule = sched_to_string(data.default_schedule),
+    default_schedule = default_schedule,
     selected_schedule = sched_to_string(selected_schedule),
     used_modal_form = data.used_modal_form,
     used_recommended_schedule = data.used_recommended_schedule,
