@@ -44,6 +44,31 @@ class RecordScheduleList:
     schedules: list[RecordScheduleInformation]
 
 @dataclass_json
+@dataclass 
+class Recommendation:
+    schedule: RecordSchedule 
+    probability: float 
+
+@dataclass_json
+@dataclass 
+class PredictionWithExplanation:
+    value: str 
+    prediction_type: str
+
+mock_prediction_with_explanation = PredictionWithExplanation(value="", prediction_type="")
+
+@dataclass_json
+@dataclass
+class SubmissionAnalyticsMetadata:
+    predicted_schedules: list[Recommendation]
+    default_schedule: RecordSchedule
+    used_modal_form: bool
+    used_recommended_schedule: bool
+    used_schedule_dropdown: bool
+    used_default_schedule: bool
+    used_favorite_schedule: bool
+
+@dataclass_json
 @dataclass
 class ECMSMetadata:
     file_path: str
@@ -59,7 +84,7 @@ class ECMSMetadata:
     coverage: Optional[list[str]] = None
     relationships: Optional[list[str]] = None
     tags: Optional[list[str]] = None
-
+    
 @dataclass_json
 @dataclass 
 class DocumentumDocInfo:
@@ -96,19 +121,6 @@ class RecordDownloadRequest:
     object_ids: list[str]
     documentum_env: Optional[str] = "dev"
 
-@dataclass_json
-@dataclass 
-class Recommendation:
-    schedule: RecordSchedule 
-    probability: float 
-
-@dataclass_json
-@dataclass 
-class PredictionWithExplanation:
-    value: str 
-    prediction_type: str
-
-mock_prediction_with_explanation = PredictionWithExplanation(value="", prediction_type="")
 
 @dataclass_json
 @dataclass 
@@ -317,6 +329,7 @@ class UploadEmailRequest:
     metadata: ECMSMetadata 
     email_id: str
     email_unid: str
+    user_activity: Optional[SubmissionAnalyticsMetadata] = None
     documentum_env: Optional[str] = 'dev'
 
 @dataclass_json
@@ -382,7 +395,8 @@ class SharepointPredictionRequest:
 @dataclass 
 class SharepointUploadRequest:
     drive_item_id: str
-    metadata: ECMSMetadata 
+    metadata: ECMSMetadata
+    user_activity: Optional[SubmissionAnalyticsMetadata] = None
     documentum_env: Optional[str] = 'dev'
 
 @dataclass_json

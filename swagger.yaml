@@ -680,18 +680,20 @@ paths:
           description: "Record successfully uploaded."
 
 definitions:
+  Recommendation:
+    type: object
+    properties:
+      schedule: 
+        $ref: "#/definitions/RecordSchedule"
+      probability:
+        type: number
   MetadataPrediction:
     type: object
     properties:
       predicted_schedules:
         type: array
         items: 
-          type: object
-          properties:
-            schedule: 
-              $ref: "#/definitions/RecordSchedule"
-            probability:
-              type: number
+          $ref: "#/definitions/Recommendation"
       default_schedule:
         $ref: "#/definitions/RecordSchedule"
       title:
@@ -837,10 +839,31 @@ definitions:
         type: string
       metadata:
         $ref: "#/definitions/ECMSMetadata"
+      user_activity:
+        $ref: "#/definitions/SubmissionAnalyticsMetadata"
       documentum_env:
         type: string
         enum: ["dev", "prod"]
         default: "dev"
+  SubmissionAnalyticsMetadata:
+    type: object
+    properties:
+      predicted_schedules:
+        type: array
+        items:
+          $ref: "#/definitions/Recommendation"
+      default_schedule:
+        $ref: "#/definitions/RecordSchedule"
+      opened_metadata_editor:
+        type: boolean
+      actively_chose_suggested_schedule:
+        type: boolean
+      chose_from_dropdown:
+        type: boolean
+      chose_top_suggestion:
+        type: boolean
+      selected_schedule_was_favorite:
+        type: boolean
   MarkSavedRequest:
     type: object
     properties:
@@ -1037,6 +1060,8 @@ definitions:
         type: string
       metadata:
         $ref: "#/definitions/ECMSMetadata"
+      user_activity:
+        $ref: "#/definitions/SubmissionAnalyticsMetadata"
       documentum_env:
         type: string
   HelpItemResponse:

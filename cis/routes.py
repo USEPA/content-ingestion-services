@@ -100,14 +100,23 @@ def upload_file():
         return Response(message, status=400, mimetype='text/plain')
     file = request.files.get('file')
     metadata = ECMSMetadata.from_json(request.form['metadata'])
+    user_activity = SubmissionAnalyticsMetadata.from_json(request.form['user_activity'])
     # Default to dev environment
     env = request.form.get('documentum_env', 'dev')
     if metadata.custodian != user_info.lan_id:
         return Response('User ' + user_info.lan_id + ' is not authorized to list ' + metadata.custodian + ' as custodian.', status=400, mimetype='text/plain')
-    if file:
-        return upload_documentum_record(file, convert_metadata(metadata), c, env)
+    if file is None:
+        return Response("No file found.", status=400, mimetype="text/plain")
+    success, r_object_id, response = upload_documentum_record(file, convert_metadata(metadata), c, env)
+    if not success:
+        return response
+    # Add submission analytics
+    success, response = add_submission_analytics(user_activity, metadata.record_schedule, user_info.lan_id, r_object_id, None)
+    if not success:
+        return response
     else:
-        return Response("No file found", status=400, mimetype="text/plain")
+        return Response('File successfully uploaded.', status=200, mimetype='text/plain')
+        
 
 @app.route('/get_mailboxes', methods=['GET'])
 def get_mailboxes():
@@ -151,7 +160,7 @@ def upload_email():
     # TODO: Improve custodian validation based on role
     if metadata.custodian != user_info.lan_id:
         return Response('User ' + user_info.lan_id + ' is not authorized to list ' + req.metadata.custodian + ' as custodian.', status=400, mimetype='text/plain')
-    return upload_documentum_email(req, g.access_token, c)
+    return upload_documentum_email(req, g.access_token, user_info.lan_id, c)
 
 @app.route('/download_email', methods=['GET'])
 def download_email():
@@ -324,7 +333,12 @@ def sharepoint_prediction():
 def sharepoint_upload():
     req = request.json
     req = SharepointUploadRequest.from_dict(req)
-    return upload_sharepoint_record(req, g.access_token, c)
+    success, message, user_info = get_user_info(c, g.token_data)
+    if req.metadata.custodian != user_info.lan_id:
+        return Response('User ' + user_info.lan_id + ' is not authorized to list ' + req.metadata.custodian + ' as custodian.', status=400, mimetype='text/plain')
+    if not success:
+        return Response(message, status=400, mimetype='text/plain')
+    return upload_sharepoint_record(req, g.access_token, user_info.lan_id, c)
 
 @app.route('/get_help_item', methods=['GET'])
 def get_help_by_id():
