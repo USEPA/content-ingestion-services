@@ -591,9 +591,9 @@ def get_user_info(config, token_data):
     user_data = wam.json()['Resources'][0]
     lan_id = user_data['userName'].lower()
     display_name = user_data['displayName']
-    department = user_data['urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User']['Department']
-    parent_org_code = user_data['urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User']['PARENTORGCODE']
-    employee_number = user_data['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User']['employeeNumber']
+    department = user_data.get('urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User', {}).get('Department', None)
+    parent_org_code = user_data.get('urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User', {}).get('PARENTORGCODE', None)
+    employee_number = user_data.get('urn:ietf:params:scim:schemas:extension:enterprise:2.0:User', {}).get('employeeNumber', None)
     active = user_data['active']
     if not active:
       return False, 'User is not active.', None
