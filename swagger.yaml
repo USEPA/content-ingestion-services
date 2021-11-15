@@ -28,6 +28,8 @@ tags:
   description: "APIs for integration with SEMS."
 - name: "help"
   description: "APIs for accessing help content."
+- name: "gamification"
+  description: "APIs which enable user activity tracking, leaderboards, and badges."
 
 schemes:
 - https
@@ -612,6 +614,8 @@ paths:
           required: true
       responses:
         200:
+          schema:
+            $ref: "#/definitions/StatusResponse"
           description: "Record successfully uploaded."
   /get_help_item:
     get:
@@ -677,7 +681,32 @@ paths:
           required: true
       responses:
         200:
+          schema:
+            $ref: "#/definitions/StatusResponse"
           description: "Record successfully uploaded."
+  /log_activity:
+    post:
+      tags:
+      - "gamification"
+      summary: "Submit a user action which awards points."
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: "log_activity_request"
+          description: "Activity information."
+          schema:
+            $ref: "#/definitions/LogActivityRequest"
+        - in: header
+          name: "Authorization"
+          type: string
+          format: "jwt"
+          required: true
+      responses:
+        200:
+          schema:
+            $ref: "#/definitions/StatusResponse"
+          description: "User activity was recorded."
 
 definitions:
   Recommendation:
@@ -994,6 +1023,32 @@ definitions:
         type: string
       employee_number:
         type: string
+      badges:
+        type: array
+        items:
+          $ref: "#/definitions/BadgeInfo"
+      profile:
+        $ref: "#/definitions/ProfileInfo"
+  BadgeInfo:
+    type: object
+    properties:
+      badge_name: 
+        type: string
+      badge_description: 
+        type: string
+      badge_image: 
+        type: string
+  ProfileInfo:
+    type: object
+    properties:
+      points: 
+        type: string
+      level: 
+        type: string
+      office_rank: 
+        type: string
+      overall_rank: 
+        type: string
   DocumentumDocInfo:
     type: object
     properties:
@@ -1113,6 +1168,16 @@ definitions:
         type: string
       email_uid:
         type: string
-      
+  LogActivityRequest:
+    type: object
+    properties:
+      employee_id:
+        type: string
+      lan_id:
+        type: string
+      office_code:
+        type: string
+      event_id:
+        type: string
 
 

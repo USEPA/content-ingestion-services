@@ -28,7 +28,8 @@ class CISConfig:
         wam_password,
         records_repository_id,
         sems_host,
-        patt_host
+        patt_host,
+        patt_api_key
         ):
         self.cis_server = cis_server
         self.tika_server = tika_server
@@ -50,4 +51,5 @@ class CISConfig:
         self.records_repository_id = records_repository_id
         self.sems_host = sems_host
         self.patt_host = patt_host
+        self.patt_api_key = patt_api_key
         

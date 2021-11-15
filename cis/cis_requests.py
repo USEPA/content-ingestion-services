@@ -578,6 +578,34 @@ def download_documentum_record(config, lan_id, object_ids, env):
   b = io.BytesIO(archive_req.content)
   return send_file(b, mimetype='application/zip', as_attachment=True, attachment_filename='ecms_download.zip')
 
+def get_badges(config, employee_number):
+  if employee_number is None:
+    return []
+  params={'type':'badges', 'employee_id':employee_number, 'api_key':config.patt_api_key}
+  app.logger.info(str(params))
+  url = 'https://' + config.patt_host + '/app/mu-plugins/pattracking/includes/admin/pages/games/receiver.php'
+  r = requests.post(url, params=params)
+  app.logger.info(r.url)
+  if r.status_code != 200:
+    return []
+  else:
+    return [BadgeInfo(badge_title=x['badge_title'], badge_description=x['badge_description'], badge_image=x['badge_image']) for x in r.json()]
+
+def get_profile(config, employee_number):
+  if employee_number is None:
+    return None
+  params={'type':'profile', 'employee_id':employee_number, 'api_key':config.patt_api_key}
+  app.logger.info(str(params))
+  url = 'https://' + config.patt_host + '/app/mu-plugins/pattracking/includes/admin/pages/games/receiver.php'
+  r = requests.post(url, params=params)
+  
+  if r.status_code != 200 or len(r.json()) == 0:
+    return None
+  else:
+    profile = r.json()[0]
+    return ProfileInfo(points=profile['points'], level=profile['level'], office_rank=profile['office_rank'], overall_rank=profile['overall_rank'])
+    
+
 def get_user_info(config, token_data):
   # Handle service accounts separately
   if token_data['email'][:4].lower() == 'svc_':
@@ -597,9 +625,16 @@ def get_user_info(config, token_data):
     active = user_data['active']
     if not active:
       return False, 'User is not active.', None
-    return True, None, UserInfo(token_data['email'], display_name, lan_id, department, parent_org_code, employee_number)
   except:
     return False, 'WAM request failed.', None
+  try:
+    badges = get_badges(config, employee_number)
+    profile = get_profile(config, employee_number)
+  except:
+    badges=[]
+    profile=None
+    app.logger.info('Profile requests failed for ' + token_data['email'])
+  return True, None, UserInfo(token_data['email'], display_name, lan_id, department, parent_org_code, employee_number, badges, profile)
 
 def get_sems_special_processing(config, region):
   special_processing = requests.get('http://' + config.sems_host + '/sems-ws/outlook/getSpecialProcessing/' + region, timeout=10)
@@ -682,8 +717,8 @@ def upload_documentum_email(upload_email_request, access_token, lan_id, config):
     if not success:
       return response
     else:
-      return Response('File successfully uploaded.', status=200, mimetype='text/plain')
-  return Response('File successfully uploaded.', status=200, mimetype='text/plain')
+      return Response(StatusResponse(status='OK', reason='File successfully uploaded.').to_json(), status=200, mimetype='application/json')
+  return Response(StatusResponse(status='OK', reason='File successfully uploaded.').to_json(), status=200, mimetype='application/json')
   
 def simplify_sharepoint_record(raw_rec, sensitivity):
   return SharepointRecord(
@@ -809,8 +844,8 @@ def upload_sharepoint_record(req: SharepointUploadRequest, access_token, lan_id,
     if not success:
       return response
     else:
-      return Response('File successfully uploaded.', status=200, mimetype='text/plain')
-  return Response('File successfully uploaded.', status=200, mimetype='text/plain')
+      return Response(StatusResponse(status='OK', reason='File successfully uploaded.').to_json(), status=200, mimetype='application/json')
+  return Response(StatusResponse(status='OK', reason='File successfully uploaded.').to_json(), status=200, mimetype='application/json')
 
 def sched_to_string(sched):
   return '-'.join([sched.function_number, sched.schedule_number, sched.disposition_number])
@@ -917,3 +952,12 @@ def submit_sems_email(req: SEMSEmailUploadRequest, config):
   if r.status_code != 200:
     return Response('Failed to send email to SEMS.', status=500, mimetype='text/plain')
   return Response(r.json(), status=200, mimetype='application/json')
+
+def log_user_activity(req: LogActivityRequest, config):
+  params={'employee_id':req.employee_id, 'lan_id':req.lan_id, 'office_code':req.office_code, 'event_id':req.event_id, 'api_key':config.patt_api_key}
+  url = 'https://' + config.patt_host + '/app/mu-plugins/pattracking/includes/admin/pages/games/activity.php'
+  r = requests.post(url, params=params)
+  if r.status_code != 200:
+    return Response('Failed to log activity with status ' + str(r.status_code), status=400, mimetype='text/plain')
+  else:
+    return Response(StatusResponse(status='OK', reason='Successfully logged user activity.').to_json(), status=200, mimetype='application/json')

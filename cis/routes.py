@@ -355,3 +355,9 @@ def submit_email_sems():
     req = request.json
     req = SEMSEmailUploadRequest.from_dict(req)
     return submit_sems_email(req, c)
+
+@app.route('/log_activity', methods=['POST'])
+def log_activity():
+    req = request.json
+    req = LogActivityRequest.from_dict(req)
+    return log_user_activity(req, c)

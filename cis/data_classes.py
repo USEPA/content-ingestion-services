@@ -242,6 +242,21 @@ class GetSpecialProcessingResponse:
 
 @dataclass_json
 @dataclass 
+class BadgeInfo:
+    badge_name: str
+    badge_description: str
+    badge_image: str
+
+@dataclass_json
+@dataclass 
+class ProfileInfo:
+    points: str
+    level: str
+    office_rank: str
+    overall_rank: str
+
+@dataclass_json
+@dataclass 
 class UserInfo:
     email: str
     display_name: str
@@ -249,6 +264,9 @@ class UserInfo:
     department: str
     parent_org_code: str
     employee_number: str
+    badges: list[BadgeInfo]
+    profile: Optional[ProfileInfo]
+
 
 mock_email_metadata = EmailMetadata(**{
     'unid': '<DM6PR09MB549690B3AC3ED29A07A4B0B0B78D9@DM6PR09MB5496.namprd09.prod.outlook.com>',
@@ -439,6 +457,17 @@ class SEMSEmailUploadRequest:
     comments: str
     description: str
     email_uid: str
+
+@dataclass_json
+@dataclass
+class LogActivityRequest:
+    employee_id: str
+    lan_id: str
+    office_code: str
+    event_id: str
+
+
+
 
 
 
