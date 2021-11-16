@@ -524,7 +524,8 @@ def get_documentum_records(config, lan_id, items_per_page, page_number, query, e
 def object_id_is_valid(config, object_id):
   return re.fullmatch('[a-z0-9]{16}', object_id) is not None and object_id[2:8] == config.records_repository_id
 
-def download_documentum_record(config, lan_id, object_ids, env):
+def download_documentum_record(config, user_info, object_ids, env):
+  lan_id = user_info.lan_id
   if env == 'prod':
     ecms_host = config.documentum_prod_url
     ecms_user = config.documentum_prod_username
@@ -576,13 +577,13 @@ def download_documentum_record(config, lan_id, object_ids, env):
     app.logger.error(r.text)
     return Response('Documentum archive request returned status ' + str(archive_req.status_code), status=500, mimetype='text/plain')
   b = io.BytesIO(archive_req.content)
+  safe_user_activity_request(user_info.employee_number, user_info.lan_id, user_info.parent_org_code, '7', c)
   return send_file(b, mimetype='application/zip', as_attachment=True, attachment_filename='ecms_download.zip')
 
 def get_badges(config, employee_number):
   if employee_number is None:
     return []
   params={'type':'badges', 'employee_id':employee_number, 'api_key':config.patt_api_key}
-  app.logger.info(str(params))
   url = 'https://' + config.patt_host + '/app/mu-plugins/pattracking/includes/admin/pages/games/receiver.php'
   r = requests.post(url, params=params)
   app.logger.info(r.url)
@@ -595,7 +596,6 @@ def get_profile(config, employee_number):
   if employee_number is None:
     return None
   params={'type':'profile', 'employee_id':employee_number, 'api_key':config.patt_api_key}
-  app.logger.info(str(params))
   url = 'https://' + config.patt_host + '/app/mu-plugins/pattracking/includes/admin/pages/games/receiver.php'
   r = requests.post(url, params=params)
   
@@ -613,7 +613,6 @@ def get_user_info(config, token_data):
   url = 'https://' + config.wam_host + '/iam/governance/scim/v1/Users?attributes=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:Department&attributes=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:PARENTORGCODE&attributes=urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:employeeNumber&attributes=userName&attributes=Active&attributes=displayName&filter=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:Upn eq "' + token_data['email'] + '"'
   try:
     wam = requests.get(url, auth=(config.wam_username, config.wam_password), timeout=30)
-    print(wam.json())
     if wam.status_code != 200:
       return False, 'WAM request failed with status ' + str(wam.status_code) + ' and error ' + str(wam.text), None
     user_data = wam.json()['Resources'][0]
@@ -698,7 +697,7 @@ def convert_metadata(ecms_metadata, unid=None):
     erma_content_tags=ecms_metadata.tags
   )
 
-def upload_documentum_email(upload_email_request, access_token, lan_id, config):
+def upload_documentum_email(upload_email_request, access_token, user_info, config):
   ecms_metadata = upload_email_request.metadata
   content = get_eml_file(upload_email_request.email_id, ecms_metadata.title, access_token, config)
   if content is None:
@@ -711,14 +710,13 @@ def upload_documentum_email(upload_email_request, access_token, lan_id, config):
   save_resp = mark_saved(save_req, access_token, config)
   if save_resp.status != '200 OK':
     return save_resp
-  
-  if upload_email_request.user_activity:
-    success, response = add_submission_analytics(upload_email_request.user_activity, ecms_metadata.record_schedule, lan_id, r_object_id, None)
-    if not success:
-      return response
-    else:
-      return Response(StatusResponse(status='OK', reason='File successfully uploaded.').to_json(), status=200, mimetype='application/json')
-  return Response(StatusResponse(status='OK', reason='File successfully uploaded.').to_json(), status=200, mimetype='application/json')
+
+  success, response = add_submission_analytics(upload_email_request.user_activity, ecms_metadata.record_schedule, user_info.lan_id, r_object_id, None)
+  if not success:
+    return response
+  else:
+    log_upload_activity(user_info, upload_email_request.user_activity, ecms_metadata, config)
+    return Response(StatusResponse(status='OK', reason='File successfully uploaded.').to_json(), status=200, mimetype='application/json')
   
 def simplify_sharepoint_record(raw_rec, sensitivity):
   return SharepointRecord(
@@ -809,7 +807,7 @@ def sharepoint_record_prediction(req: SharepointPredictionRequest, access_token,
   prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description, default_schedule=default_schedule)
   return Response(prediction.to_json(), status=200, mimetype='application/json')
 
-def upload_sharepoint_record(req: SharepointUploadRequest, access_token, lan_id, c):
+def upload_sharepoint_record(req: SharepointUploadRequest, access_token, user_info, c):
   headers = {'Authorization': 'Bearer ' + access_token}
   url = 'https://graph.microsoft.com/v1.0/me/drive/items/' + req.drive_item_id + '?expand=listItem,sharepointIds'
   r = requests.get(url, headers=headers, timeout=30)
@@ -839,13 +837,12 @@ def upload_sharepoint_record(req: SharepointUploadRequest, access_token, lan_id,
   
   ## Add submission analytics to table
   ## TODO: find correct path to id in upload_resp
-  if req.user_activity:
-    success, response = add_submission_analytics(req.user_activity, req.metadata.record_schedule, lan_id, r_object_id, None)
-    if not success:
-      return response
-    else:
-      return Response(StatusResponse(status='OK', reason='File successfully uploaded.').to_json(), status=200, mimetype='application/json')
-  return Response(StatusResponse(status='OK', reason='File successfully uploaded.').to_json(), status=200, mimetype='application/json')
+  success, response = add_submission_analytics(req.user_activity, req.metadata.record_schedule, user_info.lan_id, r_object_id, None)
+  if not success:
+    return response
+  else:
+    log_upload_activity(user_info, req.user_activity, req.metadata, c)
+    return Response(StatusResponse(status='OK', reason='File successfully uploaded.').to_json(), status=200, mimetype='application/json')
 
 def sched_to_string(sched):
   return '-'.join([sched.function_number, sched.schedule_number, sched.disposition_number])
@@ -953,11 +950,34 @@ def submit_sems_email(req: SEMSEmailUploadRequest, config):
     return Response('Failed to send email to SEMS.', status=500, mimetype='text/plain')
   return Response(r.json(), status=200, mimetype='application/json')
 
-def log_user_activity(req: LogActivityRequest, config):
+def log_upload_activity(user_info, user_activity, metadata, config):
+  safe_user_activity_request(user_info.employee_number, user_info.lan_id, user_info.parent_org_code, '3', config)
+  if not user_activity.used_default_schedule or user_activity.used_schedule_dropdown or user_activity.used_recommended_schedule:
+      safe_user_activity_request(user_info.employee_number, user_info.lan_id, user_info.parent_org_code, '4', config)
+  if len(metadata.description) > 0 or len(metadata.close_date) > 0 or metadata.rights is not None or metadata.coverage is not None or metadata.relationships is not None or metadata.tags is not None:
+      safe_user_activity_request(user_info.employee_number, user_info.lan_id, user_info.parent_org_code, '6', config)
+
+def safe_user_activity_request(employee_id, lan_id, office_code, event_id, config):
+  try:
+    activity_request = LogActivityRequest(employee_id=employee_id, lan_id=lan_id, office_code=office_code, event_id=event_id)
+    success, error_status = user_activity_request(activity_request, config)
+    if not success:
+        app.logger.info('Failed to log user activity for ' + lan_id + '. Activity request failed with status ' + str(error_status))
+  except:
+    app.logger.info('Failed to log user activity for ' + lan_id)
+
+def user_activity_request(req: LogActivityRequest, config):
   params={'employee_id':req.employee_id, 'lan_id':req.lan_id, 'office_code':req.office_code, 'event_id':req.event_id, 'api_key':config.patt_api_key}
   url = 'https://' + config.patt_host + '/app/mu-plugins/pattracking/includes/admin/pages/games/activity.php'
   r = requests.post(url, params=params)
-  if r.status_code != 200:
-    return Response('Failed to log activity with status ' + str(r.status_code), status=400, mimetype='text/plain')
+  if r.status_code == 200:
+    return True, None
+  else:
+    return False, r.status_code
+
+def log_user_activity(req: LogActivityRequest, config):
+  success, error_status = user_activity_request(req, config)
+  if not success:
+    return Response('Failed to log activity with status ' + str(error_status), status=400, mimetype='text/plain')
   else:
     return Response(StatusResponse(status='OK', reason='Successfully logged user activity.').to_json(), status=200, mimetype='application/json')

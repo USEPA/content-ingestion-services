@@ -115,7 +115,8 @@ def upload_file():
     if not success:
         return response
     else:
-        return Response('File successfully uploaded.', status=200, mimetype='text/plain')
+        log_upload_activity(user_info, user_activity, metadata, c)
+        return Response(StatusResponse(status='OK', reason='File successfully uploaded.').to_json(), status=200, mimetype='text/plain')
         
 
 @app.route('/get_mailboxes', methods=['GET'])
@@ -160,7 +161,7 @@ def upload_email():
     # TODO: Improve custodian validation based on role
     if metadata.custodian != user_info.lan_id:
         return Response('User ' + user_info.lan_id + ' is not authorized to list ' + req.metadata.custodian + ' as custodian.', status=400, mimetype='text/plain')
-    return upload_documentum_email(req, g.access_token, user_info.lan_id, c)
+    return upload_documentum_email(req, g.access_token, user_info, c)
 
 @app.route('/download_email', methods=['GET'])
 def download_email():
@@ -235,6 +236,7 @@ def add_favorites():
     if add_any_sched:
         try:
             db.session.commit()
+            safe_user_activity_request(user_info.employee_number, user_info.lan_id, user_info.parent_org_code, '1', c)
             return Response(StatusResponse(status="OK", reason="Favorites were added.").to_json(), status=200, mimetype="application/json")
         except:
             return Response("Error committing updates.", status=500, mimetype="text/plain")
@@ -338,7 +340,7 @@ def sharepoint_upload():
         return Response('User ' + user_info.lan_id + ' is not authorized to list ' + req.metadata.custodian + ' as custodian.', status=400, mimetype='text/plain')
     if not success:
         return Response(message, status=400, mimetype='text/plain')
-    return upload_sharepoint_record(req, g.access_token, user_info.lan_id, c)
+    return upload_sharepoint_record(req, g.access_token, user_info, c)
 
 @app.route('/get_help_item', methods=['GET'])
 def get_help_by_id():

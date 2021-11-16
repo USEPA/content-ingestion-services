@@ -347,7 +347,7 @@ class UploadEmailRequest:
     metadata: ECMSMetadata 
     email_id: str
     email_unid: str
-    user_activity: Optional[SubmissionAnalyticsMetadata] = None
+    user_activity: SubmissionAnalyticsMetadata
     documentum_env: Optional[str] = 'dev'
 
 @dataclass_json
@@ -414,7 +414,7 @@ class SharepointPredictionRequest:
 class SharepointUploadRequest:
     drive_item_id: str
     metadata: ECMSMetadata
-    user_activity: Optional[SubmissionAnalyticsMetadata] = None
+    user_activity: SubmissionAnalyticsMetadata
     documentum_env: Optional[str] = 'dev'
 
 @dataclass_json
