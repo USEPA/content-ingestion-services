@@ -243,7 +243,7 @@ class GetSpecialProcessingResponse:
 @dataclass_json
 @dataclass 
 class BadgeInfo:
-    badge_name: str
+    badge_title: str
     badge_description: str
     badge_image: str
 
