@@ -883,15 +883,15 @@ definitions:
           $ref: "#/definitions/Recommendation"
       default_schedule:
         $ref: "#/definitions/RecordSchedule"
-      opened_metadata_editor:
+      used_modal_form:
         type: boolean
-      actively_chose_suggested_schedule:
+      used_recommended_schedule:
         type: boolean
-      chose_from_dropdown:
+      used_schedule_dropdown:
         type: boolean
-      chose_top_suggestion:
+      used_default_schedule:
         type: boolean
-      selected_schedule_was_favorite:
+      used_favorite_schedule:
         type: boolean
   MarkSavedRequest:
     type: object
