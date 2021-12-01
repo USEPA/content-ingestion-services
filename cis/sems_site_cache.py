@@ -36,22 +36,24 @@ class SemsSiteCache:
 def get_sems_sites(config, logger):
   grouped_by_region = {}
   regions = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11']
-
-  for region in regions:
-    logger.info(region)
-    regional_sites = requests.get('http://' + config.sems_host + '/sems-ws/outlook/getSites?region_id=' + region, timeout=60)
-    site_objects = [
-      SemsSite(
-        _id=site['id'], 
-        region=site['region'], 
-        epaid=site.get('epaId', None), 
-        sitename=site.get('siteName', None), 
-        program_id=site.get('programId', None),
-        operable_units=site.get('operableUnits', None),
-        ssids=site.get('ssIds', None)
-        ) 
-      for site in regional_sites.json()['sites']]
-    grouped_by_region[region] = site_objects
-  return grouped_by_region
+  try:
+    for region in regions:
+      logger.info('Loading region ' + region)
+      regional_sites = requests.get('http://' + config.sems_host + '/sems-ws/outlook/getSites?region_id=' + region, timeout=60)
+      site_objects = [
+        SemsSite(
+          _id=site['id'], 
+          region=site['region'], 
+          epaid=site.get('epaId', None), 
+          sitename=site.get('siteName', None), 
+          program_id=site.get('programId', None),
+          operable_units=site.get('operableUnits', None),
+          ssids=site.get('ssIds', None)
+          ) 
+        for site in regional_sites.json()['sites']]
+      grouped_by_region[region] = site_objects
+    return grouped_by_region
+  except:
+    return None
 
     
