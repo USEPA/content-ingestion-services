@@ -610,7 +610,7 @@ def get_user_info(config, token_data):
   # Handle service accounts separately
   if token_data['email'][:4].lower() == 'svc_':
     return True, None, UserInfo(token_data['email'], token_data['email'], token_data['email'].split('@')[0], 'SERVICE_ACCOUNT')
-  url = 'https://' + config.wam_host + '/iam/governance/scim/v1/Users?attributes=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:Department&attributes=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:PARENTORGCODE&attributes=urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:employeeNumber&attributes=userName&attributes=Active&attributes=displayName&filter=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:Upn eq "' + token_data['email'] + '"'
+  url = 'https://' + config.wam_host + '/iam/governance/scim/v1/Users?attributes=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:Department&attributes=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:Company&attributes=urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:department&attributes=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:PARENTORGCODE&attributes=urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:employeeNumber&attributes=userName&attributes=Active&attributes=displayName&filter=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:Upn eq "' + token_data['email'] + '"'
   try:
     wam = requests.get(url, auth=(config.wam_username, config.wam_password), timeout=30)
     if wam.status_code != 200:
@@ -619,8 +619,11 @@ def get_user_info(config, token_data):
     lan_id = user_data['userName'].lower()
     display_name = user_data['displayName']
     department = user_data.get('urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User', {}).get('Department', None)
-    parent_org_code = user_data.get('urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User', {}).get('PARENTORGCODE', None)
+    parent_org_code = user_data.get('urn:ietf:params:scim:schemas:extension:enterprise:2.0:User', {}).get('department', None)
     employee_number = user_data.get('urn:ietf:params:scim:schemas:extension:enterprise:2.0:User', {}).get('employeeNumber', None)
+    company = user_data.get('urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User', {}).get('Company', None)
+    if parent_org_code is None:
+      parent_org_code = company
     active = user_data['active']
     if not active:
       return False, 'User is not active.', None
@@ -871,28 +874,26 @@ def add_submission_analytics(data: SubmissionAnalyticsMetadata, selected_schedul
   else:
       user = user[0]
   
-  sorted_predictions = list(sorted(data.predicted_schedules, key=lambda x: x.probability, reverse=True))
-  if len(sorted_predictions) > 0:
-    predicted_schedule_one = sched_to_string(sorted_predictions[0].schedule)
-    predicted_probability_one = sorted_predictions[0].probability
-  else:
-    predicted_schedule_one = null()
-    predicted_probability_one = null()
-  
-  if len(sorted_predictions) > 1:
-    predicted_schedule_two = sched_to_string(sorted_predictions[1].schedule)
-    predicted_probability_two = sorted_predictions[1].probability
-  else:
-    predicted_schedule_two = null()
-    predicted_probability_two = null()
-  
-  if len(sorted_predictions) > 2:
-    predicted_schedule_three = sched_to_string(sorted_predictions[2].schedule)
-    predicted_probability_three = sorted_predictions[2].probability
-  else:
-    predicted_schedule_three = null()
-    predicted_probability_three = null()
-
+  predicted_schedule_one = null()
+  predicted_probability_one = null()
+  predicted_schedule_two = null()
+  predicted_probability_two = null()
+  predicted_schedule_three = null()
+  predicted_probability_three = null()
+  if data.predicted_schedules is not None:
+    sorted_predictions = list(sorted(data.predicted_schedules, key=lambda x: x.probability, reverse=True))
+    if len(sorted_predictions) > 0:
+      predicted_schedule_one = sched_to_string(sorted_predictions[0].schedule)
+      predicted_probability_one = sorted_predictions[0].probability
+    
+    if len(sorted_predictions) > 1:
+      predicted_schedule_two = sched_to_string(sorted_predictions[1].schedule)
+      predicted_probability_two = sorted_predictions[1].probability
+    
+    if len(sorted_predictions) > 2:
+      predicted_schedule_three = sched_to_string(sorted_predictions[2].schedule)
+      predicted_probability_three = sorted_predictions[2].probability
+    
   submission = RecordSubmission(
     arms_documentum_id = doc_id,
     arms_nuxeo_id = nux_id,
