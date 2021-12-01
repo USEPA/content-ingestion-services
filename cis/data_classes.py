@@ -223,6 +223,9 @@ class SemsSite:
     region: str
     epaid: str
     sitename: str
+    program_id: str
+    operable_units: list[str]
+    ssids: list[str]
 
 @dataclass_json
 @dataclass 

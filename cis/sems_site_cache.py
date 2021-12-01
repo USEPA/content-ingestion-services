@@ -7,7 +7,7 @@ class SemsSiteCache:
     def __init__(self, config, logger):
         self.config = config
         self.logger = logger
-        self.sites = get_sems_sites(config)
+        self.sites = get_sems_sites(config, logger)
         if self.sites is None:
           self.logger.info('Failed to load SEMS sites on startup.')
         self.update_ts = datetime.now()
@@ -33,19 +33,25 @@ class SemsSiteCache:
           return self.sites[region]
 
 
-def get_sems_sites(config):
-  try:
-    sites = requests.get('http://' + config.sems_host + '/sems-ws/outlook/getSites', timeout=30)
-    if sites.status_code != 200:
-      return None
-    site_objects = [SemsSite(_id=site['id'], region=site['region'], epaid=site.get('epaid', ''), sitename=site['sitename']) for site in sites.json()]
-    grouped_by_region = {}
-    for site in site_objects:
-      if site.region not in grouped_by_region:
-        grouped_by_region[site.region] = [site]
-      else:
-        grouped_by_region[site.region].append(site)
-    return grouped_by_region
-  except:
-    return None
+def get_sems_sites(config, logger):
+  grouped_by_region = {}
+  regions = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11']
+
+  for region in regions:
+    logger.info(region)
+    regional_sites = requests.get('http://' + config.sems_host + '/sems-ws/outlook/getSites?region_id=' + region, timeout=60)
+    site_objects = [
+      SemsSite(
+        _id=site['id'], 
+        region=site['region'], 
+        epaid=site.get('epaId', None), 
+        sitename=site.get('siteName', None), 
+        program_id=site.get('programId', None),
+        operable_units=site.get('operableUnits', None),
+        ssids=site.get('ssIds', None)
+        ) 
+      for site in regional_sites.json()['sites']]
+    grouped_by_region[region] = site_objects
+  return grouped_by_region
+
     

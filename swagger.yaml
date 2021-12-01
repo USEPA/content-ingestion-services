@@ -783,10 +783,17 @@ definitions:
         type: string
       sitename:
         type: string
-      ssid:
+      program_id:
         type: string
-      ou: 
-        type: string
+      operable_units: 
+        type: array
+        items:
+          type: string
+      ssids:
+        type: array
+        items:
+          type: string
+      
   GetSitesResponse:
     type: object
     properties:
