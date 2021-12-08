@@ -17,14 +17,14 @@ class SemsSiteCache:
         diff = datetime.now() - self.update_ts
         with self.lock:
           if diff.total_seconds() > 24 * 60 * 60:
-            updated_sites = get_sems_sites(self.config)
+            updated_sites = get_sems_sites(self.config, self.logger)
             if updated_sites is None:
                 self.logger.info('Failed to get site information.')
             else:
               self.sites = updated_sites
             self.update_ts = datetime.now()
           if self.sites is None:
-            updated_sites = get_sems_sites(self.config)
+            updated_sites = get_sems_sites(self.config, self.logger)
             if updated_sites is not None:
               self.sites = updated_sites
             else:
