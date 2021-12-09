@@ -1036,6 +1036,8 @@ definitions:
           $ref: "#/definitions/BadgeInfo"
       profile:
         $ref: "#/definitions/ProfileInfo"
+      preferred_system:
+        type: string
   BadgeInfo:
     type: object
     properties:

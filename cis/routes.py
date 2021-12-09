@@ -363,3 +363,4 @@ def log_activity():
     req = request.json
     req = LogActivityRequest.from_dict(req)
     return log_user_activity(req, c)
+

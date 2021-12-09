@@ -8,7 +8,7 @@ import urllib
 import io
 import re
 import uuid
-from .models import User, RecordSubmission, db
+from .models import User, RecordSubmission, PreferredSystem, db
 from sqlalchemy import null
 from . import model, help_item_cache
 
@@ -586,7 +586,6 @@ def get_badges(config, employee_number):
   params={'type':'badges', 'employee_id':employee_number, 'api_key':config.patt_api_key}
   url = 'https://' + config.patt_host + '/app/mu-plugins/pattracking/includes/admin/pages/games/receiver.php'
   r = requests.post(url, params=params)
-  app.logger.info(r.url)
   if r.status_code != 200:
     return []
   else:
@@ -605,6 +604,17 @@ def get_profile(config, employee_number):
     profile = r.json()[0]
     return ProfileInfo(points=profile['points'], level=profile['level'], office_rank=profile['office_rank'], overall_rank=profile['overall_rank'])
     
+def get_preferred_system(lan_id, default_system='ARMS'):
+    user = User.query.filter_by(lan_id = lan_id).all()
+    if len(user) == 0:
+        return default_system
+    else:
+        user = user[0]
+        system = user.preferred_system
+        if len(system) == 0:
+            return default_system
+        else:
+            return user.preferred_system[0].system
 
 def get_user_info(config, token_data):
   # Handle service accounts separately
@@ -636,7 +646,12 @@ def get_user_info(config, token_data):
     badges=[]
     profile=None
     app.logger.info('Profile requests failed for ' + token_data['email'])
-  return True, None, UserInfo(token_data['email'], display_name, lan_id, department, parent_org_code, employee_number, badges, profile)
+  try:
+    preferred_system = get_preferred_system(lan_id)
+  except:
+    preferred_system = 'ARMS'
+    app.logger.info('Preferred system database read failed for ' + token_data['email'])
+  return True, None, UserInfo(token_data['email'], display_name, lan_id, department, parent_org_code, employee_number, badges, profile, preferred_system)
 
 def get_sems_special_processing(config, region):
   special_processing = requests.get('http://' + config.sems_host + '/sems-ws/outlook/getSpecialProcessing/' + region, timeout=10)

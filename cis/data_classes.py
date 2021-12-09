@@ -269,6 +269,7 @@ class UserInfo:
     employee_number: str
     badges: list[BadgeInfo]
     profile: Optional[ProfileInfo]
+    preferred_system: str
 
 
 mock_email_metadata = EmailMetadata(**{
