@@ -6,7 +6,7 @@ class User(db.Model):
     lan_id = db.Column(db.String(50), unique=True, index=True)
     favorites = db.relationship("Favorite", backref="user")
     submissions = db.relationship("RecordSubmission", backref="user")
-    preferred_system = db.relationship("PreferredSystem", backref="user")
+    user_settings = db.relationship("AppSettings", backref="user")
 
 class Favorite(db.Model):
     __tablename__ = 'favorite'
@@ -37,9 +37,10 @@ class RecordSubmission(db.Model):
     used_favorite_schedule = db.Column(db.Boolean)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), index=True)
 
-class PreferredSystem(db.Model):
-    __tablename__ = 'preferred_system'
+class AppSettings(db.Model):
+    __tablename__ = 'user_settings'
     id = db.Column(db.Integer, primary_key=True)
     system = db.Column(db.String(10))
+    default_edit_mode = db.Column(db.String(10))
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), index=True)
-    __table_args__ = (db.UniqueConstraint('user_id', name='_preferred_system_uc'),)
+    __table_args__ = (db.UniqueConstraint('user_id', name='_user_settings_uc'),)

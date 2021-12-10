@@ -404,6 +404,60 @@ paths:
           description: "Server side failure with explanation."
           schema:
             $ref: "#/definitions/StatusResponse"
+  /update_preferred_system:
+    post:
+      tags:
+      - "settings"
+      summary: "Update preferred records management system for user."
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: "system"
+          description: "System to set as the new default."
+          schema:
+            $ref: "#/definitions/UpdatePreferredSystemRequest"
+        - in: header
+          name: "Authorization"
+          type: string
+          format: "jwt"
+          required: true
+      responses:
+        200:
+          description: "Preferred system was updated."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        500:
+          description: "Server side failure with explanation."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+  /update_default_edit_mode:
+    post:
+      tags:
+      - "settings"
+      summary: "Update default edit mode for user."
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: "edit_mode"
+          description: "Edit mode (basic or advanced) to set as the new default."
+          schema:
+            $ref: "#/definitions/UpdateEditModeRequest"
+        - in: header
+          name: "Authorization"
+          type: string
+          format: "jwt"
+          required: true
+      responses:
+        200:
+          description: "Default edit mode was updated."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        500:
+          description: "Server side failure with explanation."
+          schema:
+            $ref: "#/definitions/StatusResponse"
   /get_record_schedules:
     get:
       tags:
@@ -1015,6 +1069,23 @@ definitions:
         type: array
         items:
           $ref: "#/definitions/RecordScheduleInformation"
+  UserSettings:
+    type: object
+    properties:
+      preferred_system: 
+        type: string
+      default_edit_mode: 
+        type: string
+  UpdatePreferredSystemRequest:
+    type: object
+    properties:
+      preferred_system:
+        type: string
+  UpdateEditModeRequest:
+    type: object
+    properties:
+      default_edit_mode:
+        type: string
   UserInfo:
     type: object
     properties:
@@ -1036,8 +1107,8 @@ definitions:
           $ref: "#/definitions/BadgeInfo"
       profile:
         $ref: "#/definitions/ProfileInfo"
-      preferred_system:
-        type: string
+      user_settings:
+        $ref: "#/definitions/UserSettings"
   BadgeInfo:
     type: object
     properties:
@@ -1110,6 +1181,8 @@ definitions:
         type: string
       last_modified_date:
         type: string
+      detected_schedule:
+        $ref: "#/definitions/RecordSchedule"
   SharepointListResponse:
     type: object
     properties:

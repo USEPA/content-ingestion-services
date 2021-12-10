@@ -4,7 +4,7 @@ from .cis_requests import *
 from werkzeug.utils import secure_filename
 from .data_classes import * 
 from io import BytesIO
-from .models import User, Favorite, db
+from .models import User, Favorite, AppSettings, db
 import uuid
 from . import key_cache, c, model, mailbox_manager, schedule_cache, sems_site_cache
 import json
@@ -364,3 +364,58 @@ def log_activity():
     req = LogActivityRequest.from_dict(req)
     return log_user_activity(req, c)
 
+@app.route('/update_preferred_system', methods=['POST'])
+def update_preferred_system():
+    req = request.json
+    try:
+        req = UpdatePreferredSystemRequest.from_dict(req)
+    except:
+        Response("Unable to parse request.", status=400, mimetype='text/plain')
+    success, message, user_info = get_user_info(c, g.token_data)
+    if not success:
+        return Response(message, status=400, mimetype='text/plain')
+    user = User.query.filter_by(lan_id = user_info.lan_id).all()
+    if len(user) == 0:
+        user = User(lan_id = user_info.lan_id)
+        db.session.add(user)
+    else:
+        user = user[0]
+        settings = user.user_settings
+        if len(settings) == 0:
+            user.user_settings.append(AppSettings(system=req.preferred_system, default_edit_mode='basic'))
+        else:
+            current_settings = settings[0]
+            user.user_settings = [AppSettings(system=req.preferred_system, default_edit_mode=current_settings.default_edit_mode)]
+        try:
+            db.session.commit()
+            return Response(StatusResponse(status="OK", reason="Preferred system updated.").to_json(), status=200, mimetype="application/json")
+        except:
+            return Response("Error committing updates.", status=500, mimetype="text/plain")
+
+@app.route('/update_default_edit_mode', methods=['POST'])
+def update_default_edit_mode():
+    req = request.json
+    try:
+        req = UpdateEditModeRequest.from_dict(req)
+    except:
+        Response("Unable to parse request.", status=400, mimetype='text/plain')
+    success, message, user_info = get_user_info(c, g.token_data)
+    if not success:
+        return Response(message, status=400, mimetype='text/plain')
+    user = User.query.filter_by(lan_id = user_info.lan_id).all()
+    if len(user) == 0:
+        user = User(lan_id = user_info.lan_id)
+        db.session.add(user)
+    else:
+        user = user[0]
+        settings = user.user_settings
+        if len(settings) == 0:
+            user.user_settings.append(AppSettings(system='ARMS', default_edit_mode=req.default_edit_mode))
+        else:
+            current_settings = settings[0]
+            user.user_settings = [AppSettings(system=current_settings.system, default_edit_mode=req.default_edit_mode)]
+        try:
+            db.session.commit()
+            return Response(StatusResponse(status="OK", reason="Default edit mode updated.").to_json(), status=200, mimetype="application/json")
+        except:
+            return Response("Error committing updates.", status=500, mimetype="text/plain")

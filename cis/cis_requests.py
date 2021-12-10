@@ -8,9 +8,9 @@ import urllib
 import io
 import re
 import uuid
-from .models import User, RecordSubmission, PreferredSystem, db
+from .models import User, RecordSubmission, db
 from sqlalchemy import null
-from . import model, help_item_cache
+from . import model, help_item_cache, schedule_cache
 
 TIKA_CUTOFF = 20
 
@@ -604,22 +604,23 @@ def get_profile(config, employee_number):
     profile = r.json()[0]
     return ProfileInfo(points=profile['points'], level=profile['level'], office_rank=profile['office_rank'], overall_rank=profile['overall_rank'])
     
-def get_preferred_system(lan_id, default_system='ARMS'):
+def get_user_settings(lan_id):
     user = User.query.filter_by(lan_id = lan_id).all()
     if len(user) == 0:
-        return default_system
+        return default_settings
     else:
         user = user[0]
-        system = user.preferred_system
-        if len(system) == 0:
-            return default_system
+        settings = user.user_settings
+        if len(settings) == 0:
+            return default_settings
         else:
-            return user.preferred_system[0].system
+            settings = settings[0]
+            return UserSettings(preferred_system=settings.system, default_edit_mode=settings.default_edit_mode)
 
 def get_user_info(config, token_data):
   # Handle service accounts separately
   if token_data['email'][:4].lower() == 'svc_':
-    return True, None, UserInfo(token_data['email'], token_data['email'], token_data['email'].split('@')[0], 'SERVICE_ACCOUNT')
+    return True, None, UserInfo(token_data['email'], token_data['email'], token_data['email'].split('@')[0], 'SERVICE_ACCOUNT', '', '', [], None, default_settings)
   url = 'https://' + config.wam_host + '/iam/governance/scim/v1/Users?attributes=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:Department&attributes=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:Company&attributes=urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:department&attributes=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:PARENTORGCODE&attributes=urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:employeeNumber&attributes=userName&attributes=Active&attributes=displayName&filter=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:Upn eq "' + token_data['email'] + '"'
   try:
     wam = requests.get(url, auth=(config.wam_username, config.wam_password), timeout=30)
@@ -647,11 +648,11 @@ def get_user_info(config, token_data):
     profile=None
     app.logger.info('Profile requests failed for ' + token_data['email'])
   try:
-    preferred_system = get_preferred_system(lan_id)
+    user_settings = get_user_settings(lan_id)
   except:
-    preferred_system = 'ARMS'
+    user_settings = default_settings
     app.logger.info('Preferred system database read failed for ' + token_data['email'])
-  return True, None, UserInfo(token_data['email'], display_name, lan_id, department, parent_org_code, employee_number, badges, profile, preferred_system)
+  return True, None, UserInfo(token_data['email'], display_name, lan_id, department, parent_org_code, employee_number, badges, profile, user_settings)
 
 def get_sems_special_processing(config, region):
   special_processing = requests.get('http://' + config.sems_host + '/sems-ws/outlook/getSpecialProcessing/' + region, timeout=10)
@@ -737,6 +738,12 @@ def upload_documentum_email(upload_email_request, access_token, user_info, confi
     return Response(StatusResponse(status='OK', reason='File successfully uploaded.').to_json(), status=200, mimetype='application/json')
   
 def simplify_sharepoint_record(raw_rec, sensitivity):
+  detected_sched = None
+  mapping = schedule_cache.get_schedule_mapping()
+  for item in raw_rec['webUrl'].split('/'):
+    if item in mapping:
+      detected_sched = mapping[item]
+      break
   return SharepointRecord(
     web_url = raw_rec['webUrl'],
     records_status = raw_rec['listItem']['fields'].get('Records_x0020_Status', None),
@@ -744,7 +751,8 @@ def simplify_sharepoint_record(raw_rec, sensitivity):
     name = raw_rec['name'],
     drive_item_id = raw_rec['id'],
     created_date = raw_rec['createdDateTime'],
-    last_modified_date = raw_rec['lastModifiedDateTime']
+    last_modified_date = raw_rec['lastModifiedDateTime'],
+    detected_schedule = detected_sched
   )
 
 def check_or_create_records_folder(access_token):

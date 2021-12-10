@@ -1,5 +1,5 @@
 import json
-from .data_classes import RecordScheduleInformation, RecordScheduleList
+from .data_classes import RecordScheduleInformation, RecordScheduleList, RecordSchedule
 from datetime import datetime
 import threading
 import requests
@@ -14,7 +14,7 @@ class RecordScheduleCache:
           dnu_items.append(csv[1])
       self.dnu_items = dnu_items
       self.config = config
-      _, self.schedules = get_record_schedules(config, self.dnu_items, self.logger)
+      _, self.schedules, self.schedule_mapping = get_record_schedules(config, self.dnu_items, self.logger)
       self.update_ts = datetime.now()
       self.lock = threading.Lock()
 
@@ -22,12 +22,16 @@ class RecordScheduleCache:
       with self.lock:
         diff = datetime.now() - self.update_ts
         if diff.total_seconds() > 24 * 60 * 60:
-          request_success, schedules = get_record_schedules(self.config, self.dnu_items, self.logger)
+          request_success, schedules, schedule_mapping = get_record_schedules(self.config, self.dnu_items, self.logger)
           if not request_success:
             self.logger.info('Record schedule refresh failed and no data is cached. Defaulting to local data.')
           self.schedules = schedules
+          self.schedule_mapping = schedule_mapping
           self.update_ts = datetime.now()
         return self.schedules
+    
+    def get_schedule_mapping(self):
+        return self.schedule_mapping
     
 def process_schedule_data(schedule_dict):
   return RecordScheduleInformation(
@@ -65,4 +69,8 @@ def get_record_schedules(config, dnu_items, logger):
       result = json.loads(f.read())
     request_success = False
   filtered_results = list(filter(lambda x: x['schedule_item_number'] not in dnu_items, result))
-  return request_success, RecordScheduleList([process_schedule_data(x) for x in filtered_results])
+  schedule_list = RecordScheduleList([process_schedule_data(x) for x in filtered_results])
+  schedule_mapping = {
+    (sched.schedule_number + sched.disposition_number):RecordSchedule(sched.function_number, sched.schedule_number, sched.disposition_number) 
+    for sched in schedule_list.schedules}
+  return request_success, schedule_list, schedule_mapping

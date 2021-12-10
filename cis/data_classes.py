@@ -260,6 +260,14 @@ class ProfileInfo:
 
 @dataclass_json
 @dataclass 
+class UserSettings:
+    preferred_system: str
+    default_edit_mode: str
+
+default_settings = UserSettings('ARMS', 'basic')
+
+@dataclass_json
+@dataclass 
 class UserInfo:
     email: str
     display_name: str
@@ -269,7 +277,7 @@ class UserInfo:
     employee_number: str
     badges: list[BadgeInfo]
     profile: Optional[ProfileInfo]
-    preferred_system: str
+    user_settings: UserSettings
 
 
 mock_email_metadata = EmailMetadata(**{
@@ -395,6 +403,7 @@ class SharepointRecord:
     drive_item_id: str
     created_date: str
     last_modified_date: str
+    detected_schedule: Optional[RecordSchedule]
 
 @dataclass_json
 @dataclass 
@@ -470,8 +479,12 @@ class LogActivityRequest:
     office_code: str
     event_id: str
 
+@dataclass_json
+@dataclass
+class UpdatePreferredSystemRequest:
+    preferred_system: str
 
-
-
-
-
+@dataclass_json
+@dataclass
+class UpdateEditModeRequest:
+    default_edit_mode: str
