@@ -577,7 +577,7 @@ def download_documentum_record(config, user_info, object_ids, env):
     app.logger.error(r.text)
     return Response('Documentum archive request returned status ' + str(archive_req.status_code), status=500, mimetype='text/plain')
   b = io.BytesIO(archive_req.content)
-  safe_user_activity_request(user_info.employee_number, user_info.lan_id, user_info.parent_org_code, '7', c)
+  safe_user_activity_request(user_info.employee_number, user_info.lan_id, user_info.parent_org_code, '7', config)
   return send_file(b, mimetype='application/zip', as_attachment=True, attachment_filename='ecms_download.zip')
 
 def get_badges(config, employee_number):
