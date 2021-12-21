@@ -630,11 +630,11 @@ def get_user_info(config, token_data):
     lan_id = user_data['userName'].lower()
     display_name = user_data['displayName']
     department = user_data.get('urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User', {}).get('Department', None)
-    parent_org_code = user_data.get('urn:ietf:params:scim:schemas:extension:enterprise:2.0:User', {}).get('department', None)
+    enterprise_department = user_data.get('urn:ietf:params:scim:schemas:extension:enterprise:2.0:User', {}).get('department', None)
     employee_number = user_data.get('urn:ietf:params:scim:schemas:extension:enterprise:2.0:User', {}).get('employeeNumber', None)
     company = user_data.get('urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User', {}).get('Company', None)
-    if parent_org_code is None:
-      parent_org_code = company
+    if enterprise_department is None:
+      enterprise_department = company
     active = user_data['active']
     if not active:
       return False, 'User is not active.', None
@@ -652,7 +652,7 @@ def get_user_info(config, token_data):
   except:
     user_settings = default_settings
     app.logger.info('Preferred system database read failed for ' + token_data['email'])
-  return True, None, UserInfo(token_data['email'], display_name, lan_id, department, parent_org_code, employee_number, badges, profile, user_settings)
+  return True, None, UserInfo(token_data['email'], display_name, lan_id, department, enterprise_department, employee_number, badges, profile, user_settings)
 
 def get_sems_special_processing(config, region):
   special_processing = requests.get('http://' + config.sems_host + '/sems-ws/outlook/getSpecialProcessing/' + region, timeout=10)

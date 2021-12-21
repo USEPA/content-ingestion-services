@@ -9,7 +9,7 @@ if __name__ == "__main__":
                     help='Environment where application is running. Options are local and cloud.')
     parser.add_argument('--region_name', default=None,
                     help='Region for cloud environment.')
-    parser.add_argument('--model_path', default='/home/models/distilbert-12-10',
+    parser.add_argument('--model_path', default='/home/models/trained_model',
                     help='Path to HuggingFace classifier model.')
     parser.add_argument('--label_mapping_path', default='/home/models/label_mapping.json',
                     help='Path to mapping between prediction indices and corresponding record schedules.')
