@@ -4,10 +4,13 @@ import threading
 import requests 
 
 class SemsSiteCache:
-    def __init__(self, config, logger):
+    def __init__(self, config, logger, cache_on_start):
         self.config = config
         self.logger = logger
-        self.sites = get_sems_sites(config, logger)
+        if cache_on_start:
+          self.sites = get_sems_sites(config, logger)
+        else:
+          self.sites = None
         if self.sites is None:
           self.logger.info('Failed to load SEMS sites on startup.')
         self.update_ts = datetime.now()
