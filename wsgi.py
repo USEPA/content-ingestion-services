@@ -13,6 +13,8 @@ if __name__ == "__main__":
                     help='Path to HuggingFace classifier model.')
     parser.add_argument('--label_mapping_path', default='/home/models/label_mapping.json',
                     help='Path to mapping between prediction indices and corresponding record schedules.')
+    parser.add_argument('--office_info_mapping_path', default='/home/models/office_info_mapping.json',
+                    help='Path to mapping between office acronym and office description.')
     parser.add_argument('--config_path', default='dev_config.json',
                     help='Path to config file with environment dependent variables.')
     parser.add_argument('--tika_server', default=None,
@@ -41,7 +43,7 @@ if __name__ == "__main__":
                     help='Username for WAM service.')
     parser.add_argument('--wam_password', default=None, 
                     help='Password for WAM service.')
-    parser.add_argument('--no_cache_on_start', default=True, action='store_false', 
+    parser.add_argument('--no_cache_on_start', action='store_true', 
                     help='Flag to control whether to populate caches on startup.')
     args = parser.parse_args()
     app = create_app(**vars(args))

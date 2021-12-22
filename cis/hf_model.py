@@ -12,21 +12,43 @@ def format_record_schedule(sched):
     return RecordSchedule(function_number=split[0], schedule_number=split[1], disposition_number=split[2])
 
 class HuggingFaceModel():
-    def __init__(self, model_path, label_mapping_path):
+    def __init__(self, model_path, label_mapping_path, office_info_mapping_path):
         self.lock = threading.Lock()
         self.tokenizer = AutoTokenizer.from_pretrained(model_path)
         self.model = AutoModelForSequenceClassification.from_pretrained(model_path)
         with open(label_mapping_path, 'r') as f:
             self.label_mapping = json.loads(f.read())
             self.reverse_mapping = {v:k for k,v in self.label_mapping.items()}
+        with open(office_info_mapping_path, 'r') as g:
+            self.office_info_mapping = json.loads(g.read())
         # Convert indices to record schedules using mapping saved at model training time
         self.classes = [format_record_schedule(self.reverse_mapping[x]) for x in range(len(self.label_mapping))]
         
-    def predict(self, text, k=3, default_categorization_threshold=0.95, valid_schedules=None):
+    def predict(self, text, doc_type, prediction_metadata, k=3, default_categorization_threshold=0.95, valid_schedules=None):
+        # Preprocess text to include metadata
+        enhanced_text = text[:4000]
+        if prediction_metadata is not None:
+            if prediction_metadata.department is not None:
+                group_name = prediction_metadata.department
+                office_info = self.office_info_mapping.get(group_name, '')
+                group_name = group_name + ' ' + office_info
+            else:
+                group_name = ''
+            if prediction_metadata.file_name is not None:
+                title = prediction_metadata.file_name
+                if '.' in title:
+                    extension = title.split('.')[-1]
+                else:
+                    extension = ''
+            else:
+                title = ''
+                extension = ''
+            enhanced_text = f'{group_name}, {title}, {doc_type}, {extension}, {enhanced_text}'
+            print(enhanced_text)
         # Tokenize text
         # thread lock tokenization https://github.com/huggingface/tokenizers/issues/537
         with self.lock:
-            tokens = self.tokenizer(text[:4000], truncation=True, padding=True, return_tensors="pt")
+            tokens = self.tokenizer(enhanced_text, truncation=True, padding=True, return_tensors="pt")
         # Apply model, get logits
         outputs = self.model(**tokens)
         preds = outputs[0][0].detach().cpu().numpy()

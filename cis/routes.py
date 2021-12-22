@@ -49,12 +49,14 @@ def after_request_func(response):
 @app.route('/file_metadata_prediction', methods=['POST'])
 def file_metadata_prediction():
     file = request.files.get('file')
+    prediction_metadata = request.form.get('prediction_metadata')
+    if prediction_metadata != None:
+        prediction_metadata = PredictionMetadata.from_json(prediction_metadata)
     if file:
-        #filename = secure_filename(file.filename)
         success, text, response = tika(file, c)
         if not success:
             return response
-        predicted_schedules, default_schedule = model.predict(text)
+        predicted_schedules, default_schedule = model.predict(text, 'document', prediction_metadata)
         predicted_title = mock_prediction_with_explanation
         predicted_description = mock_prediction_with_explanation
         prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description, default_schedule=default_schedule)
@@ -66,7 +68,7 @@ def file_metadata_prediction():
 def text_metadata_prediction():  
     req = request.json
     req = TextPredictionRequest.from_dict(req)
-    predicted_schedules, default_schedule = model.predict(req.text)
+    predicted_schedules, default_schedule = model.predict(req.text, 'document', req.prediction_metadata)
     predicted_title = mock_prediction_with_explanation
     predicted_description = mock_prediction_with_explanation
     prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description, default_schedule=default_schedule)
@@ -87,7 +89,7 @@ def email_metadata_prediction():
     schedules = schedule_cache.get_schedules().schedules
     valid_schedules = list(filter(lambda x: x.ten_year, schedules))
     valid_schedules = ["{fn}-{sn}-{dn}".format(fn=x.function_number, sn=x.schedule_number, dn=x.disposition_number) for x in valid_schedules]
-    predicted_schedules, default_schedule = model.predict(text, valid_schedules=valid_schedules)
+    predicted_schedules, default_schedule = model.predict(text, 'email', PredictionMetadata(req.file_name, req.department), valid_schedules=valid_schedules)
     predicted_title = mock_prediction_with_explanation
     predicted_description = mock_prediction_with_explanation
     prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description, default_schedule=default_schedule)

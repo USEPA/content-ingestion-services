@@ -48,6 +48,10 @@ paths:
           name: "file"
           type: "file"
           description: "The file to get recommendations for."
+        - in: "formData"
+          name: "prediction_metadata"
+          type: string
+          description: "String of serialized JSON with prediction metadata."
         - in: header
           name: "Authorization"
           type: string
@@ -91,6 +95,12 @@ paths:
       parameters:
         - in: query
           name: "email_id"
+          type: string
+        - in: query
+          name: "file_name"
+          type: string
+        - in: query
+          name: "department"
           type: string
         - in: header
           name: "Authorization"
@@ -814,11 +824,18 @@ definitions:
         type: string
       reason: 
         type: string
+  PredictionMetadata:
+    type: object
+    properties:
+      file_name: string
+      department: string
   TextPredictionRequest:
     type: object
     properties:
       text:
         type: string
+      prediction_metadata:
+        $ref: "#/definitions/PredictionMetadata"
   GetMailboxesResponse:
     type: object
     properties:

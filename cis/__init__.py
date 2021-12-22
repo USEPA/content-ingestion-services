@@ -29,7 +29,7 @@ SWAGGER_PATH = 'swagger.yaml'
 swagger_yml = load(open(SWAGGER_PATH, 'r'), Loader=Loader)
 
 
-def create_app(env, region_name, model_path, label_mapping_path, config_path, mailbox_data_path, dnul_path, database_uri, documentum_prod_username, documentum_prod_password, wam_username, wam_password, tika_server=None, cis_server=None, ezemail_server=None, upgrade_db=False, documentum_prod_url=None, wam_host=None, no_cache_on_start=True):
+def create_app(env, region_name, model_path, label_mapping_path, office_info_mapping_path, config_path, mailbox_data_path, dnul_path, database_uri, documentum_prod_username, documentum_prod_password, wam_username, wam_password, tika_server=None, cis_server=None, ezemail_server=None, upgrade_db=False, documentum_prod_url=None, wam_host=None, no_cache_on_start=True):
     """Construct the core application."""
     app = Flask(__name__, instance_relative_config=False)
     app.config.from_object("flask_config.Config")
@@ -44,7 +44,8 @@ def create_app(env, region_name, model_path, label_mapping_path, config_path, ma
     app.logger.info('Help items loaded.')
     schedule_cache = RecordScheduleCache(c, dnul_path, app.logger)
     app.logger.info('Record schedule cache loaded.')
-    sems_site_cache = SemsSiteCache(c, app.logger, not no_cache_on_start)
+    cache_on_start = not no_cache_on_start
+    sems_site_cache = SemsSiteCache(c, app.logger, cache_on_start)
     app.logger.info('SEMS site cache loaded.')
     if tika_server:
         c.tika_server = tika_server
@@ -74,7 +75,7 @@ def create_app(env, region_name, model_path, label_mapping_path, config_path, ma
     db.init_app(app)
     migrate.init_app(app, db)
     app.logger.info('Database initialized.')
-    model = HuggingFaceModel(model_path, label_mapping_path)
+    model = HuggingFaceModel(model_path, label_mapping_path, office_info_mapping_path)
     app.logger.info('Model loaded.')
     swagger_yml['host'] = c.cis_server
     blueprint = get_swaggerui_blueprint(SWAGGER_URL, SWAGGER_PATH, config={'spec': swagger_yml})

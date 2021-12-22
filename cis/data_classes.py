@@ -50,6 +50,12 @@ class Recommendation:
     probability: float 
 
 @dataclass_json
+@dataclass
+class PredictionMetadata:
+    file_name: Optional[str]
+    department: Optional[str]
+
+@dataclass_json
 @dataclass 
 class PredictionWithExplanation:
     value: str 
@@ -184,11 +190,14 @@ mock_status_response = StatusResponse("OK", "This is a mock.")
 @dataclass 
 class TextPredictionRequest:
     text: str
+    prediction_metadata: Optional[PredictionMetadata]
 
 @dataclass_json
 @dataclass 
 class EmailPredictionRequest:
     email_id: str
+    file_name: Optional[str] = None
+    department: Optional[str] = None
 
 @dataclass_json
 @dataclass 
