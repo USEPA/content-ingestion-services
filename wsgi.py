@@ -41,7 +41,7 @@ if __name__ == "__main__":
                     help='Username for WAM service.')
     parser.add_argument('--wam_password', default=None, 
                     help='Password for WAM service.')
-    parser.add_argument('--cache_on_start', default=True, action='store_false', 
+    parser.add_argument('--no_cache_on_start', default=True, action='store_false', 
                     help='Flag to control whether to populate caches on startup.')
     args = parser.parse_args()
     app = create_app(**vars(args))
