@@ -681,6 +681,29 @@ paths:
           schema:
             $ref: "#/definitions/StatusResponse"
           description: "Record successfully uploaded."
+  /upload_sharepoint_batch:
+    post:
+      tags:
+      - "sharepoint"
+      summary: "Upload Sharepoint batch to be processed later."
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: "data"
+          description: "ID fields and metadata needed to specify the batch."
+          schema:
+            $ref: "#/definitions/SharepointBatchUploadRequest"
+        - in: header
+          name: "Authorization"
+          type: string
+          format: "jwt"
+          required: true
+      responses:
+        200:
+          schema:
+            $ref: "#/definitions/StatusResponse"
+          description: "Record successfully uploaded."
   /get_help_item:
     get:
       tags:
@@ -827,8 +850,10 @@ definitions:
   PredictionMetadata:
     type: object
     properties:
-      file_name: string
-      department: string
+      file_name: 
+        type: string
+      department: 
+        type: string
   TextPredictionRequest:
     type: object
     properties:
@@ -1181,6 +1206,22 @@ definitions:
         type: array
         items: 
           $ref: "#/definitions/DocumentumDocInfo"
+  SharepointItem:
+    type: object
+    properties:
+      drive_item_id:
+        type: string
+      metadata:
+        $ref: "#/definitions/ECMSMetadata"
+  SharepointBatchUploadRequest:
+    type: object
+    properties:
+      sharepoint_items:
+        type: array
+        items:
+          $ref: "#/definitions/SharepointItem"
+      documentum_env:
+        type: string
   SharepointRecord:
     type: object
     properties:

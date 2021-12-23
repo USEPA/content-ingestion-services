@@ -441,6 +441,18 @@ class SharepointUploadRequest:
 
 @dataclass_json
 @dataclass 
+class SharepointItem:
+    drive_item_id: str
+    metadata: ECMSMetadata
+
+@dataclass_json
+@dataclass 
+class SharepointBatchUploadRequest:
+    sharepoint_items: list[SharepointItem]
+    documentum_env: Optional[str] = 'dev'
+
+@dataclass_json
+@dataclass 
 class GetHelpItemRequest:
     name: str
 

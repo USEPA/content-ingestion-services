@@ -344,6 +344,18 @@ def sharepoint_upload():
         return Response(message, status=400, mimetype='text/plain')
     return upload_sharepoint_record(req, g.access_token, user_info, c)
 
+@app.route('/upload_sharepoint_batch', methods=['POST'])
+def sharepoint_batch_upload():
+    req = request.json
+    req = SharepointBatchUploadRequest.from_dict(req)
+    success, message, user_info = get_user_info(c, g.token_data)
+    for item in req.sharepoint_items:
+        if item.metadata.custodian != user_info.lan_id:
+            return Response('User ' + user_info.lan_id + ' is not authorized to list ' + item.metadata.custodian + ' as custodian.', status=400, mimetype='text/plain')
+    if not success:
+        return Response(message, status=400, mimetype='text/plain')
+    return upload_sharepoint_batch(req, user_info, c)
+
 @app.route('/get_help_item', methods=['GET'])
 def get_help_by_id():
     req = request.args

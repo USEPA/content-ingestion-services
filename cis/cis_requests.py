@@ -11,6 +11,7 @@ import uuid
 from .models import User, RecordSubmission, db
 from sqlalchemy import null
 from . import model, help_item_cache, schedule_cache
+import boto3
 
 TIKA_CUTOFF = 20
 
@@ -869,6 +870,18 @@ def upload_sharepoint_record(req: SharepointUploadRequest, access_token, user_in
   else:
     log_upload_activity(user_info, req.user_activity, req.metadata, c)
     return Response(StatusResponse(status='OK', reason='File successfully uploaded.').to_json(), status=200, mimetype='application/json')
+
+def upload_sharepoint_batch(req: SharepointBatchUploadRequest, user_info, c):
+  ## Save submission to S3
+  try:
+    s3 = boto3.resource('s3')
+    current_time = datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
+    file_path = user_info.lan_id + '_' + current_time + '.json'
+    object = s3.Object(c.bucket_name, 'pending_uploads/' + file_path)
+    object.put(Body=req.to_json())
+  except:
+    return Response(StatusResponse(status='Failed', reason='Failed to upload batch to S3.').to_json(), status=500, mimetype='application/json')
+  return Response(StatusResponse(status='OK', reason='Uploaded batch to S3.').to_json(), status=200, mimetype='application/json')
 
 def sched_to_string(sched):
   return '-'.join([sched.function_number, sched.schedule_number, sched.disposition_number])

@@ -29,7 +29,7 @@ SWAGGER_PATH = 'swagger.yaml'
 swagger_yml = load(open(SWAGGER_PATH, 'r'), Loader=Loader)
 
 
-def create_app(env, region_name, model_path, label_mapping_path, office_info_mapping_path, config_path, mailbox_data_path, dnul_path, database_uri, documentum_prod_username, documentum_prod_password, wam_username, wam_password, tika_server=None, cis_server=None, ezemail_server=None, upgrade_db=False, documentum_prod_url=None, wam_host=None, no_cache_on_start=True):
+def create_app(env, region_name, model_path, label_mapping_path, office_info_mapping_path, config_path, mailbox_data_path, dnul_path, database_uri, documentum_prod_username, documentum_prod_password, wam_username, wam_password, bucket_name, tika_server=None, cis_server=None, ezemail_server=None, upgrade_db=False, documentum_prod_url=None, wam_host=None, no_cache_on_start=True):
     """Construct the core application."""
     app = Flask(__name__, instance_relative_config=False)
     app.config.from_object("flask_config.Config")
@@ -67,6 +67,8 @@ def create_app(env, region_name, model_path, label_mapping_path, office_info_map
         c.wam_password = wam_password
     if wam_host:
         c.wam_host = wam_host
+    if bucket_name:
+        c.bucket_name = bucket_name
     if env == 'cloud':
         load_all_secrets(c, region_name, app.logger)
         app.logger.info('Secrets loaded.')

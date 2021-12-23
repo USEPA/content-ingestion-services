@@ -29,7 +29,8 @@ class CISConfig:
         records_repository_id,
         sems_host,
         patt_host,
-        patt_api_key
+        patt_api_key,
+        bucket_name
         ):
         self.cis_server = cis_server
         self.tika_server = tika_server
@@ -52,4 +53,5 @@ class CISConfig:
         self.sems_host = sems_host
         self.patt_host = patt_host
         self.patt_api_key = patt_api_key
+        self.bucket_name = bucket_name
         

@@ -43,6 +43,7 @@ if __name__ == "__main__":
                     help='Username for WAM service.')
     parser.add_argument('--wam_password', default=None, 
                     help='Password for WAM service.')
+    parser.add_argument('--bucket_name', help='Bucket name for uploads.')
     parser.add_argument('--no_cache_on_start', action='store_true', 
                     help='Flag to control whether to populate caches on startup.')
     args = parser.parse_args()
