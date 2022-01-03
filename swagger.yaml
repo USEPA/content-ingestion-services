@@ -640,6 +640,14 @@ paths:
           name: "drive_item_id"
           type: string
           required: true
+        - in: query
+          name: "file_name"
+          type: string
+          required: false
+        - in: query
+          name: "department"
+          type: string
+          required: false
         - in: header
           name: "Authorization"
           type: string

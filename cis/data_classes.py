@@ -430,6 +430,8 @@ class GetSharepointRecordsRequest:
 @dataclass 
 class SharepointPredictionRequest:
     drive_item_id: str
+    file_name: Optional[str] = None
+    department: Optional[str] = None
 
 @dataclass_json
 @dataclass 
