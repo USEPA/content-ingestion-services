@@ -614,6 +614,12 @@ paths:
           name: "items_per_page"
           type: integer
           required: false
+        - in: query
+          name: "filter_type"
+          type: string
+          enum: ["ready_for_submission", "in_batch"]
+          default: "ready_for_submission"
+          required: false
         - in: header
           name: "Authorization"
           type: string
@@ -706,6 +712,10 @@ paths:
           name: "Authorization"
           type: string
           format: "jwt"
+          required: true
+        - in: header
+          name: "X-Access-Token"
+          type: string
           required: true
       responses:
         200:
@@ -1219,6 +1229,8 @@ definitions:
     properties:
       drive_item_id:
         type: string
+      list_item_id:
+        type: string
       metadata:
         $ref: "#/definitions/ECMSMetadata"
   SharepointBatchUploadRequest:
@@ -1239,13 +1251,15 @@ definitions:
         type: string
       sensitivity:
         type: string
-      list_item_id:
+      drive_item_id:
         type: string
       name:
         type: string
       created_date:
         type: string
       last_modified_date:
+        type: string
+      list_item_id:
         type: string
       detected_schedule:
         $ref: "#/definitions/RecordSchedule"

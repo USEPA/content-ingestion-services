@@ -412,6 +412,7 @@ class SharepointRecord:
     drive_item_id: str
     created_date: str
     last_modified_date: str
+    list_item_id: str
     detected_schedule: Optional[RecordSchedule]
 
 @dataclass_json
@@ -425,6 +426,7 @@ class SharepointListResponse:
 class GetSharepointRecordsRequest:
     page_number: Optional[int] = 1
     items_per_page: Optional[int] = 10
+    filter_type: Optional[str] = 'ready_for_submission'
 
 @dataclass_json
 @dataclass 
@@ -445,6 +447,7 @@ class SharepointUploadRequest:
 @dataclass 
 class SharepointItem:
     drive_item_id: str
+    list_item_id: str
     metadata: ECMSMetadata
 
 @dataclass_json
@@ -452,6 +455,15 @@ class SharepointItem:
 class SharepointBatchUploadRequest:
     sharepoint_items: list[SharepointItem]
     documentum_env: Optional[str] = 'dev'
+
+@dataclass_json
+@dataclass 
+class SharepointBatchUploadData:
+    request: SharepointBatchUploadRequest
+    drive_id: str
+    site_id: str
+    list_id: str
+    user: UserInfo
 
 @dataclass_json
 @dataclass 

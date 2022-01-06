@@ -753,7 +753,8 @@ def simplify_sharepoint_record(raw_rec, sensitivity):
     drive_item_id = raw_rec['id'],
     created_date = raw_rec['createdDateTime'],
     last_modified_date = raw_rec['lastModifiedDateTime'],
-    detected_schedule = detected_sched
+    detected_schedule = detected_sched,
+    list_item_id = raw_rec['listItem']['id']
   )
 
 def check_or_create_records_folder(access_token):
@@ -800,13 +801,17 @@ def list_sharepoint_records(req: GetSharepointRecordsRequest, access_token):
   all_records = []
   # Get shared records
   headers = {'Authorization': 'Bearer ' + access_token}
-  shared = requests.get("https://graph.microsoft.com/v1.0/me/drive/root:/EPA Records:/children/?$expand=listitem", headers=headers, timeout=10)
+  shared = requests.get("https://graph.microsoft.com/v1.0/me/drive/root:/EPA Records:/children/?$expand=listItem", headers=headers, timeout=10)
   if shared.status_code != 200:
     return Response('Failed to retrieve shared OneDrive items.', status=500, mimetype='text/plain')
   shared_items = shared.json()['value']
   for doc in shared_items:
     all_records.append(simplify_sharepoint_record(doc, 'Shared'))
-  filtered_records = list(filter(lambda x: x.records_status == 'Pending', all_records))
+  if req.filter_type == 'in_batch':
+    filter_status = 'Pending Batch Submission'
+  else:
+    filter_status = 'Pending'
+  filtered_records = list(filter(lambda x: x.records_status == filter_status, all_records))
   filtered_records = sorted(filtered_records, key=lambda x: x.last_modified_date, reverse=True)
   total_count = len(filtered_records)
   paged_records = filtered_records[(page_number - 1) * items_per_page : page_number * items_per_page]
@@ -871,16 +876,60 @@ def upload_sharepoint_record(req: SharepointUploadRequest, access_token, user_in
     log_upload_activity(user_info, req.user_activity, req.metadata, c)
     return Response(StatusResponse(status='OK', reason='File successfully uploaded.').to_json(), status=200, mimetype='application/json')
 
-def upload_sharepoint_batch(req: SharepointBatchUploadRequest, user_info, c):
+def batch(iterable, n=1):
+    l = len(iterable)
+    for ndx in range(0, l, n):
+        yield iterable[ndx:min(ndx + n, l)]
+
+def batch_update_status(req: SharepointBatchUploadRequest, site_id, list_id, access_token):
+  batches = batch(req.sharepoint_items, 20)
+  headers = {'Authorization': 'Bearer ' + access_token}
+  data = {"Records_x0020_Status": 'Pending Batch Submission'}
+  for _batch in batches:
+    batch_requests = [
+      {
+        "id": i,
+        "method": "PATCH",
+        "url": 'https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{list_id}/items/{item_id}/fields'.format(site_id = site_id, list_id = list_id, item_id = x.list_item_id),
+        "body": data,
+        "headers": headers
+      } for i, x in enumerate(_batch)
+    ]
+    batch_req = requests.post('https://graph.microsoft.com/v1.0/$batch', data=json.dumps(batch_requests))
+    for x in batch_req.json()['responses']:
+      if x['status'] != 200:
+        raise Exception('Batch metadata update failed.')
+
+def upload_sharepoint_batch(req: SharepointBatchUploadRequest, user_info, c, access_token):
   ## Save submission to S3
+  if len(req.sharepoint_items) == 0:
+    return Response(StatusResponse(status='OK', reason='Batch is empty. No action taken.').to_json(), status=200, mimetype='application/json')
+  else:
+    headers = {'Authorization': 'Bearer ' + access_token}
+    url = 'https://graph.microsoft.com/v1.0/me/drive/items/' + req.sharepoint_items[0].drive_item_id + '?expand=listItem,sharepointIds'
+    r = requests.get(url, headers=headers, timeout=30)
+    if r.status_code != 200:
+      app.logger.error('Unable to find OneDrive item: ' + r.text)
+      return Response('Unable to find OneDrive item: ' + str(r.text), status=400, mimetype='application/json')
+    drive_item = r.json()
+    site_id = drive_item['sharepointIds']['siteId']
+    list_id = drive_item['sharepointIds']['listId']
+    drive_id = drive_item['parentReference']['driveId']
+    batch_data = SharepointBatchUploadData(request=req, drive_id=drive_id, site_id=site_id, list_id=list_id, user=user_info)
   try:
     s3 = boto3.resource('s3')
     current_time = datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
     file_path = user_info.lan_id + '_' + current_time + '.json'
     object = s3.Object(c.bucket_name, 'pending_uploads/' + file_path)
-    object.put(Body=req.to_json())
+    object.put(Body=batch_data.to_json())
   except:
     return Response(StatusResponse(status='Failed', reason='Failed to upload batch to S3.').to_json(), status=500, mimetype='application/json')
+  # Mark files as pending on Sharepoint
+  # TODO: Batch these requests
+  try:
+    batch_update_status(req, site_id, list_id, access_token)
+  except:
+    Response(StatusResponse(status='Failed', reason='Unable to update Sharepoint status.').to_json(), status=500, mimetype='application/json')
   return Response(StatusResponse(status='OK', reason='Uploaded batch to S3.').to_json(), status=200, mimetype='application/json')
 
 def sched_to_string(sched):

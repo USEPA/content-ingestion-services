@@ -354,7 +354,7 @@ def sharepoint_batch_upload():
             return Response('User ' + user_info.lan_id + ' is not authorized to list ' + item.metadata.custodian + ' as custodian.', status=400, mimetype='text/plain')
     if not success:
         return Response(message, status=400, mimetype='text/plain')
-    return upload_sharepoint_batch(req, user_info, c)
+    return upload_sharepoint_batch(req, user_info, c, g.access_token)
 
 @app.route('/get_help_item', methods=['GET'])
 def get_help_by_id():
