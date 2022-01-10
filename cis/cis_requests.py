@@ -26,7 +26,11 @@ def tika(file, config, extraction_type='text'):
             "accept": accept
           }
   server = "http://" + config.tika_server + "/tika"
-  r = requests.put(server, data=file, headers=headers, timeout=30)
+  try:
+    r = requests.put(server, data=file, headers=headers, timeout=30)
+  except:
+    return False, None, Response(StatusResponse(status='Failed', reason='Could not connect to Tika server').to_json(), 500, mimetype='application/json')
+
   if r.status_code != 200 or len(r.text) < TIKA_CUTOFF:
       headers = {
           "X-Tika-PDFOcrStrategy": "ocr_only",

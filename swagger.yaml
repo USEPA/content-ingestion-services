@@ -191,11 +191,15 @@ paths:
         - in: "formData"
           name: "file"
           type: "file"
-          description: "The file to get recommendations for."
+          description: "Binary content of file to upload."
         - in: "formData"
           name: "metadata"
           type: string
           description: "String of serialized JSON with ECMS metadata."
+        - in: "formData"
+          name: "user_activity"
+          type: string
+          description: "String of serialized JSON with user activity data."
         - in: "formData"
           name: "documentum_env"
           type: string
@@ -1233,6 +1237,13 @@ definitions:
         type: array
         items:
           $ref: "#/definitions/SemsSpecialProcessing"
+  EmailAttachment:
+    type: object
+    properties:
+      name: 
+        type: string
+      attachment_id:
+        type: string
   GetEmailResponse:
     type: object
     properties:
@@ -1261,6 +1272,10 @@ definitions:
               type: string
             received:
               type: string
+            attachments:
+              type: array
+              items: 
+                $ref: "#/definitions/EmailAttachment"
             mailbox_source:
               type: string
   UploadEmailRequest:

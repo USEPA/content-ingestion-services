@@ -83,7 +83,7 @@ def text_metadata_prediction():
 @app.route('/email_metadata_prediction', methods=['GET'])
 def email_metadata_prediction():
     if g.access_token is None:
-        return Response(StatusResponse(status='Failed', reason='X-Outlook-Token is required.').to_json(), status=400, mimetype='application/json')
+        return Response(StatusResponse(status='Failed', reason='X-Access-Token is required.').to_json(), status=400, mimetype='application/json')
     req = request.args
     try:
         req = EmailPredictionRequest.from_dict(req)
@@ -143,7 +143,7 @@ def get_mailboxes():
 @app.route('/get_emails', methods=['GET'])
 def get_emails():
     if g.access_token is None:
-        return Response(StatusResponse(status='Failed', reason="X-Outlook-Token is required.").to_json(), status=400, mimetype='application/json')
+        return Response(StatusResponse(status='Failed', reason="X-Access-Token is required.").to_json(), status=400, mimetype='application/json')
     req = dict(request.args)
     if 'items_per_page' not in req:
         req['items_per_page'] = req.pop('count', 10)
@@ -160,7 +160,7 @@ def upload_email():
     if not success:
         return Response(StatusResponse(status='Failed', reason=message).to_json(), status=500, mimetype='application/json')
     if g.access_token is None:
-        return Response(StatusResponse(status='Failed', reason="X-Outlook-Token is required.").to_json(), status=400, mimetype='application/json')
+        return Response(StatusResponse(status='Failed', reason="X-Access-Token is required.").to_json(), status=400, mimetype='application/json')
     req = request.json
     try:
         req = UploadEmailRequest.from_dict(req)
@@ -174,7 +174,7 @@ def upload_email():
 @app.route('/download_email', methods=['GET'])
 def download_email():
     if g.access_token is None:
-        return Response(StatusResponse(status='Failed', reason="X-Outlook-Token is required.").to_json(), status=400, mimetype='application/json')
+        return Response(StatusResponse(status='Failed', reason="X-Access-Token is required.").to_json(), status=400, mimetype='application/json')
     req = request.args
     try:
         req = DownloadEmailRequest.from_dict(req)
@@ -188,7 +188,7 @@ def download_email():
 @app.route('/mark_email_saved', methods=['POST'])
 def mark_email_saved():
     if g.access_token is None:
-        return Response(StatusResponse(status='Failed', reason="X-Outlook-Token is required.").to_json(), status=400, mimetype='application/json')
+        return Response(StatusResponse(status='Failed', reason="X-Access-Token is required.").to_json(), status=400, mimetype='application/json')
     req = request.json
     try:
         req = MarkSavedRequest.from_dict(req)
@@ -199,7 +199,7 @@ def mark_email_saved():
 @app.route('/untag_email', methods=['POST'])
 def untag_email():
     if g.access_token is None:
-        return Response(StatusResponse(status='Failed', reason="X-Outlook-Token is required.").to_json(), status=400, mimetype='application/json')
+        return Response(StatusResponse(status='Failed', reason="X-Access-Token is required.").to_json(), status=400, mimetype='application/json')
     req = request.json
     try:
         req = UntagRequest.from_dict(req)
@@ -325,7 +325,7 @@ def my_records_download():
         return Response(StatusResponse(status='Failed', reason="Request is not formatted correctly.").to_json(), status=400, mimetype='application/json')
     if user_info.lan_id != req.lan_id:
         return Response(StatusResponse(status='Failed', reason='User ' + user_info.lan_id + ' is not authorized to download records for ' + req.lan_id + '.').to_json(), status=401, mimetype='application/json')
-    return download_documentum_record(c, user_info.lan_id, req.object_ids, req.documentum_env)
+    return download_documentum_record(c, user_info, req.object_ids, req.documentum_env)
 
 @app.route('/get_sites', methods=['GET'])
 def get_sites():
