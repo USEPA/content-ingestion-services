@@ -6,7 +6,7 @@ numpy==1.19.4
 torch==1.7.1
 flask-swagger-ui==3.36.0
 dataclasses-json==0.5.2
-PyYAML==5.3.1
+PyYAML==5.4
 cryptography==3.3.1
 PyJWT==2.0.1
 Werkzeug==1.0.1
