@@ -1,7 +1,6 @@
 from flask import request, Response, send_file, g
 from flask import current_app as app
 from .cis_requests import *
-from werkzeug.utils import secure_filename
 from .data_classes import * 
 from io import BytesIO
 from .models import User, Favorite, AppSettings, db
@@ -45,6 +44,10 @@ def after_request_func(response):
         log_data['message'] = str(response.get_data(as_text=True))
     app.logger.info('Request complete -- ' + json.dumps(log_data))
     return response
+
+@app.errorhandler(500)
+def internal_service_error(_):
+    return Response(StatusResponse(status='Internal Error', reason="Internal error. Request ID: " + g.request_id).to_json(), status=500, mimetype='application/json')
 
 @app.route('/file_metadata_prediction', methods=['POST'])
 def file_metadata_prediction():
