@@ -62,6 +62,18 @@ paths:
           description: "Recommendations were successfully given."
           schema:
             $ref: "#/definitions/MetadataPrediction"
+        400:
+          description: "Invalid request - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        401:
+          description: "Unauthorized - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        500:
+          description: "Server side error - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
   /text_metadata_prediction:
     post:
       tags:
@@ -84,6 +96,18 @@ paths:
           description: "Recommendations were successfully given."
           schema:
             $ref: "#/definitions/MetadataPrediction"
+        400:
+          description: "Invalid request - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        401:
+          description: "Unauthorized - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        500:
+          description: "Server side error - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
   /email_metadata_prediction:
     get:
       tags:
@@ -116,6 +140,18 @@ paths:
           description: "Recommendations were successfully given."
           schema:
             $ref: "#/definitions/MetadataPrediction"
+        400:
+          description: "Invalid request - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        401:
+          description: "Unauthorized - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        500:
+          description: "Server side error - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
   /get_user_info:
     get:
       tags:
@@ -132,6 +168,18 @@ paths:
           description: "User information retrieved."
           schema:
             $ref: "#/definitions/UserInfo"
+        400:
+          description: "Invalid request - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        401:
+          description: "Unauthorized - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        500:
+          description: "Server side error - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
   /upload_file:
     post:
       tags:
@@ -162,6 +210,18 @@ paths:
           description: "File was successfully uploaded."
           schema:
             $ref: "#/definitions/StatusResponse"
+        400:
+          description: "Invalid request - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        401:
+          description: "Unauthorized - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        500:
+          description: "Server side error - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
   /get_mailboxes:
     get:
       tags:
@@ -180,6 +240,18 @@ paths:
           description: "Mailboxes successfully listed."
           schema:
             $ref: "#/definitions/GetMailboxesResponse"
+        400:
+          description: "Invalid request - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        401:
+          description: "Unauthorized - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        500:
+          description: "Server side error - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
   /get_emails:
     get:
       tags:
@@ -211,31 +283,19 @@ paths:
           description: "Emails successfully retrieved."
           schema:
             $ref: "#/definitions/GetEmailResponse"
-  /describe_email:
-    get:
-      tags:
-      - "email"
-      summary: "Get the details for a specific email."
-      consumes:
-        - application/json
-      parameters:
-        - in: query
-          name: "email_id"
-          type: string
-        - in: header
-          name: "Authorization"
-          type: string
-          format: "jwt"
-          required: true
-        - in: header
-          name: "X-Access-Token"
-          type: string
-          required: true
-      responses:
-        200:
-          description: "Email information provided."
+        400:
+          description: "Invalid request - description in response."
           schema:
-            $ref: "#/definitions/DescribeEmailResponse"
+            $ref: "#/definitions/StatusResponse"
+        401:
+          description: "Unauthorized - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        500:
+          description: "Server side error - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+  
   /upload_email:
     post:
       tags:
@@ -260,6 +320,18 @@ paths:
       responses:
         200:
           description: "Email successfully uploaded."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        400:
+          description: "Invalid request - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        401:
+          description: "Unauthorized - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        500:
+          description: "Server side error - description in response."
           schema:
             $ref: "#/definitions/StatusResponse"
   /download_email:
@@ -290,6 +362,18 @@ paths:
           description: "EML file downloaded."
           schema:
             type: "file"
+        400:
+          description: "Invalid request - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        401:
+          description: "Unauthorized - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        500:
+          description: "Server side error - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
   /mark_email_saved:
     post:
       tags:
@@ -314,6 +398,18 @@ paths:
       responses:
         200:
           description: "Email marked as saved."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        400:
+          description: "Invalid request - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        401:
+          description: "Unauthorized - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        500:
+          description: "Server side error - description in response."
           schema:
             $ref: "#/definitions/StatusResponse"
   /untag_email:
@@ -342,6 +438,18 @@ paths:
           description: "Record tag for email has been removed."
           schema:
             $ref: "#/definitions/StatusResponse"
+        400:
+          description: "Invalid request - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        401:
+          description: "Unauthorized - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        500:
+          description: "Server side error - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
   /get_favorites:
     get:
       tags:
@@ -360,6 +468,18 @@ paths:
           description: "Favorites were added."
           schema:
             $ref: "#/definitions/GetFavoritesResponse"
+        400:
+          description: "Invalid request - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        401:
+          description: "Unauthorized - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        500:
+          description: "Server side error - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
   /add_favorites:
     post:
       tags:
@@ -383,8 +503,16 @@ paths:
           description: "Favorites were added."
           schema:
             $ref: "#/definitions/StatusResponse"
+        400:
+          description: "Invalid request - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        401:
+          description: "Unauthorized - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
         500:
-          description: "Server side failure with explanation."
+          description: "Server side error - description in response."
           schema:
             $ref: "#/definitions/StatusResponse"
   /remove_favorites:
@@ -410,8 +538,16 @@ paths:
           description: "Favorites were removed."
           schema:
             $ref: "#/definitions/StatusResponse"
+        400:
+          description: "Invalid request - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        401:
+          description: "Unauthorized - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
         500:
-          description: "Server side failure with explanation."
+          description: "Server side error - description in response."
           schema:
             $ref: "#/definitions/StatusResponse"
   /update_preferred_system:
@@ -437,8 +573,16 @@ paths:
           description: "Preferred system was updated."
           schema:
             $ref: "#/definitions/StatusResponse"
+        400:
+          description: "Invalid request - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        401:
+          description: "Unauthorized - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
         500:
-          description: "Server side failure with explanation."
+          description: "Server side error - description in response."
           schema:
             $ref: "#/definitions/StatusResponse"
   /update_default_edit_mode:
@@ -464,8 +608,16 @@ paths:
           description: "Default edit mode was updated."
           schema:
             $ref: "#/definitions/StatusResponse"
+        400:
+          description: "Invalid request - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        401:
+          description: "Unauthorized - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
         500:
-          description: "Server side failure with explanation."
+          description: "Server side error - description in response."
           schema:
             $ref: "#/definitions/StatusResponse"
   /get_record_schedules:
@@ -484,6 +636,18 @@ paths:
       responses:
         200:
           description: "Record schedule information retrieved."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        400:
+          description: "Invalid request - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        401:
+          description: "Unauthorized - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        500:
+          description: "Server side error - description in response."
           schema:
             $ref: "#/definitions/StatusResponse"
   /my_records:
@@ -525,6 +689,18 @@ paths:
           description: "Record information retrieved."
           schema:
             $ref: "#/definitions/DocumentumRecordList"
+        400:
+          description: "Invalid request - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        401:
+          description: "Unauthorized - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        500:
+          description: "Server side error - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
   /my_records_download:
     get:
       tags:
@@ -558,6 +734,18 @@ paths:
           description: "Records zip file downloaded."
           schema:
             type: "file"
+        400:
+          description: "Invalid request - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        401:
+          description: "Unauthorized - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        500:
+          description: "Server side error - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
   /get_sites:
     get:
       tags:
@@ -578,6 +766,18 @@ paths:
           description: "Site information retrieved."
           schema:
             $ref: "#/definitions/GetSitesResponse"
+        400:
+          description: "Invalid request - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        401:
+          description: "Unauthorized - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        500:
+          description: "Server side error - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
   /get_special_processing:
     get:
       tags:
@@ -598,6 +798,18 @@ paths:
           description: "Special processing information retrieved."
           schema:
             $ref: "#/definitions/GetSpecialProcessingResponse"
+        400:
+          description: "Invalid request - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        401:
+          description: "Unauthorized - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        500:
+          description: "Server side error - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
   /get_sharepoint_records:
     get:
       tags:
@@ -634,6 +846,18 @@ paths:
           description: "Sharepoint records were successfully returned."
           schema:
             $ref: "#/definitions/SharepointListResponse"
+        400:
+          description: "Invalid request - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        401:
+          description: "Unauthorized - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        500:
+          description: "Server side error - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
   /sharepoint_metadata_prediction:
     get:
       tags:
@@ -668,6 +892,18 @@ paths:
           description: "Sharepoint metadata predictions were successfully returned."
           schema:
             $ref: "#/definitions/MetadataPrediction"
+        400:
+          description: "Invalid request - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        401:
+          description: "Unauthorized - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        500:
+          description: "Server side error - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
   /upload_sharepoint_record:
     post:
       tags:
@@ -695,6 +931,18 @@ paths:
           schema:
             $ref: "#/definitions/StatusResponse"
           description: "Record successfully uploaded."
+        400:
+          description: "Invalid request - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        401:
+          description: "Unauthorized - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        500:
+          description: "Server side error - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
   /upload_sharepoint_batch:
     post:
       tags:
@@ -722,6 +970,18 @@ paths:
           schema:
             $ref: "#/definitions/StatusResponse"
           description: "Record successfully uploaded."
+        400:
+          description: "Invalid request - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        401:
+          description: "Unauthorized - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        500:
+          description: "Server side error - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
   /get_help_item:
     get:
       tags:
@@ -745,9 +1005,17 @@ paths:
           schema:
             $ref: "#/definitions/HelpItemResponse"
         400:
-          description: "Help id not found."
+          description: "Invalid request - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        401:
+          description: "Unauthorized - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
         500:
-          description: "Help content request failed."
+          description: "Server side error - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
   /get_all_help_items:
     get:
       tags:
@@ -766,6 +1034,18 @@ paths:
           description: "Help items successfully returned."
           schema:
             $ref: "#/definitions/AllHelpItemsResponse"
+        400:
+          description: "Invalid request - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        401:
+          description: "Unauthorized - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        500:
+          description: "Server side error - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
   /save_sems_email:
     post:
       tags:
@@ -789,6 +1069,18 @@ paths:
           schema:
             $ref: "#/definitions/StatusResponse"
           description: "Record successfully uploaded."
+        400:
+          description: "Invalid request - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        401:
+          description: "Unauthorized - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        500:
+          description: "Server side error - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
   /log_activity:
     post:
       tags:
@@ -812,6 +1104,18 @@ paths:
           schema:
             $ref: "#/definitions/StatusResponse"
           description: "User activity was recorded."
+        400:
+          description: "Invalid request - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        401:
+          description: "Unauthorized - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        500:
+          description: "Server side error - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
 
 definitions:
   Recommendation:
@@ -959,27 +1263,6 @@ definitions:
               type: string
             mailbox_source:
               type: string
-  DescribeEmailResponse:
-    type: object
-    properties:
-      email_id: 
-        type: string
-      _from:
-        type: string
-      to:
-        type: string
-      subject:
-        type: string
-      sent:
-        type: string
-      received:
-        type: string
-      body:
-        type: string
-      attachments:
-        type: array
-        items:
-          type: string  
   UploadEmailRequest:
     type: object
     properties:

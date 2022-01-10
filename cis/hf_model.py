@@ -44,7 +44,6 @@ class HuggingFaceModel():
                 title = ''
                 extension = ''
             enhanced_text = f'{group_name}, {title}, {doc_type}, {extension}, {enhanced_text}'
-            print(enhanced_text)
         # Tokenize text
         # thread lock tokenization https://github.com/huggingface/tokenizers/issues/537
         with self.lock:

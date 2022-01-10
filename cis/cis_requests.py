@@ -2,7 +2,6 @@ import requests
 from requests.auth import HTTPBasicAuth
 from .data_classes import *
 import json 
-import email
 from flask import Response, current_app as app, send_file
 import urllib 
 import io
@@ -37,7 +36,7 @@ def tika(file, config, extraction_type='text'):
         }
       r = requests.put(server, data=file, headers=headers)
       if r.status_code != 200:
-          return False, None, Response('Tika failed with status ' + str(r.status_code), 500, mimetype='text/plain')
+          return False, None, Response(StatusResponse(status='Failed', reason='Tika failed with status ' + str(r.status_code)).to_json(), 500, mimetype='application/json')
       else:
           return True, r.text, None
   else:
@@ -53,14 +52,6 @@ def get_eml_file(email_id, file_name, access_token, config):
     app.logger.error('Get EML file request ended with status ' + str(r.status_code) + '. Response: ' + r.text)
     return None
 
-def extract_attachments(eml_message):
-  attachments = []
-  for part in eml_message.walk():
-    disposition = part.get_content_disposition()
-    if disposition == 'attachment':
-        attachments.append(part.get_filename())
-  return attachments
-
 def get_email_html(email_id, access_token, config):
   body = {"emailid": email_id,
        "filename": 'email'}
@@ -73,35 +64,9 @@ def get_email_html(email_id, access_token, config):
   )
   if p.status_code != 200:
     app.logger.info("Email HTML request failed with status " + str(p.status_code) + ". " + p.text)
-    return False, None, Response("Unable to retrieve email HTML.", status=400, mimetype='text/plain')
+    return False, None, Response(StatusResponse(status='Failed', reason="Unable to retrieve email HTML.").to_json(), status=500, mimetype='application/json')
   return True, p.text, None
   
-
-def describe_email(req: DescribeEmailRequest, access_token, config):
-  eml_file = get_eml_file(req.email_id, "default_file_name", access_token, config)
-  if eml_file is None:
-    return Response("Could not retrieve eml file.", status=400, mimetype='text/plain')
-  try:
-    success, body, response = get_email_html(req.email_id, access_token, config)
-    if not success:
-      return response
-    e = email.message_from_bytes(eml_file)
-    attachments = extract_attachments(e)
-    eml_response = DescribeEmailResponse(
-    email_id=req.email_id, 
-    _from = e['From'],
-    to = e['To'],
-    cc = e['CC'],
-    subject = e['Subject'],
-    date = e['Date'],
-    body = body,
-    attachments = attachments
-  )
-  except:
-    return Response("Error extracting data from eml file.", status=400, mimetype='text/plain')
-  return Response(eml_response.to_json(), status=200, mimetype='application/json')
-  
-
 def list_email_metadata(req: GetEmailRequest, user_email, access_token, config):
   # First get regular total
   headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}
@@ -116,7 +81,7 @@ def list_email_metadata(req: GetEmailRequest, user_email, access_token, config):
   )
   if p.status_code != 200:
     app.logger.info("Regular getrecords count request failed for mailbox " + req.mailbox + " with status " + str(p.status_code) + ". " + p.text)
-    return Response("Unable to retrieve records.", status=400, mimetype='text/plain')
+    return Response(StatusResponse(status='Failed', reason="Unable to retrieve records.").to_json(), status=500, mimetype='application/json')
   resp = p.json()
   regular_count = 0
   for count in resp["total_count"]:
@@ -161,7 +126,7 @@ def list_email_metadata(req: GetEmailRequest, user_email, access_token, config):
     )
     if p.status_code != 200:
       app.logger.info("Regular getrecords request failed for mailbox " + req.mailbox + " with status " + str(p.status_code) + ". " + p.text)
-      return Response("Unable to retrieve records.", status=400, mimetype='text/plain')
+      return Response(StatusResponse(status='Failed', reason="Unable to retrieve records.").to_json(), status=500, mimetype='application/json')
     resp = p.json() 
     emails = [ EmailMetadata(
       unid=x['unid'], 
@@ -191,7 +156,7 @@ def list_email_metadata(req: GetEmailRequest, user_email, access_token, config):
       )
       if p.status_code != 200:
         app.logger.info("getrecords request failed with status " + str(p.status_code) + ". " + p.text)
-        return Response("Unable to retrieve records.", status=400, mimetype='text/plain')
+        return Response(StatusResponse(status='Failed', reason="Unable to retrieve records.").to_json(), status=500, mimetype='application/json')
       resp = p.json()
       emails = [ EmailMetadata(
         unid=x['unid'], 
@@ -217,7 +182,7 @@ def list_email_metadata(req: GetEmailRequest, user_email, access_token, config):
     )
     if p.status_code != 200:
       app.logger.info("getrecords request failed with status " + str(p.status_code) + ". " + p.text)
-      return Response("Unable to retrieve records.", status=400, mimetype='text/plain')
+      return Response(StatusResponse(status='Failed', reason="Unable to retrieve records.").to_json(), status=500, mimetype='application/json')
     resp = p.json()
     regular_emails = [ EmailMetadata(
       unid=x['unid'], 
@@ -248,7 +213,7 @@ def list_email_metadata(req: GetEmailRequest, user_email, access_token, config):
       )
       if p.status_code != 200:
         app.logger.info("getrecords request failed with status " + str(p.status_code) + ". " + p.text)
-        return Response("Unable to retrieve records.", status=400, mimetype='text/plain')
+        return Response(StatusResponse(status='Failed', reason="Unable to retrieve records.").to_json(), status=500, mimetype='application/json')
       resp = p.json()
       archive_emails = [ EmailMetadata(
         unid=x['unid'], 
@@ -284,7 +249,7 @@ def mark_saved(req: MarkSavedRequest, access_token, config):
     timeout=30
   )
   if p.status_code != 204:
-    return Response("Unable to mark as saved.", status=400, mimetype='text/plain')
+    return Response(StatusResponse(status='Failed', reason="Unable to mark as saved.").to_json(), status=500, mimetype='application/json')
   else:
     return Response(StatusResponse(status="OK", reason="Email with id " + req.email_id + " was marked saved.").to_json(), status=200, mimetype="application/json")
 
@@ -298,7 +263,7 @@ def untag(req: UntagRequest, access_token, config):
     timeout=30
   )
   if p.status_code != 204:
-    return Response("Unable to remove Record category.", status=400, mimetype='text/plain')
+    return Response(StatusResponse(status='Failed', reason="Unable to remove Record category.").to_json(), status=500, mimetype='application/json')
   else:
     return Response(StatusResponse(status="OK", reason="Email with id " + req.email_id + " is no longer categorized as a record.").to_json(), status=200, mimetype="application/json")
 
@@ -369,7 +334,7 @@ def get_erma_content(config, lan_id, items_per_page, page_number, query, env):
                   "from erma_content s " + where_clause + " order by s.r_creation_date desc;" )
   r = dql_request(config, doc_info_sql, items_per_page, page_number, env)
   if r.status_code != 200:
-      return False, None, Response('Documentum doc info request returned status ' + str(r.status_code) + ' and error ' + str(r.text), status=500, mimetype='text/plain')
+      return False, None, Response(StatusResponse(status='Failed', reason='Documentum doc info request returned status ' + str(r.status_code) + ' and error ' + str(r.text)).to_json(), status=500, mimetype='application/json')
   if 'entries' not in r.json():
       return True, [], None
   doc_info = []
@@ -428,7 +393,7 @@ def get_erma_noncontent(config, lan_id, items_per_page, page_number, query, env)
   doc_id_sql = "select erma_doc_id, creation_date from (select s.ERMA_DOC_ID as erma_doc_id, MAX(s.R_CREATION_DATE) as creation_date from erma_doc s " + where_clause + " group by erma_doc_id) ORDER BY creation_date DESC;"
   r = dql_request(config, doc_id_sql, items_per_page, page_number, env)
   if r.status_code != 200:
-      return False, None, Response('Documentum doc ID request returned status ' + str(r.status_code) + ' and error ' + str(r.text), status=500, mimetype='text/plain')
+      return False, None, Response(StatusResponse(status='Failed', reason='Documentum doc ID request returned status ' + str(r.status_code) + ' and error ' + str(r.text)).to_json(), status=500, mimetype='application/json')
   doc_id_resp = r.json()
   if 'entries' not in doc_id_resp:
       return True, [], None
@@ -437,7 +402,7 @@ def get_erma_noncontent(config, lan_id, items_per_page, page_number, query, env)
   doc_info_sql = "select s.erma_doc_sensitivity as sensitivity, s.r_creation_date as upload_date, s.R_OBJECT_TYPE as r_object_type, s.ERMA_DOC_DATE as erma_doc_date, s.ERMA_DOC_CUSTODIAN as erma_doc_custodian, s.ERMA_DOC_ID as erma_doc_id, s.R_FULL_CONTENT_SIZE as r_full_content_size, s.R_OBJECT_ID as r_object_id, s.ERMA_DOC_TITLE as erma_doc_title from ECMSRMR65.ERMA_DOC_SV s where " + doc_where_clause + " order by s.r_creation_date desc;"
   r = dql_request(config, doc_info_sql, items_per_page, page_number, env)
   if r.status_code != 200:
-      return False, None, Response('Documentum doc info request returned status ' + str(r.status_code) + ' and error ' + str(r.text), status=500, mimetype='text/plain')
+      return False, None, Response(StatusResponse(status='Failed', reason='Documentum doc info request returned status ' + str(r.status_code) + ' and error ' + str(r.text)).to_json(), status=500, mimetype='application/json')
   doc_info = {}
   for doc in r.json()['entries']:
       properties = doc['content']['properties']
@@ -477,12 +442,12 @@ def get_documentum_records(config, lan_id, items_per_page, page_number, query, e
   # First get count of erma_content records
   content_count = get_erma_content_count(config, lan_id, query, env)
   if content_count.status_code != 200:
-      return Response('Documentum content count request returned status ' + str(content_count.status_code) + ' and error ' + str(content_count.text), status=500, mimetype='text/plain')
+    return Response(StatusResponse(status='Failed', reason='Documentum content count request returned status ' + str(content_count.status_code) + ' and error ' + str(content_count.text)).to_json(), status=500, mimetype='application/json')
   content_count = int(content_count.json()['entries'][0]['content']['properties']['total'])
   # Count of records which are not erma_content (erma_doc or erma_mail)
   noncontent_count = get_erma_noncontent_count(config, lan_id, query, env)
   if noncontent_count.status_code != 200:
-      return Response('Documentum noncontent count request returned status ' + str(noncontent_count.status_code) + ' and error ' + str(noncontent_count.text), status=500, mimetype='text/plain')
+    return Response(StatusResponse(status='Failed', reason='Documentum noncontent count request returned status ' + str(noncontent_count.status_code) + ' and error ' + str(noncontent_count.text)).to_json(), status=500, mimetype='application/json')
   noncontent_count = int(noncontent_count.json()['entries'][0]['content']['properties']['total'])
 
   # Determine if only need erma_content, only need erma_doc, or both
@@ -539,7 +504,7 @@ def download_documentum_record(config, user_info, object_ids, env):
   for object_id in object_ids:
     valid = object_id_is_valid(config, object_id)
     if not valid:
-      return Response('Object ID invalid: ' + object_id, status=400, mimetype='text/plain')
+      return Response(StatusResponse(status='Failed', reason='Object ID invalid: ' + object_id).to_json(), status=400, mimetype='application/json')
   doc_where_clause = ' OR '.join(["s.r_object_id = '" + str(x) + "'" for x in object_ids])
   doc_info_sql = "select s.ERMA_CUSTODIAN as erma_doc_custodian, r_object_id, r_object_type from erma_content s where " + doc_where_clause + ";"
   # This gives some buffer, even though there should be exactly len(object_ids) items to recover
@@ -547,7 +512,7 @@ def download_documentum_record(config, user_info, object_ids, env):
   entries = r.json()['entries']
   if r.status_code != 200:
     app.logger.error(r.text)
-    return Response('Documentum content info request returned status ' + str(r.status_code), status=500, mimetype='text/plain')
+    return Response(StatusResponse(status='Failed', reason='Documentum content info request returned status ' + str(r.status_code)).to_json(), status=500, mimetype='application/json')
   remaining_ids = set(object_ids) - set([doc['content']['properties']['r_object_id'] for doc in r.json()['entries']])
   if len(remaining_ids) > 0:
     remaining_where_clause = ' OR '.join(["s.r_object_id = '" + str(x) + "'" for x in remaining_ids])
@@ -555,16 +520,16 @@ def download_documentum_record(config, user_info, object_ids, env):
     remaining_r = dql_request(config, doc_info_sql, 2*len(object_ids), 1, env)
     if remaining_r.status_code != 200:
       app.logger.error(remaining_r.text)
-      return Response('Documentum doc info request returned status ' + str(r.status_code), status=500, mimetype='text/plain')
+      return Response(StatusResponse(status='Failed', reason='Documentum doc info request returned status ' + str(r.status_code)).to_json(), status=500, mimetype='application/json')
     for x in remaining_r.json()['entries']:
       entries.append(x)
   missing_ids = set(object_ids) - set([doc['content']['properties']['r_object_id'] for doc in entries])
   if len(missing_ids) != 0:
-    return Response('The following object_ids could not be found: ' + ', '.join(list(missing_ids)), status=400, mimetype='text/plain')
+    return Response(StatusResponse(status='Failed', reason='The following object_ids could not be found: ' + ', '.join(list(missing_ids))).to_json(), status=400, mimetype='application/json')
   # TODO: Reenable custodian validation
   for doc in entries:
     if doc['content']['properties'].get('erma_doc_custodian', '') != lan_id:
-      return Response('User ' + lan_id + ' is not the custodian of all files requested.', status=401, mimetype='text/plain')
+      return Response(StatusResponse(status='Failed', reason='User ' + lan_id + ' is not the custodian of all files requested.').to_json(), status=401, mimetype='application/json')
   
   hrefs = ['https://' + ecms_host + '/dctm-rest/repositories/ecmsrmr65/objects/' + obj for obj in object_ids]
   data = {'hrefs': list(set(hrefs))}
@@ -576,7 +541,7 @@ def download_documentum_record(config, user_info, object_ids, env):
   archive_req = requests.post(archive_url, headers=post_headers, json=data, auth=(ecms_user,ecms_password), timeout=30)
   if archive_req.status_code != 200:
     app.logger.error(r.text)
-    return Response('Documentum archive request returned status ' + str(archive_req.status_code), status=500, mimetype='text/plain')
+    return Response(StatusResponse(status='Failed', reason='Documentum archive request returned status ' + str(archive_req.status_code)), status=500, mimetype='application/json')
   b = io.BytesIO(archive_req.content)
   safe_user_activity_request(user_info.employee_number, user_info.lan_id, user_info.parent_org_code, '7', config)
   return send_file(b, mimetype='application/zip', as_attachment=True, attachment_filename='ecms_download.zip')
@@ -661,7 +626,7 @@ def get_sems_special_processing(config, region):
     response_object = GetSpecialProcessingResponse([SemsSpecialProcessing(**obj) for obj in special_processing.json()])
     return Response(response_object.to_json(), status=200, mimetype='application/json')
   else:
-    return Response(special_processing.text, status=special_processing.status_code, mimetype='text/plain')
+    return Response(StatusResponse(status='Failed', reason=special_processing.text).to_json(), status=500, mimetype='application/json')
 
 def upload_documentum_record(content, documentum_metadata, config, env):
   if env == 'prod':
@@ -681,7 +646,7 @@ def upload_documentum_record(content, documentum_metadata, config, env):
   if r.status_code == 201 and 'r_object_id' in r.json()['properties']:
     return True, r.json()['properties']['r_object_id'], None
   else:
-    return False, None, Response(r.text, r.status_code, mimetype='text/plain')
+    return False, None, Response(StatusResponse(status='Failed', reason="Upload request failed - " + r.text + ' ' + str(r.status_code)).to_json(), 500, mimetype='application/json')
 
 # Converts ECMS metadata to metadata compatible with Documentum
 def convert_metadata(ecms_metadata, unid=None):
@@ -721,7 +686,7 @@ def upload_documentum_email(upload_email_request, access_token, user_info, confi
   ecms_metadata = upload_email_request.metadata
   content = get_eml_file(upload_email_request.email_id, ecms_metadata.title, access_token, config)
   if content is None:
-    return Response('Unable to retrieve email.', status=400, mimetype='text/plain')
+    return Response(StatusResponse(status='Failed', reason='Unable to retrieve email.').to_json(), status=500, mimetype='application/json')
   documentum_metadata = convert_metadata(ecms_metadata, upload_email_request.email_unid)
   success, r_object_id, resp = upload_documentum_record(content, documentum_metadata, config, upload_email_request.documentum_env)
   if not success:
@@ -761,7 +726,7 @@ def check_or_create_records_folder(access_token):
   headers = {'Authorization': 'Bearer ' + access_token, 'Content-Type':'application/json'}
   r = requests.get("https://graph.microsoft.com/v1.0/me/drive/root/children/?$filter=name eq 'EPA Records'", headers=headers, timeout=10)
   if r.status_code != 200:
-    return False, Response('Records folder request failed. ' + r.text, status=500, mimetype='text/plain')
+    return False, Response(StatusResponse(status='Failed', reason='Records folder request failed. ' + r.text).to_json(), status=500, mimetype='application/json')
   values = r.json().get('value', [])
   if len(values) == 0:
     # If folder is not present, create it
@@ -779,11 +744,11 @@ def check_or_create_records_folder(access_token):
       else:
         app.logger.error('Failed to create EPA Records folder with status ' + str(r.status_code))
         app.logger.error(r.text)
-        return False, Response('Failed to create EPA Records folder.', status=500, mimetype='text/plain')
+        return False, Response(StatusResponse(status='Failed', reason='Failed to create EPA Records folder.').to_json(), status=500, mimetype='application/json')
     else:
       app.logger.error('Failed to create EPA Records folder with status ' + str(r.status_code))
       app.logger.error(r.text)
-      return False, Response('Failed to create EPA Records folder.', status=500, mimetype='text/plain')
+      return False, Response(StatusResponse(status='Failed', reason='Failed to create EPA Records folder.').to_json(), status=500, mimetype='application/json')
   else:
     return True, None
 
@@ -795,15 +760,15 @@ def list_sharepoint_records(req: GetSharepointRecordsRequest, access_token):
   page_number = int(req.page_number)
   items_per_page = int(req.items_per_page)
   if page_number <= 0:
-    return Response('Invalid page number. ', status=400, mimetype='text/plain')
+    return Response(StatusResponse(status='Failed', reason='Invalid page number.').to_json(), status=400, mimetype='application/json')
   if items_per_page <= 0:
-    return Response('Items per page must be > 0.', status=400, mimetype='text/plain')
+    return Response(StatusResponse(status='Failed', reason='Items per page must be > 0.').to_json(), status=400, mimetype='application/json')
   all_records = []
   # Get shared records
   headers = {'Authorization': 'Bearer ' + access_token}
   shared = requests.get("https://graph.microsoft.com/v1.0/me/drive/root:/EPA Records:/children/?$expand=listItem", headers=headers, timeout=10)
   if shared.status_code != 200:
-    return Response('Failed to retrieve shared OneDrive items.', status=500, mimetype='text/plain')
+    return Response(StatusResponse(status='Failed', reason='Failed to retrieve shared OneDrive items.').to_json(), status=500, mimetype='application/json')
   shared_items = shared.json()['value']
   for doc in shared_items:
     all_records.append(simplify_sharepoint_record(doc, 'Shared'))
@@ -851,7 +816,7 @@ def upload_sharepoint_record(req: SharepointUploadRequest, access_token, user_in
   content_req = requests.get(download_url, timeout=30)
   if content_req.status_code != 200:
     app.logger.error('Content request failed: ' + r.text)
-    return Response('Content request failed with status ' + str(content_req.status_code), status=500, mimetype='text/plain')
+    return Response(StatusResponse(status='Failed', reason='Content request failed with status ' + str(content_req.status_code)).to_json(), status=500, mimetype='application/json')
   content = content_req.content
   documentum_metadata = convert_metadata(req.metadata, req.drive_item_id)
   success, r_object_id, resp = upload_documentum_record(content, documentum_metadata, c, req.documentum_env)
@@ -1004,7 +969,7 @@ def add_submission_analytics(data: SubmissionAnalyticsMetadata, selected_schedul
     db.session.commit()
     return True, None
   except:
-    return False, Response("Error committing submission analytics.", status=500, mimetype="text/plain")
+    return False, Response(StatusResponse(status='Failed', reason="Error committing submission analytics.").to_json(), status=500, mimetype="application/json")
 
 
 def update_sharepoint_record_status(site_id, list_id, item_id, status, access_token):
@@ -1014,7 +979,7 @@ def update_sharepoint_record_status(site_id, list_id, item_id, status, access_to
   update_req = requests.patch(url, json=data, headers=headers, timeout=30)
   if update_req.status_code != 200:
     app.logger.error('Unable to update item with item_id = ' + item_id + ': ' + update_req.text)
-    return False, Response('Unable to update item with item_id = ' + item_id, status=500, mimetype='text/plain')
+    return False, Response(StatusResponse(status='Failed', reason='Unable to update item with item_id = ' + item_id).to_json(), status=500, mimetype='application/json')
   else:
     return True, None
 
@@ -1023,7 +988,7 @@ def get_help_item(req: GetHelpItemRequest):
   for item in items:
     if item.name == req.name:
       return Response(item.to_json(), status=200, mimetype='application/json')
-  return Response('Item not found.', status=400, mimetype='text/plain')
+  return Response(StatusResponse(status='Failed', reason='Item not found.').to_json(), status=400, mimetype='application/json')
 
 def get_all_help_items():
   items = AllHelpItemsResponse(help_items=help_item_cache.get_help_items())
@@ -1033,7 +998,7 @@ def submit_sems_email(req: SEMSEmailUploadRequest, config):
   data = req.to_json()
   r = requests.post('http://' + config.sems_host + '/sems-ws/outlook/saveMails', data=data, timeout=10)
   if r.status_code != 200:
-    return Response('Failed to send email to SEMS.', status=500, mimetype='text/plain')
+    return Response(StatusResponse(status='Failed', reason='Failed to send email to SEMS.').to_json(), status=500, mimetype='application/json')
   return Response(r.json(), status=200, mimetype='application/json')
 
 def log_upload_activity(user_info, user_activity, metadata, config):
@@ -1064,6 +1029,6 @@ def user_activity_request(req: LogActivityRequest, config):
 def log_user_activity(req: LogActivityRequest, config):
   success, error_status = user_activity_request(req, config)
   if not success:
-    return Response('Failed to log activity with status ' + str(error_status), status=400, mimetype='text/plain')
+    return Response(StatusResponse(status='OK', reason='Failed to log activity with status ' + str(error_status)).to_json(), status=400, mimetype='application/json')
   else:
     return Response(StatusResponse(status='OK', reason='Successfully logged user activity.').to_json(), status=200, mimetype='application/json')
