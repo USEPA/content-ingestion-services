@@ -2,7 +2,7 @@ requests==2.25.0
 Flask==1.1.2
 waitress==1.4.4
 transformers==4.0.0
-numpy==1.19.4
+numpy==1.21.0
 torch==1.7.1
 flask-swagger-ui==3.36.0
 dataclasses-json==0.5.2
