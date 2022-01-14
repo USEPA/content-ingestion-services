@@ -184,6 +184,7 @@ class RemoveFavoritesRequest:
 class StatusResponse:
     status: str 
     reason: str
+    request_id: Optional[str] = None
 
 mock_status_response = StatusResponse("OK", "This is a mock.")
 
