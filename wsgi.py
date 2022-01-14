@@ -44,8 +44,6 @@ if __name__ == "__main__":
     parser.add_argument('--wam_password', default=None, 
                     help='Password for WAM service.')
     parser.add_argument('--bucket_name', help='Bucket name for uploads.')
-    parser.add_argument('--no_cache_on_start', action='store_true', 
-                    help='Flag to control whether to populate caches on startup.')
     args = parser.parse_args()
     app = create_app(**vars(args))
     serve(app, host='0.0.0.0', port=8000)

@@ -9,7 +9,6 @@ from .hf_model import HuggingFaceModel
 from .app_config import config_from_file
 import logging
 from .shared_mailbox_manager import SharedMailboxManager
-from .sems_site_cache import SemsSiteCache
 from .help_item_cache import HelpItemCache
 from .secrets_manager import load_all_secrets
 
@@ -18,7 +17,6 @@ logging.basicConfig(level=logging.INFO, format = '[%(asctime)s] %(levelname)s in
 db = SQLAlchemy()
 migrate = Migrate()
 key_cache = PublicKeyCache()
-sems_site_cache = None
 schedule_cache = None
 help_item_cache = None
 c = None
@@ -29,12 +27,12 @@ SWAGGER_PATH = 'swagger.yaml'
 swagger_yml = load(open(SWAGGER_PATH, 'r'), Loader=Loader)
 
 
-def create_app(env, region_name, model_path, label_mapping_path, office_info_mapping_path, config_path, mailbox_data_path, dnul_path, database_uri, documentum_prod_username, documentum_prod_password, wam_username, wam_password, bucket_name, tika_server=None, cis_server=None, ezemail_server=None, upgrade_db=False, documentum_prod_url=None, wam_host=None, no_cache_on_start=True):
+def create_app(env, region_name, model_path, label_mapping_path, office_info_mapping_path, config_path, mailbox_data_path, dnul_path, database_uri, documentum_prod_username, documentum_prod_password, wam_username, wam_password, bucket_name, tika_server=None, cis_server=None, ezemail_server=None, upgrade_db=False, documentum_prod_url=None, wam_host=None):
     """Construct the core application."""
     app = Flask(__name__, instance_relative_config=False)
     app.config.from_object("flask_config.Config")
     
-    global model, c, mailbox_manager, schedule_cache, sems_site_cache, help_item_cache
+    global model, c, mailbox_manager, schedule_cache, help_item_cache
     mailbox_manager = SharedMailboxManager(mailbox_data_path)
     app.logger.info('Mailboxes loaded.')
     c = config_from_file(config_path)
@@ -44,9 +42,6 @@ def create_app(env, region_name, model_path, label_mapping_path, office_info_map
     app.logger.info('Help items loaded.')
     schedule_cache = RecordScheduleCache(c, dnul_path, app.logger)
     app.logger.info('Record schedule cache loaded.')
-    cache_on_start = not no_cache_on_start
-    sems_site_cache = SemsSiteCache(c, app.logger, cache_on_start)
-    app.logger.info('SEMS site cache loaded.')
     if tika_server:
         c.tika_server = tika_server
     if cis_server:

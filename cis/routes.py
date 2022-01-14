@@ -5,7 +5,7 @@ from .data_classes import *
 from io import BytesIO
 from .models import User, Favorite, AppSettings, db
 import uuid
-from . import key_cache, c, model, mailbox_manager, schedule_cache, sems_site_cache
+from . import key_cache, c, model, mailbox_manager, schedule_cache
 import json
 
 @app.before_request
@@ -332,15 +332,15 @@ def my_records_download():
 
 @app.route('/get_sites', methods=['GET'])
 def get_sites():
-    req = request.args
+    req = dict(request.args)
+    if 'region_id' not in req:
+        return Response(StatusResponse(status='Failed', reason="region_id field is required").to_json(), status=400, mimetype='application/json')
+    req['region_id'] = req['region_id'].split(',')
     try:
-        req = GetSitesRequest.from_dict(req)
+        req = SemsSiteRequest.from_dict(req)
     except:
         return Response(StatusResponse(status='Failed', reason="Request is not formatted correctly.").to_json(), status=400, mimetype='application/json')
-    sites = sems_site_cache.get_sites(req.region)
-    if sites is None:
-        return Response(StatusResponse(status='Failed', reason='Unable to retrieve SEMS sites.').to_json(), status=500, mimetype='application/json')
-    return Response(GetSitesResponse(sites).to_json(), status=200, mimetype='application/json')
+    return get_sems_sites(req, c)
 
 @app.route('/get_special_processing', methods=['GET'])
 def get_special_processing():

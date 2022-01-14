@@ -762,9 +762,19 @@ paths:
           format: "jwt"
           required: true
         - in: query
-          name: "region"
-          type: string
+          name: "region_id"
+          type: array
+          items:
+            type: string
           required: true
+        - in: query
+          name: "page_size"
+          type: string
+          required: false
+        - in: query
+          name: "page_start"
+          type: string
+          required: false
       responses:
         200:
           description: "Site information retrieved."

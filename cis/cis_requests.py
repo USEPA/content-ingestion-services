@@ -632,6 +632,14 @@ def get_sems_special_processing(config, region):
   else:
     return Response(StatusResponse(status='Failed', reason=special_processing.text).to_json(), status=500, mimetype='application/json')
 
+def get_sems_sites(req: SemsSiteRequest, config):
+  sites = requests.get('http://' + config.sems_host + '/sems-ws/outlook/getSites', params=req.to_dict(), timeout=120)
+  if sites.status_code == 200:
+    response_object = SemsSiteResponse.from_dict(sites.json())
+    return Response(response_object.to_json(), status=200, mimetype='application/json')
+  else:
+    return Response(StatusResponse(status='Failed', reason=sites.text).to_json(), status=500, mimetype='application/json')
+
 def upload_documentum_record(content, documentum_metadata, config, env):
   if env == 'prod':
     ecms_host = config.documentum_prod_url

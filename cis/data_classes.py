@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from re import S
 from dataclasses_json import dataclass_json
 from typing import Optional
 import datetime
@@ -227,14 +228,28 @@ class EmailMetadata:
 
 @dataclass_json
 @dataclass 
+class SemsProgramType:
+    acronym: str
+    id: str
+
+@dataclass_json
+@dataclass 
+class SemsOperableUnit:
+    name: str
+    id: str
+    sequence: str
+
+@dataclass_json
+@dataclass 
 class SemsSite:
-    _id: str
+    id: str
     region: str
-    epaid: str
-    sitename: str
-    program_id: str
-    operable_units: list[str]
-    ssids: list[str]
+    epaId: str
+    siteName: str
+    operableUnits: list[SemsOperableUnit]
+    ssIds: list[str]
+    programId: str
+    programType: SemsProgramType
 
 @dataclass_json
 @dataclass 
@@ -251,6 +266,26 @@ class SemsSpecialProcessing:
 @dataclass 
 class GetSpecialProcessingResponse:
     special_processing: list[SemsSpecialProcessing]
+
+@dataclass_json
+@dataclass 
+class SemsSiteRequest:
+    region_id: list[str]
+    page_size: Optional[int] = None
+    page_start: Optional[int] = None
+
+@dataclass_json
+@dataclass 
+class SemsPagination:
+    pageSize: Optional[int]
+    pageStart: Optional[int]
+    totalRecords: int
+
+@dataclass_json
+@dataclass 
+class SemsSiteResponse:
+    pagination: SemsPagination
+    sites: list[SemsSite]
 
 @dataclass_json
 @dataclass 
