@@ -287,9 +287,8 @@ def remove_favorites():
 def get_record_schedules():
     try:
         schedules = schedule_cache.get_schedules()
-        return Response(schedules.to_json(), status=200, mimetype='application/json', request_id=g.get('request_id', None))
+        return Response(schedules.to_json(), status=200, mimetype='application/json')
     except:
-        # TODO: Improve error logging
         return Response(StatusResponse(status='Failed', reason="Record schedules unable to be found.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
 
 @app.route('/my_records', methods=['GET'])
