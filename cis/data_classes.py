@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from re import S
 from dataclasses_json import dataclass_json
-from typing import Optional
+from typing import Optional, Dict
 import datetime
 
 @dataclass_json
@@ -15,6 +15,17 @@ mock_schedules = [
     RecordSchedule(**{"function_number": "404", "schedule_number": "1012", "disposition_number": "e"}), 
     RecordSchedule(**{"function_number": "404", "schedule_number": "1012", "disposition_number": "b"}),
     RecordSchedule(**{"function_number": "401", "schedule_number": "1006", "disposition_number": "b"})]
+
+@dataclass_json
+@dataclass 
+class KeywordExtractionRequest:
+    text: str 
+
+@dataclass_json
+@dataclass 
+class KeywordExtractionResponse:
+    keywords: list[str]
+    identifiers: Dict[str, str] 
 
 @dataclass_json
 @dataclass 
@@ -136,12 +147,14 @@ class MetadataPrediction:
     default_schedule: Optional[RecordSchedule]
     title: PredictionWithExplanation
     description: PredictionWithExplanation
+    keywords: list[str]
+    identifiers: Dict[str, str]
 
 mock_predicted_schedules = [
     Recommendation(**{"schedule": RecordSchedule(**{"function_number": "404", "schedule_number": "1012", "disposition_number": "e"}), "probability": 0.6403017640113831}), 
     Recommendation(**{"schedule": RecordSchedule(**{"function_number": "404", "schedule_number": "1012", "disposition_number": "b"}), "probability": 0.19178320467472076}), 
     Recommendation(**{"schedule": RecordSchedule(**{"function_number": "401", "schedule_number": "1006", "disposition_number": "b"}), "probability": 0.0495888851583004})]
-mock_metadata_prediction = MetadataPrediction(predicted_schedules=mock_predicted_schedules, title=mock_prediction_with_explanation, description=mock_prediction_with_explanation, default_schedule=mock_predicted_schedules[0].schedule)
+mock_metadata_prediction = MetadataPrediction(predicted_schedules=mock_predicted_schedules, title=mock_prediction_with_explanation, description=mock_prediction_with_explanation, default_schedule=mock_predicted_schedules[0].schedule, keywords=[], identifiers={})
 
 # Dates must be formatted as %Y-%m-%dT%H:%M:%S
 @dataclass_json

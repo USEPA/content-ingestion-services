@@ -30,6 +30,8 @@ tags:
   description: "APIs for accessing help content."
 - name: "gamification"
   description: "APIs which enable user activity tracking, leaderboards, and badges."
+- name: "keyword_extraction"
+  description: "APIs which enable keyword and identifier extraction."
 
 schemes:
 - https
@@ -1130,6 +1132,39 @@ paths:
           description: "Server side error - description in response."
           schema:
             $ref: "#/definitions/StatusResponse"
+  /extract_keywords:
+    post:
+      tags:
+      - "keyword_extraction"
+      summary: "Extract keywords from text."
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: "data"
+          description: "Text for extraction."
+          schema:
+            $ref: "#/definitions/KeywordExtractionRequest"
+        - in: header
+          name: "Authorization"
+          type: string
+          format: "jwt"
+          required: true
+      responses:
+        200:
+          description: "Extracted keywords."
+        400:
+          description: "Invalid request - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        401:
+          description: "Unauthorized - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        500:
+          description: "Server side error - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
 
 definitions:
   Recommendation:
@@ -1162,6 +1197,14 @@ definitions:
             type: string
           prediction_type:
             type: string
+      keywords:
+        type: array
+        items:
+          type: string
+      identifiers:
+        type: object
+        additionalProperties:
+          type: string
   AddFavoritesRequest:
     type: object
     properties:
@@ -1176,6 +1219,11 @@ definitions:
         type: array
         items: 
           $ref: "#/definitions/RecordSchedule"
+  KeywordExtractionRequest:
+    type: object
+    properties:
+      text:
+        type: string
   StatusResponse:
     type: object
     properties:

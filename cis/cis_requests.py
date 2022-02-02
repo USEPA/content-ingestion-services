@@ -9,7 +9,7 @@ import re
 import uuid
 from .models import User, RecordSubmission, db
 from sqlalchemy import null
-from . import model, help_item_cache, schedule_cache
+from . import model, help_item_cache, schedule_cache, keyword_extractor
 import boto3
 
 TIKA_CUTOFF = 20
@@ -811,9 +811,11 @@ def sharepoint_record_prediction(req: SharepointPredictionRequest, access_token,
   if not success:
       return response
   predicted_schedules, default_schedule = model.predict(text, 'document', PredictionMetadata(req.file_name, req.department))
+  keywords=keyword_extractor.extract_keywords(text),
+  identifiers=keyword_extractor.extract_identifiers(text)
   predicted_title = mock_prediction_with_explanation
   predicted_description = mock_prediction_with_explanation
-  prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description, default_schedule=default_schedule)
+  prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description, default_schedule=default_schedule, keywords=keywords, identifiers=identifiers)
   return Response(prediction.to_json(), status=200, mimetype='application/json')
 
 def upload_sharepoint_record(req: SharepointUploadRequest, access_token, user_info, c):

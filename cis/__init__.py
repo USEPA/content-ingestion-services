@@ -11,6 +11,7 @@ import logging
 from .shared_mailbox_manager import SharedMailboxManager
 from .help_item_cache import HelpItemCache
 from .secrets_manager import load_all_secrets
+from .keyword_extractor import KeywordExtractor
 
 logging.basicConfig(level=logging.INFO, format = '[%(asctime)s] %(levelname)s in %(module)s: %(message)s')
 
@@ -27,12 +28,14 @@ SWAGGER_PATH = 'swagger.yaml'
 swagger_yml = load(open(SWAGGER_PATH, 'r'), Loader=Loader)
 
 
-def create_app(env, region_name, model_path, label_mapping_path, office_info_mapping_path, config_path, mailbox_data_path, dnul_path, database_uri, documentum_prod_username, documentum_prod_password, wam_username, wam_password, bucket_name, tika_server=None, cis_server=None, ezemail_server=None, upgrade_db=False, documentum_prod_url=None, wam_host=None):
+def create_app(env, region_name, model_path, label_mapping_path, office_info_mapping_path, config_path, mailbox_data_path, dnul_path, vocab_path, database_uri, documentum_prod_username, documentum_prod_password, wam_username, wam_password, bucket_name, tika_server=None, cis_server=None, ezemail_server=None, upgrade_db=False, documentum_prod_url=None, wam_host=None):
     """Construct the core application."""
     app = Flask(__name__, instance_relative_config=False)
     app.config.from_object("flask_config.Config")
     
-    global model, c, mailbox_manager, schedule_cache, help_item_cache
+    global model, c, mailbox_manager, schedule_cache, keyword_extractor, help_item_cache
+    keyword_extractor = KeywordExtractor(vocab_path)
+    app.logger.info('Keyword extractor initialized.')
     mailbox_manager = SharedMailboxManager(mailbox_data_path)
     app.logger.info('Mailboxes loaded.')
     c = config_from_file(config_path)

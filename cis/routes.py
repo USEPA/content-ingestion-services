@@ -5,7 +5,7 @@ from .data_classes import *
 from io import BytesIO
 from .models import User, Favorite, AppSettings, db
 import uuid
-from . import key_cache, c, model, mailbox_manager, schedule_cache
+from . import key_cache, c, model, mailbox_manager, schedule_cache, keyword_extractor
 import json
 
 @app.before_request
@@ -60,12 +60,22 @@ def file_metadata_prediction():
             return Response(StatusResponse(status='Failed', reason='Prediction metadata not formatted correctly.', request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
     if file:
         success, text, response = tika(file, c)
+        app.logger.info(text)
         if not success:
             return response
         predicted_schedules, default_schedule = model.predict(text, 'document', prediction_metadata)
+        keywords=keyword_extractor.extract_keywords(text),
+        identifiers=keyword_extractor.extract_identifiers(text)
         predicted_title = mock_prediction_with_explanation
         predicted_description = mock_prediction_with_explanation
-        prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description, default_schedule=default_schedule)
+        prediction = MetadataPrediction(
+            predicted_schedules=predicted_schedules, 
+            title=predicted_title, 
+            description=predicted_description, 
+            default_schedule=default_schedule, 
+            keywords=keywords, 
+            identifiers=identifiers
+            )
         return Response(prediction.to_json(), status=200, mimetype='application/json')
     else:
         return Response(StatusResponse(status='Failed', reason="No file found.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
@@ -80,7 +90,9 @@ def text_metadata_prediction():
     predicted_schedules, default_schedule = model.predict(req.text, 'document', req.prediction_metadata)
     predicted_title = mock_prediction_with_explanation
     predicted_description = mock_prediction_with_explanation
-    prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description, default_schedule=default_schedule)
+    keywords=keyword_extractor.extract_keywords(req.text),
+    identifiers=keyword_extractor.extract_identifiers(req.text)
+    prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description, default_schedule=default_schedule, keywords=keywords, identifiers=identifiers)
     return Response(prediction.to_json(), status=200, mimetype='application/json')
 
 @app.route('/email_metadata_prediction', methods=['GET'])
@@ -102,9 +114,11 @@ def email_metadata_prediction():
     valid_schedules = list(filter(lambda x: x.ten_year, schedules))
     valid_schedules = ["{fn}-{sn}-{dn}".format(fn=x.function_number, sn=x.schedule_number, dn=x.disposition_number) for x in valid_schedules]
     predicted_schedules, default_schedule = model.predict(text, 'email', PredictionMetadata(req.file_name, req.department), valid_schedules=valid_schedules)
+    keywords=keyword_extractor.extract_keywords(text),
+    identifiers=keyword_extractor.extract_identifiers(text)
     predicted_title = mock_prediction_with_explanation
     predicted_description = mock_prediction_with_explanation
-    prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description, default_schedule=default_schedule)
+    prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description, default_schedule=default_schedule, keywords=keywords, identifiers=identifiers)
     return Response(prediction.to_json(), status=200, mimetype='application/json')
 
 @app.route('/upload_file', methods=['POST'])
@@ -418,6 +432,19 @@ def submit_email_sems():
     except:
         return Response(StatusResponse(status='Failed', reason="Request is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
     return submit_sems_email(req, c)
+
+@app.route('/extract_keywords', methods=['POST'])
+def extract():
+    req = request.json
+    try:
+        req = KeywordExtractionRequest.from_dict(req)
+    except:
+        return Response(StatusResponse(status='Failed', reason="Request is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
+    response = KeywordExtractionResponse(
+        keywords=keyword_extractor.extract_keywords(req.text),
+        identifiers=keyword_extractor.extract_identifiers(req.text)
+    )
+    return Response(response.to_json(), status=200, mimetype='application/json')
 
 @app.route('/log_activity', methods=['POST'])
 def log_activity():
