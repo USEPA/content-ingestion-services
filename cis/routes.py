@@ -418,7 +418,7 @@ def get_help_by_id():
         req = GetHelpItemRequest.from_dict(req)
     except:
         return Response(StatusResponse(status='Failed', reason="Request is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
-    return get_help_item(req, c)
+    return get_help_item(req)
 
 @app.route('/get_all_help_items', methods=['GET'])
 def get_all_help():
