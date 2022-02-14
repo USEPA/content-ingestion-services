@@ -441,7 +441,7 @@ def extract():
     except:
         return Response(StatusResponse(status='Failed', reason="Request is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
     response = KeywordExtractionResponse(
-        keywords=keyword_extractor.extract_keywords(req.text),
+        subjects=keyword_extractor.extract_subjects(req.text),
         identifiers=keyword_extractor.extract_identifiers(req.text)
     )
     return Response(response.to_json(), status=200, mimetype='application/json')

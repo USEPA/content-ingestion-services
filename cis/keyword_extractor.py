@@ -1,13 +1,17 @@
 import re
 import marisa_trie
 from rebulk import Rebulk
+import csv
 
 class KeywordExtractor():
-    def __init__(self, vocab_path):
+    def __init__(self, vocab_path, priority_categories_path):
         self.pattern = re.compile("[\\(\\).!?\\-\n]")
         with open(vocab_path, 'r') as f:
-            vocab = f.read().splitlines()
-        lower_list = [' ' + x.lower().strip() + ' ' for x in vocab]
+            self.keyword_mapping = dict(csv.reader(f))
+        with open(priority_categories_path, 'r') as f:
+            self.priority_categories = f.read().splitlines()
+        lower_list = [' ' + x.lower().strip() + ' ' for x in self.keyword_mapping.keys()]
+        print(lower_list[:20])
         self.trie = marisa_trie.Trie(lower_list)
         self.max_length = max([len(x) for x in lower_list])
         self.facility_regex = Rebulk().regex(r'\b110\d{9}\b')
@@ -289,3 +293,21 @@ class KeywordExtractor():
         response['EPA Publication'] = list(epa_pubs)
 
         return response
+
+    def extract_subjects(self, text, num_top_cats=5):
+        keywords = self.extract_keywords(text)
+        print(keywords)
+        subjects = {}
+        for keyword in keywords:
+            if keyword in self.keyword_mapping:
+                subject = self.keyword_mapping[keyword]
+                if subject in subjects:
+                    subjects[subject] += 1
+                else:
+                    subjects[subject] = 1
+
+        top_cats = set([x[0] for x in sorted(subjects.items(), key = lambda x: x[1], reverse = True)[:num_top_cats]])
+        for p in self.priority_categories:
+            if p in subjects and subjects[p] >= 3:
+                top_cats.add(p)
+        return list(top_cats)
