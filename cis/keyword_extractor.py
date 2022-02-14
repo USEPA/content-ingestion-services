@@ -11,7 +11,6 @@ class KeywordExtractor():
         with open(priority_categories_path, 'r') as f:
             self.priority_categories = f.read().splitlines()
         lower_list = [' ' + x.lower().strip() + ' ' for x in self.keyword_mapping.keys()]
-        print(lower_list[:20])
         self.trie = marisa_trie.Trie(lower_list)
         self.max_length = max([len(x) for x in lower_list])
         self.facility_regex = Rebulk().regex(r'\b110\d{9}\b')
@@ -296,7 +295,6 @@ class KeywordExtractor():
 
     def extract_subjects(self, text, num_top_cats=5):
         keywords = self.extract_keywords(text)
-        print(keywords)
         subjects = {}
         for keyword in keywords:
             if keyword in self.keyword_mapping:
