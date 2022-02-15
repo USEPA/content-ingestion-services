@@ -1,13 +1,13 @@
 import re
 import marisa_trie
 from rebulk import Rebulk
-import csv
 
 class KeywordExtractor():
     def __init__(self, vocab_path, priority_categories_path):
         self.pattern = re.compile("[\\(\\).!?\\-\n]")
         with open(vocab_path, 'r') as f:
-            self.keyword_mapping = dict(csv.reader(f))
+            mapping = f.read().splitlines()
+            self.keyword_mapping = {x.split(',')[0]:','.join(x.split(',')[1:]).replace('"','') for x in mapping}
         with open(priority_categories_path, 'r') as f:
             self.priority_categories = f.read().splitlines()
         lower_list = [' ' + x.lower().strip() + ' ' for x in self.keyword_mapping.keys()]
@@ -41,7 +41,7 @@ class KeywordExtractor():
         
     def extract_keywords(self, text):
         all_matches = set()
-        sub_doc = re.sub(self.pattern, " ", text).lower()
+        sub_doc = re.sub(self.pattern, " ", " " + text + " ").lower()
         for i in range(len(sub_doc)):
             if sub_doc[i] == ' ':
                 check_text = sub_doc[i:(i + self.max_length)]
