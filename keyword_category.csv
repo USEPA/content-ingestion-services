@@ -758,7 +758,7 @@ mad cow disease,Animal Disease
 maedi visna disease,Animal Disease
 maedi-visna disease,Animal Disease
 malignant catarrhal fever,Animal Disease
-marek’s disease,Animal Disease
+mareks disease,Animal Disease
 milk fever,Animal Disease
 milky disease,Animal Disease
 mink diseases,Animal Disease
@@ -1583,7 +1583,7 @@ backfill technique,Aytl Mtd & Ptcl
 bacterial source tracking,Aytl Mtd & Ptcl
 baffled flask test,Aytl Mtd & Ptcl
 base sequence analysis,Aytl Mtd & Ptcl
-baseline assessment survey,Aytl Mtd & Ptcl
+baseline assessmentsurvey,Aytl Mtd & Ptcl
 batch sample,Aytl Mtd & Ptcl
 bayesian analysis,Aytl Mtd & Ptcl
 bayesian belief network,Aytl Mtd & Ptcl
@@ -2054,7 +2054,7 @@ replacement sample,Aytl Mtd & Ptcl
 replicable method,Aytl Mtd & Ptcl
 representative sample,Aytl Mtd & Ptcl
 retrospective case study,Aytl Mtd & Ptcl
-retrospective cohort study ,Aytl Mtd & Ptcl
+retrospective cohort study,Aytl Mtd & Ptcl
 retrospective study,Aytl Mtd & Ptcl
 revealed preference method,Aytl Mtd & Ptcl
 risk acceptance,Aytl Mtd & Ptcl
@@ -2183,7 +2183,7 @@ trace organic analysis,Aytl Mtd & Ptcl
 travel cost model,Aytl Mtd & Ptcl
 treatability study,Aytl Mtd & Ptcl
 trend analysis,Aytl Mtd & Ptcl
-trend assessment survey,Aytl Mtd & Ptcl
+trend assessmentsurvey,Aytl Mtd & Ptcl
 trend surface analysis,Aytl Mtd & Ptcl
 truncation,Aytl Mtd & Ptcl
 two dimensional monte carlo analysis,Aytl Mtd & Ptcl
@@ -5402,7 +5402,7 @@ dioxins and furans,Chemical Substances
 dioxins/furans,Chemical Substances
 diphosphonates,Chemical Substances
 direct-reduced iron,Chemical Substances
-di–sec–octyl phthalate,Chemical Substances
+disecoctyl phthalate,Chemical Substances
 dmba,Chemical Substances
 dnfb,Chemical Substances
 domoic acid,Chemical Substances
@@ -6112,7 +6112,7 @@ fair housing,Civil Rights
 fair housing act,Civil Rights
 fair practice,Civil Rights
 familial status,Civil Rights
-family and medical leave act ,Civil Rights
+family and medical leave act,Civil Rights
 feeder plan,Civil Rights
 fewer than 15 employees,Civil Rights
 fewer than fifteen employees,Civil Rights
@@ -7343,7 +7343,7 @@ autoclave,"Devs, Equip, Apps"
 automatic capacitor,"Devs, Equip, Apps"
 automatic temperature compensator,"Devs, Equip, Apps"
 auxiliary personal aid,"Devs, Equip, Apps"
-back-end continuous process vent ,"Devs, Equip, Apps"
+back-end continuous process vent,"Devs, Equip, Apps"
 backup energy system,"Devs, Equip, Apps"
 bag dump,"Devs, Equip, Apps"
 bag slitter,"Devs, Equip, Apps"
@@ -9230,7 +9230,7 @@ property assessed clean energy,Economic Factor
 property rights,Economic Factor
 property title,Economic Factor
 proposal,Economic Factor
-proposal modification ,Economic Factor
+proposal modification,Economic Factor
 proposal revision,Economic Factor
 protest,Economic Factor
 provisioning service,Economic Factor
@@ -10431,7 +10431,7 @@ applicable water quality standard,Enforce & Comp
 application for research or marketing permit,Enforce & Comp
 application questionnaire,Enforce & Comp
 approved measure,Enforce & Comp
-approved permit program ,Enforce & Comp
+approved permit program,Enforce & Comp
 approved potw pretreatment program,Enforce & Comp
 approved program,Enforce & Comp
 approved section 120 program,Enforce & Comp
@@ -17173,7 +17173,7 @@ infrastructure as a service,Information and Technology Management
 input,Information and Technology Management
 internet control message protocol,Information and Technology Management
 internet of everything ,Information and Technology Management
-internet of things ,Information and Technology Management
+internet of things,Information and Technology Management
 internet protocol address,Information and Technology Management
 internet service provider,Information and Technology Management
 ip address,Information and Technology Management
@@ -17187,7 +17187,7 @@ mac address,Information and Technology Management
 machine learning,Information and Technology Management
 mail server,Information and Technology Management
 managed detection and response,Information and Technology Management
-managed security service provider ,Information and Technology Management
+managed security service provider,Information and Technology Management
 managed service provider,Information and Technology Management
 master file,Information and Technology Management
 mdm,Information and Technology Management
@@ -17264,7 +17264,7 @@ software-defined security,Information and Technology Management
 software-defined wide area network,Information and Technology Management
 source records,Information and Technology Management
 spam,Information and Technology Management
-spear phishing,Information and Technology Management
+spearphishing,Information and Technology Management
 ssl,Information and Technology Management
 storage area network,Information and Technology Management
 substance registry system,Information and Technology Management
@@ -17777,7 +17777,7 @@ shielded record,Legal
 show cause,Legal
 speedy trial,Legal
 split sentence,Legal
-state’s attorney,Legal
+states attorney,Legal
 statement of charges,Legal
 statute,Legal
 stet,Legal
@@ -18825,7 +18825,7 @@ shot casting,Manufacturing Processes
 shot tower lead shot manufacturing,Manufacturing Processes
 shotblasting,Manufacturing Processes
 shutdown,Manufacturing Processes
-"shutdown after september 16, 2020",Manufacturing Processes
+"shutdownafter september 16, 2020",Manufacturing Processes
 side-worked prebake process,Manufacturing Processes
 siliconizing,Manufacturing Processes
 similar in all material respects process,Manufacturing Processes
@@ -18887,7 +18887,7 @@ stamping,Manufacturing Processes
 standard batch,Manufacturing Processes
 startup,Manufacturing Processes
 "startup after february 28, 2019",Manufacturing Processes
-"startup after september 17, 2020",Manufacturing Processes
+"startupafter september 17, 2020",Manufacturing Processes
 stationary casting,Manufacturing Processes
 stationary industrial equipment manufacturing,Manufacturing Processes
 steady-state conditions,Manufacturing Processes
@@ -19509,7 +19509,7 @@ myxoma virus,Microorganism Taxa
 neorickettsia risticii,Microorganism Taxa
 nidovirales,Microorganism Taxa
 norovirus,Microorganism Taxa
-oömycota,Microorganism Taxa
+omycota,Microorganism Taxa
 paenibacillus lentimorbus,Microorganism Taxa
 picornavirales,Microorganism Taxa
 plasmodium,Microorganism Taxa
@@ -19990,7 +19990,7 @@ snow mold,Mold Fungus Char
 sooty mold,Mold Fungus Char
 squamulose lichen,Mold Fungus Char
 teleomorph,Mold Fungus Char
-tranzschel’s law,Mold Fungus Char
+tranzschels law,Mold Fungus Char
 tranzschels law,Mold Fungus Char
 yeast like form,Mold Fungus Char
 airborne fungus,Mold Fungus Role
@@ -20187,9 +20187,9 @@ defect report,Monitoring & Reporting
 designated record,Monitoring & Reporting
 deviation,Monitoring & Reporting
 "deviation after september 16, 2020",Monitoring & Reporting
-"deviation before september 17, 2020",Monitoring & Reporting
-"deviation before august 24, 2020",Monitoring & Reporting
-"deviation on and after august 24, 2020",Monitoring & Reporting
+"deviation beforeseptember 17, 2020",Monitoring & Reporting
+"deviationbefore august 24, 2020",Monitoring & Reporting
+"deviationon and after august 24, 2020",Monitoring & Reporting
 directionally-sound strategy,Monitoring & Reporting
 discharge monitoring report,Monitoring & Reporting
 dmr,Monitoring & Reporting
@@ -23622,7 +23622,7 @@ contract management records,Procurement
 contract performance,Procurement
 contract protests,Procurement
 contracting,Procurement
-contracting officer’s representative,Procurement
+contracting officers representative,Procurement
 contractor payroll,Procurement
 contracts,Procurement
 cost or pricing data,Procurement
@@ -23804,7 +23804,7 @@ fact box,Public Affairs
 feature story,Public Affairs
 focus statement,Public Affairs
 formative research,Public Affairs
-four p’s of marketing,Public Affairs
+four ps of marketing,Public Affairs
 freelance,Public Affairs
 ghostwriter,Public Affairs
 greenwashing,Public Affairs
@@ -24289,7 +24289,7 @@ primary data,Ref Material
 primary panel,Ref Material
 principal display panel,Ref Material
 priority data need,Ref Material
-private information ,Ref Material
+private information,Ref Material
 procedural mechanism,Ref Material
 product chemistry,Ref Material
 product performance,Ref Material
@@ -24358,7 +24358,7 @@ additive manufacturer,Regulatory Roles
 administrative law judge,Regulatory Roles
 administrator,Regulatory Roles
 "administrator, epa, and regional administrator",Regulatory Roles
-administrator’s authorized representative,Regulatory Roles
+administrators authorized representative,Regulatory Roles
 aetb,Regulatory Roles
 affected business,Regulatory Roles
 affected emissions unit,Regulatory Roles
@@ -25024,7 +25024,7 @@ well transferor,Regulatory Roles
 wet weather point source,Regulatory Roles
 women owned business,Regulatory Roles
 women owned small business,Regulatory Roles
-women’s business enterprise,Regulatory Roles
+womens business enterprise,Regulatory Roles
 women-owned small business concern,Regulatory Roles
 workgroup materials,Regulatory Roles
 workgroup records,Regulatory Roles
@@ -26751,7 +26751,7 @@ background level,Toxic Substances
 biohazard,Toxic Substances
 biologic indicators of exposure study,Toxic Substances
 biologic monitoring,Toxic Substances
-biologic uptake ,Toxic Substances
+biologic uptake,Toxic Substances
 biomedical testing,Toxic Substances
 body burden,Toxic Substances
 cas registry number,Toxic Substances
@@ -26911,7 +26911,7 @@ conveying operation transfer point,Transportation
 copper naphthenate treated railroad tie,Transportation
 copper naphthenate-borate treated railroad tie,Transportation
 creosote treated railroad tie,Transportation
-creosote-borate treated railroad tie,Transportation
+creosote-borate treated railroadtie,Transportation
 crude petroleum pipeline,Transportation
 cruise ship,Transportation
 custody transfer,Transportation
@@ -27940,7 +27940,7 @@ uncontrolled hazardous waste site,Waste
 universal waste,Waste
 unlisted hazardous substance,Waste
 unstabilized waste solid,Waste
-untreated landfill gas ,Waste
+untreated landfill gas,Waste
 uranium byproduct material,Waste
 urban wood,Waste
 used broken cathode ray tube,Waste
@@ -28044,7 +28044,7 @@ class ii municipal waste combustor unit,Waste Systems
 class iv injection well,Waste Systems
 class v injection well,Waste Systems
 class vi injection well,Waste Systems
-closed area ,Waste Systems
+closed area,Waste Systems
 closed biological treatment process,Waste Systems
 closed landfill,Waste Systems
 closed portion,Waste Systems
@@ -28165,7 +28165,7 @@ gas collection system,Waste Systems
 gas mover equipment,Waste Systems
 general criteria,Waste Systems
 geotextile filtration,Waste Systems
-halon bank ,Waste Systems
+halon bank,Waste Systems
 hazardous waste combustor,Waste Systems
 hazardous waste consignee,Waste Systems
 hazardous waste facility,Waste Systems
@@ -28558,7 +28558,7 @@ adriatic sea,Water
 advanced treatment,Water
 advanced treatment ,Water
 aegean sea,Water
-agricultural discharge standards ,Water
+agricultural discharge standards,Water
 agricultural land stewardship,Water
 agricultural land stewardship ,Water
 agricultural water use efficiency,Water
@@ -28606,14 +28606,14 @@ average annual runoff,Water
 average annual runoff ,Water
 average year water demand,Water
 average year water demand ,Water
-background water conservation ,Water
+background water conservation,Water
 baffin bay,Water
 balearic,Water
 bali sea,Water
 baltic sea,Water
 banda sea,Water
 bandon bay,Water
-barents sea ,Water
+barents sea,Water
 basin irrigation,Water
 basin irrigation ,Water
 basin management objectives,Water
@@ -28633,7 +28633,7 @@ bay of greifswald,Water
 bay of kampong som,Water
 bay of kiel,Water
 bay of kotor,Water
-bay of lübeck,Water
+bay of lbeck,Water
 bay of plenty,Water
 bay of pomerania,Water
 bay of san miguel,Water
@@ -28645,7 +28645,7 @@ bering sea,Water
 bermuda triangle,Water
 bight of benin,Water
 bight of bonny,Water
-bight of hanö,Water
+bight of han,Water
 biosolids ,Water
 bismarck sea,Water
 black sea,Water
@@ -28658,7 +28658,7 @@ blue water footprint,Water
 blue water footprint ,Water
 bohai bay,Water
 bohai sea,Water
-bohol sea ,Water
+bohol sea,Water
 border irrigation,Water
 border irrigation ,Water
 bothnian sea,Water
@@ -28697,7 +28697,7 @@ coastal flooding ,Water
 "coastal wetlands planning, protection & restoration act",Water
 colorado river deliveries,Water
 colorado river deliveries ,Water
-commercial activity mix ,Water
+commercial activity mix,Water
 community water system ,Water
 confined aquifer ,Water
 conservation offset,Water
@@ -28711,13 +28711,13 @@ conveyance evaporation and evapotranspiration,Water
 conveyance evaporation and evapotranspiration ,Water
 conveyance return flows to developed supply,Water
 conveyance return flows to developed supply ,Water
-conveyance seepage ,Water
+conveyance seepage,Water
 cook inlet,Water
 cooperation sea,Water
 coral sea,Water
 corisco bay,Water
 cosmonauts sea,Water
-crop unit water use ,Water
+crop unit water use,Water
 cryptosporidium,Water
 cryptosporidium ,Water
 cumberland sound,Water
@@ -28741,7 +28741,7 @@ dedicated and developed water supplies ,Water
 deep percolation,Water
 deep percolation ,Water
 delaware bay,Water
-denmark strait ,Water
+denmark strait,Water
 desalination ,Water
 detention basin ,Water
 devil's sea,Water
@@ -28779,8 +28779,8 @@ electrical conductivity,Water
 electrical conductivity ,Water
 english channel,Water
 environmental water ,Water
-étang de thau,Water
-ethylene dibromide ,Water
+tang de thau,Water
+ethylene dibromide,Water
 eutrophic conditions,Water
 eutrophic conditions ,Water
 evans strait,Water
@@ -28880,7 +28880,7 @@ groundwater overdraft,Water
 groundwater overdraft ,Water
 groundwater quality ,Water
 groundwater recharge ,Water
-groundwater recharge applied water ,Water
+groundwater recharge applied water,Water
 groundwater recharge evaporation and evapotranspiration,Water
 groundwater recharge evaporation and evapotranspiration ,Water
 groundwater recharge facility,Water
@@ -28907,19 +28907,19 @@ gulf of antalya,Water
 gulf of asinara,Water
 gulf of bothnia,Water
 gulf of burgas,Water
-gulf of cádiz,Water
+gulf of cdiz,Water
 gulf of cagliari,Water
-gulf of california ,Water
+gulf of california,Water
 gulf of carpentaria,Water
 gulf of corcovado,Water
 gulf of corinth,Water
-gulf of darién,Water
+gulf of darin,Water
 gulf of finland,Water
 gulf of fonseca,Water
-gulf of gabès,Water
+gulf of gabs,Water
 gulf of genoa,Water
-gulf of gökova,Water
-gulf of gonâve ,Water
+gulf of gkova,Water
+gulf of gonve,Water
 gulf of guayaquil,Water
 gulf of guinea,Water
 gulf of honduras,Water
@@ -28993,7 +28993,7 @@ indirect potable reuse,Water
 indirect potable reuse ,Water
 indirect reuse,Water
 indirect reuse ,Water
-industrial activity mix ,Water
+industrial activity mix,Water
 infiltration basin ,Water
 infiltration capacity,Water
 infiltration capacity ,Water
@@ -29004,7 +29004,7 @@ injection wells ,Water
 "inland sea, gozo",Water
 in-lieu recharge,Water
 in-lieu recharge ,Water
-inner seas off the west coast of scotland,Water
+inner seas off the west coast ofscotland,Water
 instream environmental,Water
 instream environmental ,Water
 instream flow requirements,Water
@@ -29025,11 +29025,11 @@ integrated watershed management,Water
 integrated watershed management ,Water
 interfluves,Water
 interfluves ,Water
-interregional import projects ,Water
+interregional import projects,Water
 investigator strait,Water
 ionian sea,Water
 irish sea,Water
-irish sea ,Water
+irish sea,Water
 irminger sea,Water
 iroise sea,Water
 irrecoverable water,Water
@@ -29065,7 +29065,7 @@ lacustrine ,Water
 lagoa dos patos,Water
 laizhou bay,Water
 lake maracaibo,Water
-land subsidence ,Water
+land subsidence,Water
 laptev sea,Water
 lazarev sea,Water
 leaching efficiency,Water
@@ -29080,7 +29080,7 @@ levantine sea,Water
 liaodong bay,Water
 libyan sea,Water
 ligurian sea,Water
-lincoln sea ,Water
+lincoln sea,Water
 little belt,Water
 local deliveries,Water
 local deliveries ,Water
@@ -29116,7 +29116,7 @@ microirrigation ,Water
 mikawa bay,Water
 mobile bay,Water
 molucca sea,Water
-monitoring well ,Water
+monitoring well,Water
 moraleda channel,Water
 mozambique channel,Water
 mprsa,Water
@@ -29199,20 +29199,20 @@ percolation ,Water
 persian gulf,Water
 petalioi gulf,Water
 peter the great gulf,Water
-petrichor ,Water
+petrichor,Water
 philippine sea,Water
 pipes cove,Water
 planned reuse,Water
 planned reuse ,Water
 point source ,Water
 polynyas in mcmurdo sound,Water
-porosity ,Water
+porosity,Water
 potable,Water
 potable ,Water
 poverty bay,Water
 precipitation enhancement,Water
 precipitation enhancement ,Water
-precipitation ,Water
+precipitation,Water
 prescriptive right,Water
 prescriptive right ,Water
 primary treatment ,Water
@@ -29227,8 +29227,8 @@ pueblo right ,Water
 purple pipes,Water
 purple pipes ,Water
 queen victoria sea,Water
-rainfed agriculture ,Water
-ranney collectors ,Water
+rainfed agriculture,Water
+ranney collectors,Water
 raritan bay,Water
 rate structure,Water
 rate structure ,Water
@@ -29244,7 +29244,7 @@ recoverable water,Water
 recoverable water ,Water
 recycled water ,Water
 red sea,Water
-reloncaví sound,Water
+reloncav sound,Water
 required instream flow,Water
 required instream flow ,Water
 reservoir system simulation,Water
@@ -29254,14 +29254,14 @@ return flow to carryover storage,Water
 return flow to carryover storage ,Water
 return flow to developed supply,Water
 return flow to developed supply ,Water
-return flows evaporation and evapotranspiration ,Water
+return flows evaporation and evapotranspiration,Water
 return flows to salt sink,Water
 return flows to salt sink ,Water
 return-flow system,Water
 return-flow system ,Water
-reuse groundwater ,Water
-reuse surface water ,Water
-reused agricultural water ,Water
+reuse groundwater,Water
+reuse surface water,Water
+reused agricultural water,Water
 reused water,Water
 reused water ,Water
 reverse osmosis ,Water
@@ -29275,8 +29275,8 @@ risk-based water deliveries ,Water
 rivers & harbors appropriation act of 1899,Water
 roes welcome sound,Water
 ross sea,Water
-rügischer bodden,Water
-runoff ,Water
+rgischer bodden,Water
+runoff,Water
 safe drinking water act,Water
 safe drinking water implementation,Water
 sag harbor bay,Water
@@ -29285,12 +29285,12 @@ saldanha bay,Water
 salinity,Water
 salinity ,Water
 salish sea,Water
-salt water intrusion ,Water
+salt water intrusion,Water
 salton sea,Water
-samborombón bay,Water
+samborombn bay,Water
 san francisco bay,Water
 san jorge gulf,Water
-san matías gulf,Water
+san matas gulf,Water
 san pablo bay,Water
 sandy hook bay,Water
 sargasso sea,Water
@@ -29301,20 +29301,20 @@ saved water ,Water
 savu sea,Water
 scotia sea,Water
 sea level rise ,Water
-sea of åland,Water
+sea of land,Water
 sea of azov,Water
-sea of chiloé,Water
+sea of chilo,Water
 sea of crete,Water
 sea of galilee,Water
 sea of japan,Water
 sea of marmara,Water
 sea of okhotsk,Water
 sea of sardinia,Water
-sea of the hebrides ,Water
+sea of the hebrides,Water
 sea of zanj,Water
 seawater intrusion barrier,Water
 seawater intrusion barrier ,Water
-secchi disk ,Water
+secchi disk,Water
 secondary treatment ,Water
 seepage ,Water
 semi-confined aquifer,Water
@@ -29412,13 +29412,13 @@ tsunami flooding ,Water
 tyrrhenian sea,Water
 uic annual well inventory,Water
 unconfined aquifer ,Water
-underground stream ,Water
+underground stream,Water
 ungava bay,Water
 unit applied water,Water
 unit applied water ,Water
 unplanned reuse,Water
 unplanned reuse ,Water
-unsaturated zone ,Water
+unsaturated zone,Water
 upper new york bay,Water
 urban wastewater,Water
 urban water management planning act,Water
@@ -29427,7 +29427,7 @@ urban water use,Water
 urban water use ,Water
 urban water use efficiency,Water
 urban water use efficiency ,Water
-väinameri sea,Water
+vinameri sea,Water
 variable fluoridation,Water
 variable fluoridation ,Water
 venetian lagoon,Water
@@ -29453,7 +29453,7 @@ water demand,Water
 water demand ,Water
 water demand elasticity,Water
 water demand elasticity ,Water
-water demand management ,Water
+water demand management,Water
 water depletion,Water
 water depletion ,Water
 water exchanges,Water
@@ -29473,7 +29473,7 @@ water quality standards,Water
 water quality standards ,Water
 water recycling,Water
 water recycling ,Water
-water reliability ,Water
+water reliability,Water
 water resource integrated modeling system,Water
 water resource integrated modeling system ,Water
 water reuse ,Water
@@ -29508,7 +29508,7 @@ west philippine sea,Water
 wet season,Water
 wet season ,Water
 white sea,Water
-wild and scenic rivers ,Water
+wild and scenic rivers,Water
 yawri bay,Water
 yellow sea,Water
 acequia,Water Supply Sys
