@@ -7,7 +7,7 @@ class KeywordExtractor():
         self.pattern = re.compile("[\\(\\).!?\\-\n]")
         with open(vocab_path, 'r') as f:
             mapping = f.read().splitlines()
-            self.keyword_mapping = {x.split(',')[0]:','.join(x.split(',')[1:]).replace('"','') for x in mapping}
+            self.keyword_mapping = {x.split(',')[0].replace('"',''):','.join(x.split(',')[1:]).replace('"','') for x in mapping}
         with open(priority_categories_path, 'r') as f:
             self.priority_categories = f.read().splitlines()
         lower_list = [' ' + x.lower().strip() + ' ' for x in self.keyword_mapping.keys()]
