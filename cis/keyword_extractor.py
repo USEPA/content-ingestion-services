@@ -35,7 +35,7 @@ class KeywordExtractor():
         self.pr_regex = Rebulk().regex(r'\bPR\d{8}\b')
         self.sa_regex = Rebulk().regex(r'(?i)\b(sa|service account|sa no|sa no\.|sa \#)\s?([ ]|[:]|[\-])\s?\b\d{2}[A-Z0-9]{9}\b')
         self.re_rq_regex = Rebulk().regex(r'(?i)\b(re|re no|re no\.|re \#|rq|rq no|rq no\.|rq \#)\s?\b([ ]|[:]|[-])s?(RQ|RE)([|])?[A-Z0-9]{1,10}\b')
-        self.doi_regex = Rebulk().regex(r'\b10.(\d+.*)+[/](([^s.])+.*)+\b')
+        #self.doi_regex = Rebulk().regex(r'\b10.(\d+.*)+[/](([^s.])+.*)+\b')
         self.edg_regex = Rebulk().regex(r'\b[0-9A-Fa-f]{8}(?:-[0-9A-Fa-f]{4}){3}-[0-9A-Fa-f]{12}\b')
         self.epa_pub_regex = Rebulk().regex(r'\b\d{3}-[a-zA-z]-\d{2}-\d{3}\b').regex(r'(?i)\b(epa|epa publication|epa publication number|epa publication num|epa publication no|epa publication no\.|epa publication \#)\s?([ ]|[:]|[\-])\s?\d{3}[a-zA-z]\d{5}')
         
@@ -51,7 +51,8 @@ class KeywordExtractor():
                         all_matches.add(match[1:-1])
         return list(sorted(list(all_matches)))
     
-    def extract_identifiers(self, content):
+    def extract_identifiers(self, text):
+        content = text[:1000000]
         response = {}
 
         facility_id = self.facility_regex.matches(content)
@@ -262,13 +263,13 @@ class KeywordExtractor():
         response['RE RQ Number'] = list(re_req_numbers)
 
         #DOI Number (e.g. 10.1080/15588742.2015.1017687)
-        doi_number = self.doi_regex.matches(content)
-        doi_numbers = set()
-        for i in doi_number:
-            extracted_val = str(i).replace('<','').split(':(', 1)[0]
-            if extracted_val:
-                doi_numbers.add(extracted_val)
-        response['DOI Number'] = list(doi_numbers)
+        #doi_number = self.doi_regex.matches(content)
+        #doi_numbers = set()
+        #for i in doi_number:
+        #    extracted_val = str(i).replace('<','').split(':(', 1)[0]
+        #    if extracted_val:
+        #        doi_numbers.add(extracted_val)
+        #response['DOI Number'] = list(doi_numbers)
 
         #EDG UUID (e.g. E95156F3-39BE-4734-9999-0DFAEE036BA6), may change later
         uuid = self.edg_regex.matches(content)

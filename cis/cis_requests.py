@@ -811,11 +811,11 @@ def sharepoint_record_prediction(req: SharepointPredictionRequest, access_token,
   if not success:
       return response
   predicted_schedules, default_schedule = model.predict(text, 'document', PredictionMetadata(req.file_name, req.department))
-  keywords=keyword_extractor.extract_keywords(text),
+  subjects=keyword_extractor.extract_subjects(text),
   identifiers=keyword_extractor.extract_identifiers(text)
   predicted_title = mock_prediction_with_explanation
   predicted_description = mock_prediction_with_explanation
-  prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description, default_schedule=default_schedule, keywords=keywords, identifiers=identifiers)
+  prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description, default_schedule=default_schedule, subjects=subjects, identifiers=identifiers)
   return Response(prediction.to_json(), status=200, mimetype='application/json')
 
 def upload_sharepoint_record(req: SharepointUploadRequest, access_token, user_info, c):
