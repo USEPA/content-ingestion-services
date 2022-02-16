@@ -60,11 +60,10 @@ def file_metadata_prediction():
             return Response(StatusResponse(status='Failed', reason='Prediction metadata not formatted correctly.', request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
     if file:
         success, text, response = tika(file, c)
-        app.logger.info(text)
         if not success:
             return response
         predicted_schedules, default_schedule = model.predict(text, 'document', prediction_metadata)
-        keywords=keyword_extractor.extract_keywords(text),
+        subjects=keyword_extractor.extract_subjects(text),
         identifiers=keyword_extractor.extract_identifiers(text)
         predicted_title = mock_prediction_with_explanation
         predicted_description = mock_prediction_with_explanation
@@ -73,7 +72,7 @@ def file_metadata_prediction():
             title=predicted_title, 
             description=predicted_description, 
             default_schedule=default_schedule, 
-            keywords=keywords, 
+            subjects=subjects, 
             identifiers=identifiers
             )
         return Response(prediction.to_json(), status=200, mimetype='application/json')
@@ -114,11 +113,11 @@ def email_metadata_prediction():
     valid_schedules = list(filter(lambda x: x.ten_year, schedules))
     valid_schedules = ["{fn}-{sn}-{dn}".format(fn=x.function_number, sn=x.schedule_number, dn=x.disposition_number) for x in valid_schedules]
     predicted_schedules, default_schedule = model.predict(text, 'email', PredictionMetadata(req.file_name, req.department), valid_schedules=valid_schedules)
-    keywords=keyword_extractor.extract_keywords(text),
+    subjects=keyword_extractor.extract_subjects(text),
     identifiers=keyword_extractor.extract_identifiers(text)
     predicted_title = mock_prediction_with_explanation
     predicted_description = mock_prediction_with_explanation
-    prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description, default_schedule=default_schedule, keywords=keywords, identifiers=identifiers)
+    prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description, default_schedule=default_schedule, subjects=subjects, identifiers=identifiers)
     return Response(prediction.to_json(), status=200, mimetype='application/json')
 
 @app.route('/upload_file', methods=['POST'])
