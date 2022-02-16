@@ -1,13 +1,13 @@
 import re
 import marisa_trie
 from rebulk import Rebulk
+import csv
 
 class KeywordExtractor():
     def __init__(self, vocab_path, priority_categories_path):
         self.pattern = re.compile("[\\(\\).!?\\-\n]")
         with open(vocab_path, 'r') as f:
-            mapping = f.read().splitlines()
-            self.keyword_mapping = {x.split(',')[0].replace('"',''):','.join(x.split(',')[1:]).replace('"','') for x in mapping}
+            self.keyword_mapping = dict(csv.reader(f))
         with open(priority_categories_path, 'r') as f:
             self.priority_categories = f.read().splitlines()
         lower_list = [' ' + x.lower().strip() + ' ' for x in self.keyword_mapping.keys()]
