@@ -304,12 +304,17 @@ class KeywordExtractor():
                     subjects[subject] += 1
                 else:
                     subjects[subject] = 1
+        
         if len(text) <= 2000:
             cat_threshold = num_top_cats_length_threshold
         else:
             cat_threshold = num_top_cats
+
         top_cats = set([x[0] for x in sorted(subjects.items(), key = lambda x: x[1], reverse = True)[:cat_threshold]])
+
         for p in self.priority_categories:
-            if p in subjects and subjects[p] >= 3:
+            if p in subjects and subjects[p] >= 1 and len(text) <= 2000:
+                top_cats.add(p)
+            elif p in subjects and subjects[p] >= 3 and len(text) > 2000:
                 top_cats.add(p)
         return list(top_cats)
