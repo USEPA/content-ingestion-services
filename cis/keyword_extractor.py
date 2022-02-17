@@ -5,7 +5,7 @@ import csv
 
 class KeywordExtractor():
     def __init__(self, vocab_path, priority_categories_path):
-        self.pattern = re.compile("[\\(\\).!?\\-\n]")
+        self.pattern = re.compile("[\\(\\).!?\\-\n\r\t\s]")
         with open(vocab_path, 'r') as f:
             self.keyword_mapping = dict(csv.reader(f))
         with open(priority_categories_path, 'r') as f:
