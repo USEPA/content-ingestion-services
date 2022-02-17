@@ -1880,7 +1880,7 @@ ise bay,Water
 kvarken,Water
 potable,Water
 red sea,Water
-runoff ,Water
+runoff,Water
 acequia,Water Supply Sys
 air gap,Water Supply Sys
 cistern,Water Supply Sys
@@ -2351,7 +2351,7 @@ bacillus,Microorganism Taxa
 bacteria,Microorganism Taxa
 chlorobi,Microorganism Taxa
 coccidia,Microorganism Taxa
-oömycota,Microorganism Taxa
+omycota,Microorganism Taxa
 protozoa,Microorganism Taxa
 reovirus,Microorganism Taxa
 gof test,Model Sim Tool
@@ -3529,7 +3529,7 @@ mar menor,Water
 narva bay,Water
 north sea,Water
 osaka bay,Water
-porosity ,Water
+porosity,Water
 salinity ,Water
 skagerrak,Water
 somov sea,Water
@@ -4528,7 +4528,7 @@ basin plan,Water
 bering sea,Water
 biosolids ,Water
 blue water,Water
-bohol sea ,Water
+bohol sea,Water
 bowman bay,Water
 catchment ,Water
 celtic sea,Water
@@ -4543,7 +4543,7 @@ hudson bay,Water
 hydrograph,Water
 hydrology ,Water
 ionian sea,Water
-irish sea ,Water
+irish sea,Water
 iroise sea,Water
 lacustrine,Water
 laptev sea,Water
@@ -4557,7 +4557,7 @@ natuna sea,Water
 new water ,Water
 noyack bay,Water
 panama bay,Water
-petrichor ,Water
+petrichor,Water
 pipes cove,Water
 real water,Water
 sagami bay,Water
@@ -5618,7 +5618,7 @@ catch basin,Waste Systems
 drain field,Waste Systems
 final cover,Waste Systems
 flare stack,Waste Systems
-halon bank ,Waste Systems
+halon bank,Waste Systems
 impoundment,Waste Systems
 incinerator,Waste Systems
 inner liner,Waste Systems
@@ -6765,7 +6765,7 @@ wood residue,Waste
 awfco system,Waste Systems
 bale breaker,Waste Systems
 bioretention,Waste Systems
-closed area ,Waste Systems
+closed area,Waste Systems
 closure plan,Waste Systems
 cwt facility,Waste Systems
 daily spread,Waste Systems
@@ -6786,7 +6786,7 @@ adriatic sea,Water
 amundsen sea,Water
 arctic ocean,Water
 argolic gulf,Water
-barents sea ,Water
+barents sea,Water
 bay of fundy,Water
 bay of kotor,Water
 beaufort sea,Water
@@ -6828,7 +6828,7 @@ kvarner gulf,Water
 labrador sea,Water
 liaodong bay,Water
 ligurian sea,Water
-lincoln sea ,Water
+lincoln sea,Water
 napeague bay,Water
 new york bay,Water
 non-potable ,Water
@@ -6843,10 +6843,10 @@ saldanha bay,Water
 sargasso sea,Water
 saronic gulf,Water
 saved water ,Water
-sea of åland,Water
+sea of land,Water
 sea of crete,Water
 sea of japan,Water
-secchi disk ,Water
+secchi disk,Water
 southold bay,Water
 spencer gulf,Water
 stream order,Water
@@ -8089,9 +8089,9 @@ argentine sea,Water
 bay of arguin,Water
 bay of bengal,Water
 bay of biscay,Water
-bay of lübeck,Water
+bay of lbeck,Water
 bay of plenty,Water
-bight of hanö,Water
+bight of han,Water
 caribbean sea,Water
 closed basin ,Water
 cloud seeding,Water
@@ -8102,7 +8102,7 @@ domestic well,Water
 drake passage,Water
 d'urville sea,Water
 duty of water,Water
-étang de thau,Water
+tang de thau,Water
 fisher strait,Water
 flood hazard ,Water
 fort pond bay,Water
@@ -8110,8 +8110,8 @@ frobisher bay,Water
 gardiners bay,Water
 greenland sea,Water
 guanabara bay,Water
-gulf of cádiz,Water
-gulf of gabès,Water
+gulf of cdiz,Water
+gulf of gabs,Water
 gulf of genoa,Water
 gulf of ?zmir,Water
 gulf of ?zmit,Water
@@ -8144,7 +8144,7 @@ pueblo right ,Water
 purple pipes ,Water
 reused water ,Water
 san pablo bay,Water
-sea of chiloé,Water
+sea of chilo,Water
 source water ,Water
 south kvarken,Water
 stream order ,Water
@@ -8152,7 +8152,7 @@ subirrigation,Water
 surplus water,Water
 thermaic gulf,Water
 tile drainage,Water
-väinameri sea,Water
+vinameri sea,Water
 vermilion bay,Water
 vernal pools ,Water
 water demand ,Water
@@ -8936,7 +8936,7 @@ hardcopy input,Information and Technology Management
 remote desktop,Information and Technology Management
 security hacks,Information and Technology Management
 source records,Information and Technology Management
-spear phishing,Information and Technology Management
+spearphishing,Information and Technology Management
 system backups,Information and Technology Management
 virtualization,Information and Technology Management
 cems precision,Laboratory
@@ -9502,8 +9502,8 @@ east china sea,Water
 flash flooding,Water
 gulf of alaska,Water
 gulf of burgas,Water
-gulf of darién,Water
-gulf of gökova,Water
+gulf of darin,Water
+gulf of gkova,Water
 gulf of guinea,Water
 gulf of mannar,Water
 gulf of mexico,Water
@@ -9525,7 +9525,7 @@ oresund strait,Water
 pagasetic gulf,Water
 philippine sea,Water
 planned reuse ,Water
-precipitation ,Water
+precipitation,Water
 rate structure,Water
 recharge area ,Water
 recharge basin,Water
@@ -9592,7 +9592,7 @@ ephemeral fever,Animal Disease
 feline leukemia,Animal Disease
 insect diseases,Animal Disease
 mad cow disease,Animal Disease
-marek’s disease,Animal Disease
+mareks disease,Animal Disease
 patchy necrosis,Animal Disease
 rabbit diseases,Animal Disease
 swine dysentery,Animal Disease
@@ -10993,7 +10993,7 @@ clean water act,Water
 cooperation sea,Water
 cryptosporidium,Water
 curonian lagoon,Water
-denmark strait ,Water
+denmark strait,Water
 discharge area ,Water
 drainage basin ,Water
 english channel,Water
@@ -11005,7 +11005,7 @@ gulf of bothnia,Water
 gulf of corinth,Water
 gulf of finland,Water
 gulf of fonseca,Water
-gulf of gonâve ,Water
+gulf of gonve,Water
 gulf of salerno,Water
 gulf of taranto,Water
 gulf of trieste,Water
@@ -11022,10 +11022,10 @@ overlying right,Water
 rate structure ,Water
 recharge basin ,Water
 recycled water ,Water
-reloncaví sound,Water
+reloncav sound,Water
 riparian right ,Water
-samborombón bay,Water
-san matías gulf,Water
+samborombn bay,Water
+san matas gulf,Water
 saturated zone ,Water
 sea level rise ,Water
 sea of sardinia,Water
@@ -11915,7 +11915,7 @@ court of appeals,Legal
 oral examination,Legal
 pretrial release,Legal
 record on appeal,Legal
-state’s attorney,Legal
+states attorney,Legal
 budget authority,Legislative Relations
 committee report,Legislative Relations
 joint resolution,Legislative Relations
@@ -12019,7 +12019,7 @@ fruticose lichen,Mold Fungus Char
 imperfect fungus,Mold Fungus Char
 mycotoxic fungus,Mold Fungus Char
 parasitic fungus,Mold Fungus Char
-tranzschel’s law,Mold Fungus Char
+tranzschels law,Mold Fungus Char
 brown rot fungus,Mold Fungus Role
 brown-rot fungus,Mold Fungus Role
 cutaneous fungus,Mold Fungus Role
@@ -12377,7 +12377,7 @@ structural basin,Terrestrial
 terminal moraine,Terrestrial
 woodland habitat,Terrestrial
 background level,Toxic Substances
-biologic uptake ,Toxic Substances
+biologic uptake,Toxic Substances
 comparison value,Toxic Substances
 disease registry,Toxic Substances
 radioactive dose,Toxic Substances
@@ -12477,11 +12477,11 @@ impaired waters ,Water
 injection wells ,Water
 "inland sea, gozo",Water
 in-lieu recharge,Water
-land subsidence ,Water
+land subsidence,Water
 local deliveries,Water
 managed wetlands,Water
 microirrigation ,Water
-monitoring well ,Water
+monitoring well,Water
 moraleda channel,Water
 narragansett bay,Water
 natural recharge,Water
@@ -12490,7 +12490,7 @@ north sea harbor,Water
 overlying right ,Water
 reclaimed water ,Water
 reverse osmosis ,Water
-rügischer bodden,Water
+rgischer bodden,Water
 spreading basins,Water
 strait of sicily,Water
 surface storage ,Water
@@ -13966,7 +13966,7 @@ stream ecosystems,Water
 surge irrigation ,Water
 three mile harbor,Water
 tsunami flooding ,Water
-unsaturated zone ,Water
+unsaturated zone,Water
 lead service line,Water Supply Sys
 committee meetings,Administrative Management
 program management,Administrative Management
@@ -15406,10 +15406,10 @@ percolating water ,Water
 prescriptive right,Water
 primary treatment ,Water
 queen victoria sea,Water
-ranney collectors ,Water
+ranney collectors,Water
 recoverable water ,Water
 return-flow system,Water
-reuse groundwater ,Water
+reuse groundwater,Water
 rhode island sound,Water
 roes welcome sound,Water
 slow rise flooding,Water
@@ -15421,7 +15421,7 @@ stream ecosystems ,Water
 surface irrigation,Water
 unit applied water,Water
 upper new york bay,Water
-water reliability ,Water
+water reliability,Water
 water service area,Water
 cone of depression,Water Supply Sys
 consecutive system,Water Supply Sys
@@ -16199,7 +16199,7 @@ amazon web services,Information and Technology Management
 capacity management,Information and Technology Management
 computer test files,Information and Technology Management
 exception reporting,Information and Technology Management
-internet of things ,Information and Technology Management
+internet of things,Information and Technology Management
 performance reports,Information and Technology Management
 security identifier,Information and Technology Management
 user authorizations,Information and Technology Management
@@ -16695,17 +16695,17 @@ appropriative right,Water
 aquifer remediation,Water
 blending treatment ,Water
 conservation offset,Water
-conveyance seepage ,Water
+conveyance seepage,Water
 drought year supply,Water
 effective porosity ,Water
-ethylene dibromide ,Water
+ethylene dibromide,Water
 evaporative demand ,Water
 evapotranspiration ,Water
 firm-yield approach,Water
 groundwater budget ,Water
 groundwater mining ,Water
 groundwater storage,Water
-gulf of california ,Water
+gulf of california,Water
 gulf of carpentaria,Water
 infiltration basin ,Water
 investigator strait,Water
@@ -16724,7 +16724,7 @@ subterranean stream,Water
 surface irrigation ,Water
 tertiary treatment ,Water
 unconfined aquifer ,Water
-underground stream ,Water
+underground stream,Water
 unit applied water ,Water
 water bag transport,Water
 water service area ,Water
@@ -17805,7 +17805,7 @@ engineering analysis,Ref Material
 government open data,Ref Material
 indirect information,Ref Material
 nonexperimental data,Ref Material
-private information ,Ref Material
+private information,Ref Material
 procedural mechanism,Ref Material
 unsanitized document,Ref Material
 non-federal facility,Reg Facility
@@ -17972,7 +17972,7 @@ artificial recharge ,Water
 available soil water,Water
 blue water footprint,Water
 conservation offset ,Water
-crop unit water use ,Water
+crop unit water use,Water
 debris flow flooding,Water
 direct potable reuse,Water
 drought year supply ,Water
@@ -17995,9 +17995,9 @@ perched groundwater ,Water
 peter the great gulf,Water
 prince william sound,Water
 public water system ,Water
-rainfed agriculture ,Water
-reuse surface water ,Water
-sea of the hebrides ,Water
+rainfed agriculture,Water
+reuse surface water,Water
+sea of the hebrides,Water
 secondary treatment ,Water
 shelter island sound,Water
 shore protection act,Water
@@ -19001,7 +19001,7 @@ schedules of delivery,Procurement
 travel authorizations,Procurement
 broadcast measurement,Public Affairs
 camera-ready features,Public Affairs
-four p’s of marketing,Public Affairs
+four ps of marketing,Public Affairs
 intermediate research,Public Affairs
 reputation management,Public Affairs
 retirement ceremonies,Public Affairs
@@ -19213,7 +19213,7 @@ leaky confining layer,Water
 micrograms per liter ,Water
 municipal wastewater ,Water
 optimal fluoridation ,Water
-salt water intrusion ,Water
+salt water intrusion,Water
 semi-confined aquifer,Water
 sprinkler irrigation ,Water
 variable fluoridation,Water
@@ -19443,7 +19443,7 @@ beryllium copper alloy,Chemical Substances
 biodegradable plastics,Chemical Substances
 bromochloroacetic acid,Chemical Substances
 butyl benzyl phthalate,Chemical Substances
-di–sec–octyl phthalate,Chemical Substances
+disecoctyl phthalate,Chemical Substances
 expandable polystyrene,Chemical Substances
 ferromanganese silicon,Chemical Substances
 fluorine and fluorides,Chemical Substances
@@ -19586,7 +19586,7 @@ employee salary offset,Economic Factor
 federal land ownership,Economic Factor
 green power purchasing,Economic Factor
 private land ownership,Economic Factor
-proposal modification ,Economic Factor
+proposal modification,Economic Factor
 supplemental agreement,Economic Factor
 sustainable management,Economic Factor
 system benefits charge,Economic Factor
@@ -20348,7 +20348,7 @@ quality assurance audit,Aytl Mtd & Ptcl
 quality management plan,Aytl Mtd & Ptcl
 quantitative assessment,Aytl Mtd & Ptcl
 smoke exhaust procedure,Aytl Mtd & Ptcl
-trend assessment survey,Aytl Mtd & Ptcl
+trend assessmentsurvey,Aytl Mtd & Ptcl
 asphalt cement concrete,"Bldg,Bldg Mat,Con"
 asphalt sand and gravel,"Bldg,Bldg Mat,Con"
 child-occupied facility,"Bldg,Bldg Mat,Con"
@@ -21233,7 +21233,7 @@ natural disaster debris,Waste
 radioactive mixed waste,Waste
 residential solid waste,Waste
 toxicity characteristic,Waste
-untreated landfill gas ,Waste
+untreated landfill gas,Waste
 used or reused material,Waste
 air curtain incinerator,Waste Systems
 aluminum scrap shredder,Waste Systems
@@ -21278,7 +21278,7 @@ septic system treatment,Water
 wastewater reclamation ,Water
 water demand elasticity,Water
 water quality standards,Water
-wild and scenic rivers ,Water
+wild and scenic rivers,Water
 galvanized service line,Water Supply Sys
 non-public water system,Water Supply Sys
 water transmission line,Water Supply Sys
@@ -21581,7 +21581,7 @@ variable frequency drive,Energy Generation
 very low impedance cable,Energy Generation
 achieve final compliance,Enforce & Comp
 allocation determination,Enforce & Comp
-approved permit program ,Enforce & Comp
+approved permit program,Enforce & Comp
 business confidentiality,Enforce & Comp
 certification revocation,Enforce & Comp
 certification suspension,Enforce & Comp
@@ -22110,7 +22110,7 @@ category 1 recharge area,Water
 category 2 recharge area,Water
 category 3 recharge area,Water
 charlotte harbor estuary,Water
-commercial activity mix ,Water
+commercial activity mix,Water
 conveyance applied water,Water
 decentralized wastewater,Water
 drinking water standards,Water
@@ -22118,11 +22118,11 @@ effective precipitation ,Water
 electrical conductivity ,Water
 final report to congress,Water
 groundwater source area ,Water
-industrial activity mix ,Water
+industrial activity mix,Water
 municipal recycled water,Water
 recharge area protection,Water
 water demand elasticity ,Water
-water demand management ,Water
+water demand management,Water
 water in the environment,Water
 water quality standards ,Water
 water supply reliability,Water
@@ -22975,7 +22975,7 @@ subpolar low-pressure belt,Atmosphere
 water droplet condensation,Atmosphere
 wet atmospheric convection,Atmosphere
 air conditioning idle test,Aytl Mtd & Ptcl
-baseline assessment survey,Aytl Mtd & Ptcl
+baseline assessmentsurvey,Aytl Mtd & Ptcl
 benefits transfer approach,Aytl Mtd & Ptcl
 class ii equivalent method,Aytl Mtd & Ptcl
 cohort epidemiologic study,Aytl Mtd & Ptcl
@@ -23626,7 +23626,7 @@ maximum contaminant level ,Water
 net groundwater extraction,Water
 precipitation enhancement ,Water
 return flows to salt sink ,Water
-reused agricultural water ,Water
+reused agricultural water,Water
 seawater intrusion barrier,Water
 subsurface drip irrigation,Water
 surface water augmentation,Water
@@ -23660,7 +23660,7 @@ inherently safer technology,Aytl Mtd & Ptcl
 ion composition elucidation,Aytl Mtd & Ptcl
 maximum likelihood analysis,Aytl Mtd & Ptcl
 maximum likelihood estimate,Aytl Mtd & Ptcl
-retrospective cohort study ,Aytl Mtd & Ptcl
+retrospective cohort study,Aytl Mtd & Ptcl
 risk management methodology,Aytl Mtd & Ptcl
 statistical decision theory,Aytl Mtd & Ptcl
 stochastic process analysis,Aytl Mtd & Ptcl
@@ -24132,7 +24132,7 @@ significant industrial user,Regulatory Roles
 small disadvantage business,Regulatory Roles
 small quantity manufacturer,Regulatory Roles
 universal waste transporter,Regulatory Roles
-women’s business enterprise,Regulatory Roles
+womens business enterprise,Regulatory Roles
 high priority research need,Res Life Cyc Stag
 partner/stakeholder outcome,Res Life Cyc Stag
 uncertainty and variability,Res Life Cyc Stag
@@ -24917,7 +24917,7 @@ silicon and silicon compounds,Chemical Substances
 tetramethyl ammonium chloride,Chemical Substances
 trichlorinated dibenzodioxins,Chemical Substances
 do not have to house soldiers,Civil Rights
-family and medical leave act ,Civil Rights
+family and medical leave act,Civil Rights
 may not participate in prayer,Civil Rights
 may not use force maliciously,Civil Rights
 powers reserved to the states,Civil Rights
@@ -25780,13 +25780,13 @@ sewage treatment effluent well,Waste Systems
 waste management unit boundary,Waste Systems
 yucca mountain disposal system,Waste Systems
 agricultural land stewardship ,Water
-background water conservation ,Water
+background water conservation,Water
 flood-managed aquifer recharge,Water
 groundwater monitoring network,Water
 groundwater recharge facility ,Water
 groundwater subsurface inflow ,Water
 groundwater subsurface outflow,Water
-interregional import projects ,Water
+interregional import projects,Water
 irrigation water requirements ,Water
 management allowable depletion,Water
 matching water quality to use ,Water
@@ -26459,7 +26459,7 @@ manufacturing process by product,Manufacturing Processes
 prestress concrete manufacturing,Manufacturing Processes
 publication rotogravure printing,Manufacturing Processes
 ready-mix concrete manufacturing,Manufacturing Processes
-"startup after september 17, 2020",Manufacturing Processes
+"startupafter september 17, 2020",Manufacturing Processes
 vegetable oil production process,Manufacturing Processes
 microorganism oxygen consumption,Micro Act or Process
 photosynthesis related structure,Micro Bdy Pt & Sys
@@ -26473,7 +26473,7 @@ error evaluation and propagation,Model Sim Tool
 natural resource damage modeling,Model Sim Tool
 quantitative model corroboration,Model Sim Tool
 vesicular-arbuscular mycorrhizae,Mold Fungus Role
-"deviation before august 24, 2020",Monitoring & Reporting
+"deviationbefore august 24, 2020",Monitoring & Reporting
 epa moderated transaction system,Monitoring & Reporting
 national core monitoring station,Monitoring & Reporting
 ambient fine particulate monitor,Monitoring Tech
@@ -26648,7 +26648,7 @@ unauthorized dispersion technique,Control Tech
 laboratory performance evaluation,Controls and Oversight
 world geographic reference system,Coor Ref System
 automatic temperature compensator,"Devs, Equip, Apps"
-back-end continuous process vent ,"Devs, Equip, Apps"
+back-end continuous process vent,"Devs, Equip, Apps"
 chemical recovery combustion unit,"Devs, Equip, Apps"
 coating mix preparation equipment,"Devs, Equip, Apps"
 continuous front-end process vent,"Devs, Equip, Apps"
@@ -26784,7 +26784,7 @@ household equipment manufacturing,Manufacturing Processes
 inorganic chemicals manufacturing,Manufacturing Processes
 metal powder production operation,Manufacturing Processes
 reel-to-reel electrolytic plating,Manufacturing Processes
-"shutdown after september 16, 2020",Manufacturing Processes
+"shutdownafter september 16, 2020",Manufacturing Processes
 wet material processing operation,Manufacturing Processes
 "wet-matting, dry-pressing process",Manufacturing Processes
 "wet-matting, wet-pressing process",Manufacturing Processes
@@ -26897,7 +26897,7 @@ radioactive waste disposal system,Waste Systems
 remediation waste management site,Waste Systems
 universal waste transfer facility,Waste Systems
 waste thermal processing facility,Waste Systems
-agricultural discharge standards ,Water
+agricultural discharge standards,Water
 agricultural water use efficiency,Water
 naturally occurring conservation ,Water
 naturally occurring contaminants ,Water
@@ -27046,7 +27046,7 @@ application programming interface ,Information and Technology Management
 information technology inventories,Information and Technology Management
 information technology investments,Information and Technology Management
 information technology maintenance,Information and Technology Management
-managed security service provider ,Information and Technology Management
+managed security service provider,Information and Technology Management
 software-defined wide area network,Information and Technology Management
 laboratory fortified sample matrix,Laboratory
 operations and maintenance program,Laboratory
@@ -27299,7 +27299,7 @@ waterborne pathogenic microorganism,Microorganism Role
 attributional life cycle assessment,Model Sim Tool
 distributed representation modeling,Model Sim Tool
 local air quality modeling analysis,Model Sim Tool
-"deviation before september 17, 2020",Monitoring & Reporting
+"deviation beforeseptember 17, 2020",Monitoring & Reporting
 population-oriented monitoring site,Monitoring & Reporting
 reasonable record-access assistance,Monitoring & Reporting
 ammonia continuous emission monitor,Monitoring Tech
@@ -27378,7 +27378,7 @@ municipal solid waste landfill unit,Waste Systems
 process wastewater treatment system,Waste Systems
 system-dependent recovery equipment,Waste Systems
 evapotranspiration of applied water,Water
-groundwater recharge applied water ,Water
+groundwater recharge applied water,Water
 irrigated lands regulatory program ,Water
 onsite wastewater treatment system ,Water
 statewide water management systems ,Water
@@ -27555,7 +27555,7 @@ drug test control and accountability,Personnel
 position classification review files,Personnel
 position classification survey files,Personnel
 lowest observed adverse effect level,Pesticides
-contracting officer’s representative,Procurement
+contracting officers representative,Procurement
 small disadvantaged business concern,Procurement
 uncontrolled communications channels,Public Affairs
 ethylene oxide source by amount used,Regulatory Roles
@@ -27581,7 +27581,7 @@ repetitive polymerase chain reaction,SciTech & Equip
 architectural or engineering service,Service Processes
 lowest-observed-adverse-effect level,Toxic Substances
 automobile and light-duty truck body,Transportation
-creosote-borate treated railroad tie,Transportation
+creosote-borate treated railroadtie,Transportation
 emergency vehicle field modification,Transportation
 evaporative/refueling control system,Transportation
 sustainable community transportation,Transportation
@@ -27877,7 +27877,7 @@ harmful algal bloom cell sedimentation,Micro Act or Process
 areawide air quality modeling analysis,Model Sim Tool
 biologically based dose-response model,Model Sim Tool
 trichoderma harzianum rifai strain t39,Molds Fungi Taxa
-"deviation on and after august 24, 2020",Monitoring & Reporting
+"deviationon and after august 24, 2020",Monitoring & Reporting
 nonattainment area base year inventory,Monitoring & Reporting
 continuous parameter monitoring system,Monitoring Tech
 multimetal continuous emission monitor,Monitoring Tech
@@ -28250,7 +28250,7 @@ waste management and remediation services,Orgs & Industries
 computer electronic accommodation program,Personnel
 federal employee education and assistance,Personnel
 medical records for transferred employees,Personnel
-administrator’s authorized representative,Regulatory Roles
+administrators authorized representative,Regulatory Roles
 national strike force coordination center,Regulatory Roles
 polychlorinated biphenyls waste generator,Regulatory Roles
 "safety and health topics, technical links",Safety and Health
@@ -28263,7 +28263,7 @@ polychlorinated biphenyls household waste,Waste
 hazardous waste management infrastructure,Waste Systems
 manufactured stormwater management device,Waste Systems
 totally enclosed waste treatment facility,Waste Systems
-inner seas off the west coast of scotland,Water
+inner seas off the west coast ofscotland,Water
 water resource integrated modeling system,Water
 uncovered finished water storage facility,Water Supply Sys
 feline acquired immune deficiency syndrome,Animal Disease
@@ -28714,7 +28714,7 @@ non-integrated refueling emission control system,Transportation
 leachate detection collection and removal system,Waste Systems
 "marine protection, research, and sanctuaries act",Water
 national pollutant discharge elimination system ,Water
-return flows evaporation and evapotranspiration ,Water
+return flows evaporation and evapotranspiration,Water
 equivalent procedure for determining heat content,Aytl Mtd & Ptcl
 direct contact evaporator recovery furnace system,"Bldg,Bldg Mat,Con"
 ground phosphate rock handling and storage system,"Bldg,Bldg Mat,Con"
