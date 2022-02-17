@@ -317,3 +317,4 @@ class KeywordExtractor():
                 top_cats.add(p)
             elif p in subjects and subjects[p] >= 3 and len(text) > 2000:
                 top_cats.add(p)
+        return list(top_cats)
