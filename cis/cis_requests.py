@@ -633,7 +633,9 @@ def get_sems_special_processing(config, region):
     return Response(StatusResponse(status='Failed', reason=special_processing.text, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
 
 def get_sems_sites(req: SemsSiteRequest, config):
-  sites = requests.get('http://' + config.sems_host + '/sems-ws/outlook/getSites', params=req.to_dict(), timeout=120)
+  params = req.to_dict()
+  params = {k:v for k,v in params.items() if v is not None}
+  sites = requests.get('http://' + config.sems_host + '/sems-ws/outlook/getSites', params=params, timeout=120)
   if sites.status_code == 200:
     response_object = SemsSiteResponse.from_dict(sites.json())
     return Response(response_object.to_json(), status=200, mimetype='application/json')

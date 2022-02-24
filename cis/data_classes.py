@@ -285,6 +285,8 @@ class GetSpecialProcessingResponse:
 @dataclass 
 class SemsSiteRequest:
     region_id: list[str]
+    search_term: Optional[str] = None
+    program_type: Optional[str] = None
     page_size: Optional[int] = None
     page_start: Optional[int] = None
 
