@@ -1053,6 +1053,10 @@ paths:
           type: string
           format: "jwt"
           required: true
+        - in: query
+          name: "override"
+          type: bool
+          required: false
       responses:
         200:
           description: "Help items successfully returned."

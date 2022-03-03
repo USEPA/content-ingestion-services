@@ -421,6 +421,9 @@ def get_help_by_id():
 
 @app.route('/get_all_help_items', methods=['GET'])
 def get_all_help():
+    req = request.args
+    if req.get('override', False):
+        return Response(StatusResponse(status='Failed', reason="Request returned 500 for testing purposes.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
     return get_all_help_items()
 
 @app.route('/submit_sems_email', methods=['POST'])
