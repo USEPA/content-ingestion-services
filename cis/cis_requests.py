@@ -635,7 +635,10 @@ def get_sems_special_processing(config, region):
 def get_sems_sites(req: SemsSiteRequest, config):
   params = req.to_dict()
   params = {k:v for k,v in params.items() if v is not None}
-  sites = requests.get('http://' + config.sems_host + '/sems-ws/outlook/getSites', params=params, timeout=120)
+  try:
+    sites = requests.get('http://' + config.sems_host + '/sems-ws/outlook/getSites', params=params, timeout=120)
+  except:
+    return Response(StatusResponse(status='Failed', reason="Request to SEMS server failed.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
   if sites.status_code == 200:
     response_object = SemsSiteResponse.from_dict(sites.json())
     return Response(response_object.to_json(), status=200, mimetype='application/json')
