@@ -59,7 +59,8 @@ def file_metadata_prediction():
         except:
             return Response(StatusResponse(status='Failed', reason='Prediction metadata not formatted correctly.', request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
     if file:
-        success, text, response = tika(file, c)
+        file_obj = file.read()
+        success, text, response = tika(file_obj, c)
         if not success:
             return response
         predicted_schedules, default_schedule = model.predict(text, 'document', prediction_metadata)
@@ -67,13 +68,18 @@ def file_metadata_prediction():
         identifiers=keyword_extractor.extract_identifiers(text)
         predicted_title = mock_prediction_with_explanation
         predicted_description = mock_prediction_with_explanation
+        if prediction_metadata.file_name.split('.')[-1] in set(['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'pdf']):
+            cui_categories = get_cui_categories(file_obj, c)
+        else:
+            cui_categories = []
         prediction = MetadataPrediction(
             predicted_schedules=predicted_schedules, 
             title=predicted_title, 
             description=predicted_description, 
             default_schedule=default_schedule, 
             subjects=subjects, 
-            identifiers=identifiers
+            identifiers=identifiers,
+            cui_categories=cui_categories
             )
         return Response(prediction.to_json(), status=200, mimetype='application/json')
     else:

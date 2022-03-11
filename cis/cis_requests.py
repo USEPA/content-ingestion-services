@@ -46,6 +46,28 @@ def tika(file, config, extraction_type='text'):
   else:
       return True, r.text, None
 
+def get_cui_categories(file, config):
+  try:
+    server = "http://" + config.tika_server + "/meta"
+    response_meta = requests.request("PUT", server, headers={'Accept': 'application/json'}, data=file)
+  except:
+    app.logger.error("Tika metadata request failed for request ID " + str(g.get('request_id', None)))
+    return []
+  
+  if response_meta.status_code == 200:
+    try:
+      meta_info = json.loads(response_meta.text)
+      for k, v in meta_info.items():
+        if 'MSIP_Label_' in k and '_Name' in k:
+          return [v]
+      return []
+    except:
+      app.logger.error("Failed to parse tika metadata response for request ID " + str(g.get('request_id', None)))
+      return []
+  else:
+    app.logger.error("Tika metadata request completed with status " + str(response_meta.status_code) + " for request ID " + str(g.get('request_id', None)))
+    return []
+
 def get_eml_file(email_id, file_name, access_token, config):
   headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}
   body = {"filename":file_name, "emailid":email_id}
@@ -820,7 +842,11 @@ def sharepoint_record_prediction(req: SharepointPredictionRequest, access_token,
   identifiers=keyword_extractor.extract_identifiers(text)
   predicted_title = mock_prediction_with_explanation
   predicted_description = mock_prediction_with_explanation
-  prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description, default_schedule=default_schedule, subjects=subjects, identifiers=identifiers)
+  if req.file_name.split('.')[-1] in set(['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'pdf']):
+    cui_categories = get_cui_categories(content, c)
+  else:
+    cui_categories = []
+  prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description, default_schedule=default_schedule, subjects=subjects, identifiers=identifiers, cui_categories=cui_categories)
   return Response(prediction.to_json(), status=200, mimetype='application/json')
 
 def upload_sharepoint_record(req: SharepointUploadRequest, access_token, user_info, c):

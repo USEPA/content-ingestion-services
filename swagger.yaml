@@ -1209,13 +1209,17 @@ definitions:
             type: string
           prediction_type:
             type: string
-      keywords:
+      subjects:
         type: array
         items:
           type: string
       identifiers:
         type: object
         additionalProperties:
+          type: string
+      cui_categories:
+        type: array
+        items:
           type: string
   AddFavoritesRequest:
     type: object
