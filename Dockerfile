@@ -1,4 +1,4 @@
-from python:3.9-slim-buster
+FROM python:3.9-slim-buster
 
 # Install requirements
 COPY requirements.txt /home/requirements.txt

@@ -1040,6 +1040,32 @@ paths:
           description: "Server side error - description in response."
           schema:
             $ref: "#/definitions/StatusResponse"
+  /update_help_items:
+    get:
+      tags:
+      - "help"
+      summary: "Update help item cache."
+      consumes:
+        - application/json
+      parameters:
+        - in: header
+          name: "Authorization"
+          type: string
+          format: "jwt"
+          required: true
+      responses:
+        200:
+          description: "Help item successfully updated."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        401:
+          description: "Unauthorized - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        500:
+          description: "Server side error - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
   /get_all_help_items:
     get:
       tags:
@@ -1532,6 +1558,10 @@ definitions:
       department: 
         type: string
       parent_org_code:
+        type: string
+      manager_department: 
+        type: string
+      manager_parent_org_code:
         type: string
       employee_number:
         type: string

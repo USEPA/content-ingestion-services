@@ -609,11 +609,30 @@ def get_user_settings(lan_id):
             settings = settings[0]
             return UserSettings(preferred_system=settings.system, default_edit_mode=settings.default_edit_mode)
 
+def get_wam_info_by_display_name(config, display_name):
+  url = 'https://' + config.wam_host + '/iam/governance/scim/v1/Users?attributes=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:Department&attributes=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:Company&attributes=urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:department&attributes=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:PARENTORGCODE&filter=displayName eq "' + display_name + '"'
+  wam = requests.get(url, auth=(config.wam_username, config.wam_password), timeout=30)
+  if wam.status_code != 200:
+    app.logger.error('WAM request by display_name failed for display_name ' + display_name)
+    return None
+  user_data = wam.json()
+  if 'Resources' in user_data and len(user_data['Resources']) > 0:
+    user_data = user_data['Resources'][0]
+    department = user_data.get('urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User', {}).get('Department', None)
+    enterprise_department = user_data.get('urn:ietf:params:scim:schemas:extension:enterprise:2.0:User', {}).get('department', None)
+    company = user_data.get('urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User', {}).get('Company', None)
+    if enterprise_department is None:
+      enterprise_department = company
+    return department, enterprise_department
+  else:
+    app.logger.error('User data empty for display_name ' + display_name)
+    return None
+
 def get_user_info(config, token_data):
   # Handle service accounts separately
   if token_data['email'][:4].lower() == 'svc_':
-    return True, None, UserInfo(token_data['email'], token_data['email'], token_data['email'].split('@')[0], 'SERVICE_ACCOUNT', '', '', [], None, default_settings)
-  url = 'https://' + config.wam_host + '/iam/governance/scim/v1/Users?attributes=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:Department&attributes=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:Company&attributes=urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:department&attributes=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:PARENTORGCODE&attributes=urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:employeeNumber&attributes=userName&attributes=Active&attributes=displayName&filter=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:Upn eq "' + token_data['email'] + '"'
+    return True, None, UserInfo(token_data['email'], token_data['email'], token_data['email'].split('@')[0], 'SERVICE_ACCOUNT', '', None, None, '', [], None, default_settings)
+  url = 'https://' + config.wam_host + '/iam/governance/scim/v1/Users?attributes=urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:manager&attributes=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:Department&attributes=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:Company&attributes=urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:department&attributes=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:PARENTORGCODE&attributes=urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:employeeNumber&attributes=userName&attributes=Active&attributes=displayName&filter=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:Upn eq "' + token_data['email'] + '"'
   try:
     wam = requests.get(url, auth=(config.wam_username, config.wam_password), timeout=30)
     if wam.status_code != 200:
@@ -625,6 +644,20 @@ def get_user_info(config, token_data):
     enterprise_department = user_data.get('urn:ietf:params:scim:schemas:extension:enterprise:2.0:User', {}).get('department', None)
     employee_number = user_data.get('urn:ietf:params:scim:schemas:extension:enterprise:2.0:User', {}).get('employeeNumber', None)
     company = user_data.get('urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User', {}).get('Company', None)
+    manager_name = user_data.get('urn:ietf:params:scim:schemas:extension:enterprise:2.0:User', {}).get('manager', {}).get('displayName', None)
+    manager_department = None
+    manager_enterprise_department = None
+    try:
+      if manager_name is not None:
+        manager_data = get_wam_info_by_display_name(config, manager_name)
+        if manager_data is not None:
+          manager_department = manager_data[0]
+          manager_enterprise_department = manager_data[1]
+        else:
+          app.logger.error('Manager lookup data empty for manager name ' + str(manager_name))
+    except:
+      app.logger.error('Manager lookup failed for manager name ' + str(manager_name))
+
     if enterprise_department is None:
       enterprise_department = company
     active = user_data['active']
@@ -644,7 +677,7 @@ def get_user_info(config, token_data):
   except:
     user_settings = default_settings
     app.logger.info('Preferred system database read failed for ' + token_data['email'])
-  return True, None, UserInfo(token_data['email'], display_name, lan_id, department, enterprise_department, employee_number, badges, profile, user_settings)
+  return True, None, UserInfo(token_data['email'], display_name, lan_id, department, enterprise_department, manager_department, manager_enterprise_department, employee_number, badges, profile, user_settings)
 
 def get_sems_special_processing(config, region):
   special_processing = requests.get('http://' + config.sems_host + '/sems-ws/outlook/getSpecialProcessing/' + region, timeout=10)
@@ -1038,6 +1071,13 @@ def get_help_item(req: GetHelpItemRequest):
 def get_all_help_items():
   items = AllHelpItemsResponse(help_items=help_item_cache.get_help_items())
   return Response(items.to_json(), status=200, mimetype='application/json')
+
+def update_help_items():
+  try:
+    help_item_cache.update_help_items()
+    return Response(StatusResponse(status='Success', reason='Help items cache updated.', request_id=g.get('request_id', None)).to_json(), status=200, mimetype='application/json')
+  except:
+    return Response(StatusResponse(status='Failed', reason='Help item cache update failed.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
 
 def submit_sems_email(req: SEMSEmailUploadRequest, config):
   data = req.to_json()

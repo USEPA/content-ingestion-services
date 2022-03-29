@@ -18,14 +18,27 @@ class HelpItemCache:
     def get_help_items(self):
         diff = datetime.now() - self.update_ts
         with self.lock:
-          if diff.total_seconds() > 60 * 60 or self.help_items is None:
+            if diff.total_seconds() > 60 * 60 or self.help_items is None:
+                self.help_item_ids = fetch_help_item_list(self.config, self.logger)
+                updated_items = fetch_help_items(self.config, self.help_item_ids, self.logger)
+                if updated_items is None:
+                    self.logger.info('Failed to fetch help items.')
+                else:
+                    self.logger.info('Updated help items.')
+                    self.help_items = updated_items
+                self.update_ts = datetime.now()
+        return self.help_items
+    
+    def update_help_items(self):
+        with self.lock:
+            self.help_item_ids = fetch_help_item_list(self.config, self.logger)
             updated_items = fetch_help_items(self.config, self.help_item_ids, self.logger)
             if updated_items is None:
                 self.logger.info('Failed to fetch help items.')
             else:
+                self.logger.info('Updated help items.')
                 self.help_items = updated_items
             self.update_ts = datetime.now()
-          return self.help_items
 
 def query_help_id(config, name, logger):
     r = requests.get("https://" + config.patt_host + "/app/helptext/?pages/" + name +  "&output=json", timeout=30)

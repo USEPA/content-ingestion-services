@@ -335,6 +335,8 @@ class UserInfo:
     lan_id: str
     department: str
     parent_org_code: str
+    manager_department: Optional[str]
+    manager_parent_org_code: Optional[str]
     employee_number: str
     badges: list[BadgeInfo]
     profile: Optional[ProfileInfo]

@@ -425,6 +425,10 @@ def get_help_by_id():
         return Response(StatusResponse(status='Failed', reason="Request is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
     return get_help_item(req)
 
+@app.route('/update_help_items', methods=['GET'])
+def update_help():
+    return update_help_items()
+
 @app.route('/get_all_help_items', methods=['GET'])
 def get_all_help():
     req = request.args
