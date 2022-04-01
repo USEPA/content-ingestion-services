@@ -824,7 +824,39 @@ def check_or_create_records_folder(access_token):
   else:
     return True, None
 
-# TODO: handle case when shared/private folders contain more than 5000 records.
+# Note: Depth increases when passing to a subfolder, or to a next page of results
+def read_sharepoint_folder(relative_path, access_token, filter_status, depth, link = None, max_depth=3):
+  if depth > max_depth:
+    return True, []
+  headers = {'Authorization': 'Bearer ' + access_token}
+  if link:
+    shared = requests.get(link, headers=headers, timeout=10)
+  else: 
+    shared = requests.get("https://graph.microsoft.com/v1.0/me/drive/root:/" + relative_path + ":/children/?$expand=listItem&$top=1000", headers=headers, timeout=10)
+  if shared.status_code != 200:
+    return False, Response(StatusResponse(status='Failed', reason='Failed to retrieve shared OneDrive items for folder ' + relative_path, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+  shared_items = shared.json()['value']
+  # Process records in this folder
+  all_records = [simplify_sharepoint_record(doc, 'Shared') for doc in shared_items]
+  filtered_records = list(filter(lambda x: x.records_status == filter_status, all_records))
+  # Process subfolders
+  folders = list(filter(lambda x: "folder" in x, shared_items))
+  for folder in folders:
+    read_successful, data = read_sharepoint_folder(relative_path + "/" + folder["name"], access_token, filter_status, depth + 1, link=None, max_depth=max_depth)
+    if not read_successful:
+      return False, data
+    else:
+      filtered_records = filtered_records + data
+  # If number of items in this folder is too large, process the rest of the items in the folder
+  if "@odata.nextLink" in shared.json():
+    next_link = shared.json()['@odata.nextLink']
+    read_successful, recursive_data = read_sharepoint_folder(relative_path, access_token, filter_status, depth + 1, link=next_link, max_depth=max_depth)
+    if not read_successful:
+      return False, recursive_data
+    else:
+      filtered_records = filtered_records + recursive_data
+  return True, filtered_records
+
 def list_sharepoint_records(req: GetSharepointRecordsRequest, access_token):
   success, response = check_or_create_records_folder(access_token)
   if not success:
@@ -835,21 +867,16 @@ def list_sharepoint_records(req: GetSharepointRecordsRequest, access_token):
     return Response(StatusResponse(status='Failed', reason='Invalid page number.', request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
   if items_per_page <= 0:
     return Response(StatusResponse(status='Failed', reason='Items per page must be > 0.', request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
-  all_records = []
   # Get shared records
-  headers = {'Authorization': 'Bearer ' + access_token}
-  shared = requests.get("https://graph.microsoft.com/v1.0/me/drive/root:/EPA Records:/children/?$expand=listItem", headers=headers, timeout=10)
-  if shared.status_code != 200:
-    return Response(StatusResponse(status='Failed', reason='Failed to retrieve shared OneDrive items.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-  shared_items = shared.json()['value']
-  for doc in shared_items:
-    all_records.append(simplify_sharepoint_record(doc, 'Shared'))
   if req.filter_type == 'in_batch':
     filter_status = 'Pending Batch Submission'
   else:
     filter_status = 'Pending'
-  filtered_records = list(filter(lambda x: x.records_status == filter_status, all_records))
-  filtered_records = sorted(filtered_records, key=lambda x: x.last_modified_date, reverse=True)
+  read_successful, data = read_sharepoint_folder('EPA Records', access_token, filter_status, 0)
+  if not read_successful:
+    return data
+  else:
+    filtered_records = sorted(data, key=lambda x: x.last_modified_date, reverse=True)
   total_count = len(filtered_records)
   paged_records = filtered_records[(page_number - 1) * items_per_page : page_number * items_per_page]
   response = SharepointListResponse(records=paged_records, total_count=total_count)
