@@ -31,11 +31,12 @@ class RecordScheduleCache:
         return self.schedules
     
     def get_schedule_mapping(self):
+      with self.lock:
         return self.schedule_mapping
     
 def process_schedule_data(schedule_dict):
   return RecordScheduleInformation(
-      function_number=schedule_dict['function_code'],
+      function_number=str(schedule_dict['function_code'])[:3],
       schedule_number=schedule_dict['schedule_number'],
       disposition_number=schedule_dict['item_number'],
       display_name=schedule_dict['schedule_item_number'],
@@ -71,6 +72,6 @@ def get_record_schedules(config, dnu_items, logger):
   filtered_results = list(filter(lambda x: x['schedule_item_number'] not in dnu_items, result))
   schedule_list = RecordScheduleList([process_schedule_data(x) for x in filtered_results])
   schedule_mapping = {
-    (sched.schedule_number + sched.disposition_number):RecordSchedule(sched.function_number, sched.schedule_number, sched.disposition_number) 
+    (sched.display_name):RecordSchedule(sched.function_number, sched.schedule_number, sched.disposition_number) 
     for sched in schedule_list.schedules}
   return request_success, schedule_list, schedule_mapping

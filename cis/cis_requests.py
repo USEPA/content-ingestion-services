@@ -778,10 +778,11 @@ def upload_documentum_email(upload_email_request, access_token, user_info, confi
 def simplify_sharepoint_record(raw_rec, sensitivity):
   detected_sched = None
   mapping = schedule_cache.get_schedule_mapping()
-  for item in raw_rec['webUrl'].split('/'):
-    if item in mapping:
-      detected_sched = mapping[item]
-      break
+  for k, v in mapping.items():
+    for item in raw_rec['webUrl'].split('/'):
+      if k in item.replace(' ', '').replace('%20', '').replace('-',''):
+        detected_sched = v
+        break
   return SharepointRecord(
     web_url = raw_rec['webUrl'],
     records_status = raw_rec['listItem']['fields'].get('Records_x0020_Status', None),
