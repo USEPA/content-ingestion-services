@@ -92,6 +92,16 @@ def get_email_html(email_id, access_token, config):
     app.logger.info("Email HTML request failed with status " + str(p.status_code) + ". " + p.text)
     return False, None, Response(StatusResponse(status='Failed', reason="Unable to retrieve email HTML.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
   return True, p.text, None
+
+def create_outlook_record_category(access_token, user_email):
+  body = {"displayName": "Record", "color": "preset22"}
+  headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}
+  try:
+    r = requests.post("https://graph.microsoft.com/v1.0/me/outlook/masterCategories", data=json.dumps(body), headers=headers)
+    if r.status_code != 201 and r.status_code != 409:
+      app.logger.error('Failed to create Outlook Record category for user ' + user_email)
+  except:
+    app.logger.error('Failed to create Outlook Record category for user ' + user_email)
   
 def list_email_metadata(req: GetEmailRequest, user_email, access_token, config):
   # First get regular total
@@ -254,6 +264,9 @@ def list_email_metadata(req: GetEmailRequest, user_email, access_token, config):
       ) for x in resp['email_items']
       ]
     emails = regular_emails + archive_emails
+    # Need Graph API token for this, but inly currently getting Outlook/EWS token
+    #if len(emails) == 0:
+    #  create_outlook_record_category(access_token, user_email)
 
   return Response(GetEmailResponse(total_count=total_count, items_per_page=req.items_per_page, page_number=req.page_number, emails=emails).to_json(), status=200, mimetype="application/json")
 
