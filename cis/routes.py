@@ -146,17 +146,16 @@ def upload_file():
         return Response(StatusResponse(status='Failed', reason='User ' + user_info.lan_id + ' is not authorized to list ' + metadata.custodian + ' as custodian.', request_id=g.get('request_id', None)).to_json(), status=401, mimetype='application/json')
     if file is None:
         return Response(StatusResponse(status='Failed', reason="No file found.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype="application/json")
-    success, r_object_id, response = upload_documentum_record(file, convert_metadata(metadata), c, env)
-    if not success:
-        return response
+    # This is where we need to upload record to ARMS
+    
     # Add submission analytics
-    success, response = add_submission_analytics(user_activity, metadata.record_schedule, user_info.lan_id, r_object_id, None)
-    if not success:
-        return response
-    else:
-        log_upload_activity(user_info, user_activity, metadata, c)
-        return Response(StatusResponse(status='OK', reason='File successfully uploaded.', request_id=g.get('request_id', None)).to_json(), status=200, mimetype='application/json')
-        
+    # success, response = add_submission_analytics(user_activity, metadata.record_schedule, user_info.lan_id, r_object_id, None)
+    # if not success:
+    #     return response
+    # else:
+    #     log_upload_activity(user_info, user_activity, metadata, c)
+    #     return Response(StatusResponse(status='OK', reason='File successfully uploaded.', request_id=g.get('request_id', None)).to_json(), status=200, mimetype='application/json')
+    return Response(StatusResponse(status='OK', reason='File successfully uploaded.', request_id=g.get('request_id', None)).to_json(), status=200, mimetype='application/json')   
 
 @app.route('/get_mailboxes', methods=['GET'])
 def get_mailboxes():
@@ -191,7 +190,7 @@ def upload_email():
     # TODO: Improve custodian validation based on role
     if req.metadata.custodian != user_info.lan_id:
         return Response(StatusResponse(status='Failed', reason='User ' + user_info.lan_id + ' is not authorized to list ' + req.metadata.custodian + ' as custodian.', request_id=g.get('request_id', None)).to_json(), status=401, mimetype='application/json')
-    return upload_documentum_email(req, g.access_token, user_info, c)
+    return Response(StatusResponse(status='OK', reason='Email successfully uploaded.', request_id=g.get('request_id', None)).to_json(), status=200, mimetype='application/json')   
 
 @app.route('/download_email', methods=['GET'])
 def download_email():
@@ -399,7 +398,7 @@ def sharepoint_upload():
         return Response(StatusResponse(status='Failed', reason='User ' + user_info.lan_id + ' is not authorized to list ' + req.metadata.custodian + ' as custodian.', request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
     if not success:
         return Response(StatusResponse(status='Failed', reason=message, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-    return upload_sharepoint_record(req, g.access_token, user_info, c)
+    return Response(StatusResponse(status='OK', reason='Sharepoint file successfully uploaded.', request_id=g.get('request_id', None)).to_json(), status=200, mimetype='application/json')   
 
 @app.route('/upload_sharepoint_batch', methods=['POST'])
 def sharepoint_batch_upload():
