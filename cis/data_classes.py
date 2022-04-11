@@ -24,6 +24,7 @@ class KeywordExtractionRequest:
 @dataclass_json
 @dataclass 
 class KeywordExtractionResponse:
+    keywords: list[str]
     subjects: list[str]
     identifiers: Dict[str, str] 
 

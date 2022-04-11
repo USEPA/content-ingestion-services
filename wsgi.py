@@ -11,6 +11,8 @@ if __name__ == "__main__":
                     help='Region for cloud environment.')
     parser.add_argument('--model_path', default='/home/models/trained_model',
                     help='Path to HuggingFace classifier model.')
+    parser.add_argument('--capstone_path', default='/home/models/capstone_officials.csv',
+                    help='Path to list of Capstone officials.')
     parser.add_argument('--label_mapping_path', default='/home/models/label_mapping.json',
                     help='Path to mapping between prediction indices and corresponding record schedules.')
     parser.add_argument('--office_info_mapping_path', default='/home/models/office_info_mapping.json',
@@ -33,6 +35,8 @@ if __name__ == "__main__":
                     help='Do not use list for record schedules.')
     parser.add_argument('--vocab_path', default='keyword_category.csv', 
                     help='EPA enterprise vocabulary.')
+    parser.add_argument('--keyword_idf_path', default='keyword_idf.json', 
+                    help='Inverse document frequency values for keywords.')
     parser.add_argument('--priority_categories_path', default='rscategories.txt', 
                     help='EPA enterprise vocabulary.')
     parser.add_argument('--documentum_prod_url', default=None, 

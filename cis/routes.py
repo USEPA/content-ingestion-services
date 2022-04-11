@@ -5,7 +5,7 @@ from .data_classes import *
 from io import BytesIO
 from .models import User, Favorite, AppSettings, db
 import uuid
-from . import key_cache, c, model, mailbox_manager, schedule_cache, keyword_extractor
+from . import key_cache, c, model, mailbox_manager, schedule_cache, keyword_extractor, identifier_extractor, capstone_detector
 import json
 
 @app.before_request
@@ -63,9 +63,13 @@ def file_metadata_prediction():
         success, text, response = tika(file_obj, c)
         if not success:
             return response
-        predicted_schedules, default_schedule = model.predict(text, 'document', prediction_metadata)
-        subjects=keyword_extractor.extract_subjects(text),
-        identifiers=keyword_extractor.extract_identifiers(text)
+        keyword_weights = keyword_extractor.extract_keywords(text)
+        keywords = [x[0] for x in sorted(keyword_weights.items(), key=lambda y: y[1], reverse=True)][:5]
+        subjects=keyword_extractor.extract_subjects(text, keyword_weights)
+        has_capstone=capstone_detector.detect_capstone_text(text)
+        identifiers=identifier_extractor.extract_identifiers(text)
+        # TODO: Handle case where attachments are present
+        predicted_schedules, default_schedule = model.predict(text, 'document', prediction_metadata, has_capstone, keywords, subjects, attachments=[])
         predicted_title = mock_prediction_with_explanation
         predicted_description = mock_prediction_with_explanation
         if prediction_metadata.file_name.split('.')[-1] in set(['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'pdf']):
@@ -92,12 +96,17 @@ def text_metadata_prediction():
         req = TextPredictionRequest.from_dict(req)
     except:
         return Response(StatusResponse(status='Failed', reason='Request not formatted correctly.', request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
-    predicted_schedules, default_schedule = model.predict(req.text, 'document', req.prediction_metadata)
     predicted_title = mock_prediction_with_explanation
     predicted_description = mock_prediction_with_explanation
-    keywords=keyword_extractor.extract_keywords(req.text),
-    identifiers=keyword_extractor.extract_identifiers(req.text)
-    prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description, default_schedule=default_schedule, keywords=keywords, identifiers=identifiers)
+    keyword_weights = keyword_extractor.extract_keywords(req.text)
+    keywords = [x[0] for x in sorted(keyword_weights.items(), key=lambda y: y[1], reverse=True)][:5]
+    subjects=keyword_extractor.extract_subjects(req.text, keyword_weights)
+    has_capstone=capstone_detector.detect_capstone_text(req.text)
+    identifiers=identifier_extractor.extract_identifiers(req.text)
+    # TODO: Handle case where attachments are present
+    predicted_schedules, default_schedule = model.predict(req.text, 'document', req.prediction_metadata, has_capstone, keywords, subjects, attachments=[])
+    
+    prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description, default_schedule=default_schedule, subjects=subjects, identifiers=identifiers)
     return Response(prediction.to_json(), status=200, mimetype='application/json')
 
 @app.route('/email_metadata_prediction', methods=['GET'])
@@ -118,9 +127,14 @@ def email_metadata_prediction():
     schedules = schedule_cache.get_schedules().schedules
     valid_schedules = list(filter(lambda x: x.ten_year, schedules))
     valid_schedules = ["{fn}-{sn}-{dn}".format(fn=x.function_number, sn=x.schedule_number, dn=x.disposition_number) for x in valid_schedules]
-    predicted_schedules, default_schedule = model.predict(text, 'email', PredictionMetadata(req.file_name, req.department), valid_schedules=valid_schedules)
-    subjects=keyword_extractor.extract_subjects(text),
-    identifiers=keyword_extractor.extract_identifiers(text)
+    keyword_weights = keyword_extractor.extract_keywords(text)
+    keywords = [x[0] for x in sorted(keyword_weights.items(), key=lambda y: y[1], reverse=True)][:5]
+    subjects=keyword_extractor.extract_subjects(text, keyword_weights)
+    has_capstone=capstone_detector.detect_capstone_text(text)
+    identifiers=identifier_extractor.extract_identifiers(text)
+    # TODO: Handle case where attachments are present
+    predicted_schedules, default_schedule = model.predict(text, 'email', PredictionMetadata(req.file_name, req.department), has_capstone, keywords, subjects, attachments=[], valid_schedules=valid_schedules)
+    
     predicted_title = mock_prediction_with_explanation
     predicted_description = mock_prediction_with_explanation
     prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description, default_schedule=default_schedule, subjects=subjects, identifiers=identifiers)
@@ -451,9 +465,11 @@ def extract():
         req = KeywordExtractionRequest.from_dict(req)
     except:
         return Response(StatusResponse(status='Failed', reason="Request is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
+    keyword_weights = keyword_extractor.extract_keywords(req.text)
     response = KeywordExtractionResponse(
-        subjects=keyword_extractor.extract_subjects(req.text),
-        identifiers=keyword_extractor.extract_identifiers(req.text)
+        keywords = list(keyword_weights.keys()),
+        subjects=keyword_extractor.extract_subjects(req.text, keyword_weights),
+        identifiers=identifier_extractor.extract_identifiers(req.text)
     )
     return Response(response.to_json(), status=200, mimetype='application/json')
 

@@ -9,7 +9,7 @@ import re
 import uuid
 from .models import User, RecordSubmission, db
 from sqlalchemy import null
-from . import model, help_item_cache, schedule_cache, keyword_extractor
+from . import model, help_item_cache, schedule_cache, keyword_extractor, identifier_extractor, capstone_detector
 import boto3
 
 TIKA_CUTOFF = 20
@@ -914,9 +914,13 @@ def sharepoint_record_prediction(req: SharepointPredictionRequest, access_token,
   success, text, response = tika(content, c, extraction_type='text')
   if not success:
       return response
-  predicted_schedules, default_schedule = model.predict(text, 'document', PredictionMetadata(req.file_name, req.department))
-  subjects=keyword_extractor.extract_subjects(text),
-  identifiers=keyword_extractor.extract_identifiers(text)
+  keyword_weights = keyword_extractor.extract_keywords(text)
+  keywords = [x[0] for x in sorted(keyword_weights.items(), key=lambda y: y[1], reverse=True)][:5]
+  subjects=keyword_extractor.extract_subjects(text, keyword_weights)
+  identifiers=identifier_extractor.extract_identifiers(text)
+  has_capstone=capstone_detector.detect_capstone_text(text)
+  # TODO: Handle case where attachments are present
+  predicted_schedules, default_schedule = model.predict(text, 'document', PredictionMetadata(req.file_name, req.department), has_capstone, keywords, subjects, attachments=[])
   predicted_title = mock_prediction_with_explanation
   predicted_description = mock_prediction_with_explanation
   if req.file_name.split('.')[-1] in set(['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'pdf']):

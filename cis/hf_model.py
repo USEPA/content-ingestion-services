@@ -24,30 +24,32 @@ class HuggingFaceModel():
         # Convert indices to record schedules using mapping saved at model training time
         self.classes = [format_record_schedule(self.reverse_mapping[x]) for x in range(len(self.label_mapping))]
         
-    def predict(self, text, doc_type, prediction_metadata, k=3, default_categorization_threshold=0.95, valid_schedules=None):
+    def predict(self, text, doc_type, prediction_metadata, has_capstone, keywords, subjects, attachments, k=3, default_categorization_threshold=0.95, valid_schedules=None):
         # Preprocess text to include metadata
-        enhanced_text = text[:4000]
+        body = text[:4000]
         if prediction_metadata is not None:
             if prediction_metadata.department is not None:
-                group_name = prediction_metadata.department
+                group_name =  prediction_metadata.department
                 office_info = self.office_info_mapping.get(group_name, '')
-                group_name = group_name + ' ' + office_info
+                group_name = 'office: ' + group_name + ' ' + office_info
             else:
                 group_name = ''
             if prediction_metadata.file_name is not None:
-                title = prediction_metadata.file_name
-                if '.' in title:
-                    extension = title.split('.')[-1]
-                else:
-                    extension = ''
+                title = 'title: ' + prediction_metadata.file_name
             else:
                 title = ''
-                extension = ''
-            enhanced_text = f'{group_name}, {title}, {doc_type}, {extension}, {enhanced_text}'
+        keywords = 'keywords: ' + ', '.join(keywords)
+        topics = 'topics: ' + ', '.join(subjects)
+        attachments = 'attachments: ' + ', '.join(attachments[:3])
+        if has_capstone is True:
+            has_senior = 'mentions senior official'
+        else:
+            has_senior = ''
+        content = f'{title}, {doc_type}, {group_name}, {keywords}, {topics}, {attachments}, {has_senior}, {body}'
         # Tokenize text
         # thread lock tokenization https://github.com/huggingface/tokenizers/issues/537
         with self.lock:
-            tokens = self.tokenizer(enhanced_text, truncation=True, padding=True, return_tensors="pt")
+            tokens = self.tokenizer(content, truncation=True, padding=True, return_tensors="pt")
         # Apply model, get logits
         outputs = self.model(**tokens)
         preds = outputs[0][0].detach().cpu().numpy()
