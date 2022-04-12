@@ -26,7 +26,7 @@ class HuggingFaceModel():
         
     def predict(self, text, doc_type, prediction_metadata, has_capstone, keywords, subjects, attachments, k=3, default_categorization_threshold=0.95, valid_schedules=None):
         # Preprocess text to include metadata
-        body = text[:4000]
+        body = 'body:' + text[:4000]
         if prediction_metadata is not None:
             if prediction_metadata.department is not None:
                 group_name =  prediction_metadata.department
