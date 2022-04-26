@@ -231,6 +231,14 @@ def mark_email_saved():
         return Response(StatusResponse(status='Failed', reason="Request is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
     return mark_saved(req, g.access_token, c)
 
+@app.route('/badge_info', methods=['GET'])
+def badge_info():
+    return get_badge_info(c)
+
+@app.route('/overall_leaderboard', methods=['GET'])
+def overall_leaderboard():
+    return get_overall_leaderboard(c)
+
 @app.route('/untag_email', methods=['POST'])
 def untag_email():
     if g.access_token is None:

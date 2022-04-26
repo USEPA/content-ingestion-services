@@ -335,6 +335,21 @@ def get_where_clause(lan_id, query, request_type='doc'):
   if request_type == 'doc':
       where = where + " and s.r_object_type != 'erma_content'"
   return where
+
+def get_badge_info(config):
+  params={'api_key':config.patt_api_key, 'table':'rewards'}
+  url = 'https://' + config.patt_host + '/app/mu-plugins/pattracking/includes/admin/pages/games/get_data.php'
+  r = requests.post(url, params=params)
+  if r.status_code != 200:
+    return Response(StatusResponse(status='Failed', reason='Badge info request returned status ' + str(r.status_code) + ' and error ' + str(r.text), request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+  return Response(json.dumps(r.json()), status=200, mimetype='application/json')
+
+def get_overall_leaderboard(config):
+  url = 'https://' + config.patt_host + '/app/mu-plugins/pattracking/includes/admin/pages/games/overall_leader_board.php'
+  r = requests.post(url)
+  if r.status_code != 200:
+    return Response(StatusResponse(status='Failed', reason='Overall leaderboard request returned status ' + str(r.status_code) + ' and error ' + str(r.text), request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+  return Response(json.dumps(r.json()), status=200, mimetype='application/json')
     
 def get_erma_content_count(config, lan_id, query, env):
   where_clause = get_where_clause(lan_id, query, 'content')

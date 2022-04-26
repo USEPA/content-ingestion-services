@@ -928,6 +928,28 @@ paths:
           description: "Server side error - description in response."
           schema:
             $ref: "#/definitions/StatusResponse"
+  /new_endpoint:
+    get:
+      tags:
+      - "new"
+      summary: "NEw endpoint"
+      consumes:
+        - application/json
+      parameters:
+        - in: query
+          name: "new_arg"
+          type: string
+          required: true
+        - in: header
+          name: "Authorization"
+          type: string
+          format: "jwt"
+          required: true
+      responses:
+        200:
+          description: "Sharepoint metadata predictions were successfully returned."
+          schema:
+            $ref: "#/definitions/MetadataPrediction"
   /upload_sharepoint_record:
     post:
       tags:
@@ -1166,6 +1188,46 @@ paths:
           description: "Unauthorized - description in response."
           schema:
             $ref: "#/definitions/StatusResponse"
+        500:
+          description: "Server side error - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+  /badge_info:
+    get:
+      tags:
+      - "gamification"
+      summary: "Get information about the badges in the application."
+      consumes:
+        - application/json
+      parameters:
+        - in: header
+          name: "Authorization"
+          type: string
+          format: "jwt"
+          required: true
+      responses:
+        200:
+          description: "Badge information returned."
+        500:
+          description: "Server side error - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+  /overall_leaderboard:
+    get:
+      tags:
+      - "gamification"
+      summary: "Get overall leaderboard the application."
+      consumes:
+        - application/json
+      parameters:
+        - in: header
+          name: "Authorization"
+          type: string
+          format: "jwt"
+          required: true
+      responses:
+        200:
+          description: "Leaderboard information returned."
         500:
           description: "Server side error - description in response."
           schema:
