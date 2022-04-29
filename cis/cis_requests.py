@@ -350,7 +350,15 @@ def get_overall_leaderboard(config):
   if r.status_code != 200:
     return Response(StatusResponse(status='Failed', reason='Overall leaderboard request returned status ' + str(r.status_code) + ' and error ' + str(r.text), request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
   return Response(json.dumps(r.json()), status=200, mimetype='application/json')
-    
+
+def get_office_leaderboard(config, parent_org_code):
+  url = 'https://' + config.patt_host + '/app/mu-plugins/pattracking/includes/admin/pages/games/office_leader_board.php'
+  params={'api_key':config.patt_api_key, 'office_code' : parent_org_code}
+  r = requests.post(url, params=params, verify=False)
+  if r.status_code != 200:
+    return Response(StatusResponse(status='Failed', reason= parent_org_code + ' leaderboard request returned status ' + str(r.status_code) + ' and error ' + str(r.text), request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+  return Response(json.dumps(r.json()), status=200, mimetype='application/json')
+
 def get_erma_content_count(config, lan_id, query, env):
   where_clause = get_where_clause(lan_id, query, 'content')
   count_sql = "select count(distinct s.r_object_id) as total from erma_content s " + where_clause + ";"
