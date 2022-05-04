@@ -23,6 +23,11 @@ class KeywordExtractionRequest:
 
 @dataclass_json
 @dataclass 
+class OfficeLeaderBoardRequest:
+    parent_org_code: str
+
+@dataclass_json
+@dataclass 
 class KeywordExtractionResponse:
     keywords: list[str]
     subjects: list[str]

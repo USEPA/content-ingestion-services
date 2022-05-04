@@ -239,6 +239,15 @@ def badge_info():
 def overall_leaderboard():
     return get_overall_leaderboard(c)
 
+@app.route('/office_leaderboard', methods=['GET'])
+def office_leaderboard():
+    req = request.args
+    try:
+        req = OfficeLeaderBoardRequest.from_dict(req)
+    except:
+        return Response(StatusResponse(status='Failed', reason="Request is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
+    return get_office_leaderboard(c, req.parent_org_code)
+
 @app.route('/untag_email', methods=['POST'])
 def untag_email():
     if g.access_token is None:
