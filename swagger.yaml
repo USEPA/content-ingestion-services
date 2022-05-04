@@ -301,7 +301,6 @@ paths:
           description: "Server side error - description in response."
           schema:
             $ref: "#/definitions/StatusResponse"
-  
   /upload_email:
     post:
       tags:
@@ -928,28 +927,6 @@ paths:
           description: "Server side error - description in response."
           schema:
             $ref: "#/definitions/StatusResponse"
-  /new_endpoint:
-    get:
-      tags:
-      - "new"
-      summary: "NEw endpoint"
-      consumes:
-        - application/json
-      parameters:
-        - in: query
-          name: "new_arg"
-          type: string
-          required: true
-        - in: header
-          name: "Authorization"
-          type: string
-          format: "jwt"
-          required: true
-      responses:
-        200:
-          description: "Sharepoint metadata predictions were successfully returned."
-          schema:
-            $ref: "#/definitions/MetadataPrediction"
   /upload_sharepoint_record:
     post:
       tags:
