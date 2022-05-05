@@ -12,7 +12,7 @@ class SharedMailboxManager:
         shared_mailboxes = self.mailboxes_by_user.get(user_email.lower())
         if shared_mailboxes is not None:
             for box in shared_mailboxes:
-                if box['shared_mailbox'] == mailbox_to_access and 'FullAccess' in box['access_rights']:
+                if box['shared_mailbox'].lower() == mailbox_to_access.lower() and 'FullAccess' in box['access_rights']:
                     return True 
         return False
     
