@@ -795,6 +795,16 @@ def get_user_info(config, token_data):
     app.logger.info('Preferred system database read failed for ' + token_data['email'])
   return True, None, UserInfo(token_data['email'], display_name, lan_id, department, enterprise_department, manager_department, manager_enterprise_department, employee_number, badges, profile, user_settings)
 
+def get_gamification_data(config, employee_number):
+  try:
+    badges = get_badges(config, employee_number)
+    profile = get_profile(config, employee_number)
+    data = GamificationDataResponse(badges, profile)
+    return Response(data.to_json(), status=200, mimetype='application/json')
+  except:
+    app.logger.error('Profile requests failed for employee number ' + employee_number)
+    return Response(StatusResponse(status='Failed', reason='Profile requests failed for employee number ' + employee_number, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+
 def get_sems_special_processing(config, region):
   special_processing = requests.get('http://' + config.sems_host + '/sems-ws/outlook/getSpecialProcessing/' + region, timeout=10)
   if special_processing.status_code == 200:

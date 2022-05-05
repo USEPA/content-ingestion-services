@@ -975,28 +975,6 @@ paths:
           description: "Server side error - description in response."
           schema:
             $ref: "#/definitions/StatusResponse"
-  /new_endpoint:
-    get:
-      tags:
-      - "new"
-      summary: "NEw endpoint"
-      consumes:
-        - application/json
-      parameters:
-        - in: query
-          name: "new_arg"
-          type: string
-          required: true
-        - in: header
-          name: "Authorization"
-          type: string
-          format: "jwt"
-          required: true
-      responses:
-        200:
-          description: "Sharepoint metadata predictions were successfully returned."
-          schema:
-            $ref: "#/definitions/MetadataPrediction"
   /upload_sharepoint_record:
     post:
       tags:
@@ -1255,6 +1233,8 @@ paths:
       responses:
         200:
           description: "Badge information returned."
+          schema:
+            $ref: "#/definitions/BadgeListResponse"
         500:
           description: "Server side error - description in response."
           schema:
@@ -1274,7 +1254,9 @@ paths:
           required: true
       responses:
         200:
-          description: "Leaderboard information returned."
+          description: "Overall leaderboard information returned."
+          schema:
+            $ref: "#/definitions/LeaderboardResponse"
         500:
           description: "Server side error - description in response."
           schema:
@@ -1298,9 +1280,35 @@ paths:
           required: true
       responses:
         200:
+          description: "Office leaderboard information returned."
+          schema:
+            $ref: '#/definitions/LeaderboardResponse'
+        500:
+          description: "Server side error - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+  /gamification_data:
+    get:
+      tags:
+      - "gamification"
+      summary: "Get points and badges for a user."
+      consumes:
+        - application/json
+      parameters:
+        - in: header
+          name: "Authorization"
+          type: string
+          format: "jwt"
+          required: true
+        - in: query
+          name: "employee_number"
+          type: string
+          required: true
+      responses:
+        200:
           description: "office leaderboard information returned."
           schema:
-            $ref: '#/definitions/OfficeLeader'
+            $ref: '#/definitions/GamificationDataResponse'
         500:
           description: "Server side error - description in response."
           schema:
@@ -1396,20 +1404,6 @@ definitions:
         type: array
         items: 
           $ref: "#/definitions/RecordSchedule"
-
-  OfficeLeader:
-    type: object
-    properties:
-      id: 
-        type: string
-      
-      lan_id:
-        type: string
-
-      points:
-        type: string
-
-  
   KeywordExtractionRequest:
     type: object
     properties:
@@ -1722,6 +1716,15 @@ definitions:
         $ref: "#/definitions/ProfileInfo"
       user_settings:
         $ref: "#/definitions/UserSettings"
+  GamificationDataResponse:
+    type: object
+    properties:
+      badges:
+        type: array
+        items:
+          $ref: "#/definitions/BadgeInfo"
+      profile:
+        $ref: "#/definitions/ProfileInfo"
   BadgeInfo:
     type: object
     properties:
@@ -1834,6 +1837,40 @@ definitions:
         $ref: "#/definitions/SubmissionAnalyticsMetadata"
       documentum_env:
         type: string
+  LeaderboardRecord:
+    type: object
+    properties:
+      id:
+        type: string
+      lan_id:
+        type: string
+      employee_id:
+        type: string
+      points:
+        type: string
+      level: 
+        type: string
+      overall_rank:
+        type: string
+  LeaderboardResponse:
+    type: array
+    items:
+      $ref: "#/definitions/LeaderboardRecord"
+  BadgeRecord:
+    type: object
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      description:
+        type: string
+      image_url:
+        type: string
+  BadgeListResponse:
+    type: array
+    items:
+      $ref: "#/definitions/BadgeRecord"
   HelpItemResponse:
     type: object
     properties:
