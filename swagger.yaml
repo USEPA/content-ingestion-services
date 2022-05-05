@@ -301,7 +301,7 @@ paths:
           description: "Server side error - description in response."
           schema:
             $ref: "#/definitions/StatusResponse"
-  /get_emails_graph:
+  /get_emails_graph/{emailsource}:
     get:
       tags:
       - "emails using graph"
@@ -309,6 +309,11 @@ paths:
       consumes:
         - application/json
       parameters:
+        - in: path
+          name: emailsource
+          type: string
+          required: true
+          description: Options are regular and archive.
         - in: query
           name: "mailbox"
           type: string
@@ -318,10 +323,6 @@ paths:
         - in: query
           name: "page_number"
           type: integer
-        - in: query
-          name: "emailsource"
-          type: string
-          required: True
         - in: header
           name: "Authorization"
           type: string
@@ -1149,7 +1150,7 @@ paths:
           required: true
         - in: query
           name: "override"
-          type: bool
+          type: boolean
           required: false
       responses:
         200:
@@ -1893,5 +1894,3 @@ definitions:
         type: string
       event_id:
         type: string
-
-
