@@ -275,7 +275,7 @@ def list_email_metadata_graph(req: GetEmailRequest, user_email, access_token, co
   #get records from archive
   if req.emailsource.lower() == 'archive':
     headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}
-    body = {"mailbox": 'Archive', 'pageSize': req.items_per_page, "offset": req.items_per_page * req.page_number -1} #'count' : 1 ?
+    body = {"mailbox": 'Archive', 'pageSize': req.items_per_page, "offset": req.items_per_page * (req.page_number -1)}
     p = requests.get(
         "http://" + config.ezemail_server + "/ezemail/v1/getrecords/", 
         data=json.dumps(body), 
@@ -315,7 +315,7 @@ def list_email_metadata_graph(req: GetEmailRequest, user_email, access_token, co
       #maybe https://graph.microsoft.com/v1.0/users/sharedmailbox-emailaddress/mailfolders/inbox/messages?$top=4
 
     headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}
-    url = "https://graph.microsoft.com/v1.0/" + mailbox + "/messages?$filter=categories/any(a:a+eq+'Record')&$top="+ str(req.items_per_page) + "&$skip=" + str(req.page_number) + "&$count=true" 
+    url = "https://graph.microsoft.com/v1.0/" + mailbox + "/messages?$filter=categories/any(a:a+eq+'Record')&$top="+ str(req.items_per_page) + "&$skip=" + str((req.page_number -1)*req.items_per_page) + "&$count=true" 
     p = requests.get(url, headers=headers, timeout=60)
     
     if p.status_code != 200:
@@ -335,11 +335,17 @@ def list_email_metadata_graph(req: GetEmailRequest, user_email, access_token, co
       mailbox_source= req.emailsource
     ) for x in resp['value']]
 
-    total_count=resp['@odata.count']
+    total_count=resp['@odata.count'] 
+    
+    #'@odata.count' will add 1 for each "meetingMessageType": "meetingRequest" type, this value is not present for regular messages 
+    count = 0
+    for x in resp['value']:
+      if "meetingMessageType" in x.keys():
+        count =+ 1 
+    total_count -= count
 
   return Response(GetEmailResponse(total_count=total_count, items_per_page=req.items_per_page, page_number=req.page_number, emails=emails).to_json(), status=200, mimetype="application/json")
-  
-  #TODO delete previous list_email_metadata
+
 
 def extract_attachments_from_response_graph(messageId, hasAttachments, mailbox, access_token):
   if hasAttachments:
