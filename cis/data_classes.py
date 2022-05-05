@@ -348,6 +348,16 @@ class UserInfo:
     profile: Optional[ProfileInfo]
     user_settings: UserSettings
 
+@dataclass_json
+@dataclass 
+class GamificationDataRequest:
+    employee_number: str
+
+@dataclass_json
+@dataclass 
+class GamificationDataResponse:
+    badges: list[BadgeInfo]
+    profile: Optional[ProfileInfo]
 
 mock_email_metadata = EmailMetadata(**{
     'unid': '<DM6PR09MB549690B3AC3ED29A07A4B0B0B78D9@DM6PR09MB5496.namprd09.prod.outlook.com>',

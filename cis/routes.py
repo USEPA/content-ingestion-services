@@ -235,6 +235,15 @@ def mark_email_saved():
 def badge_info():
     return get_badge_info(c)
 
+@app.route('/gamification_data', methods=['GET'])
+def gamification_data():
+    req = request.args
+    try:
+        req = GamificationDataRequest.from_dict(req)
+    except:
+        return Response(StatusResponse(status='Failed', reason="Request is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
+    return get_gamification_data(c, req.employee_number)
+
 @app.route('/overall_leaderboard', methods=['GET'])
 def overall_leaderboard():
     return get_overall_leaderboard(c)
