@@ -1680,11 +1680,13 @@ definitions:
   BadgeInfo:
     type: object
     properties:
-      badge_title: 
+      id: 
         type: string
-      badge_description: 
+      name: 
         type: string
-      badge_image: 
+      description: 
+        type: string
+      image_url:
         type: string
   ProfileInfo:
     type: object
@@ -1808,21 +1810,10 @@ definitions:
     type: array
     items:
       $ref: "#/definitions/LeaderboardRecord"
-  BadgeRecord:
-    type: object
-    properties:
-      id:
-        type: string
-      name:
-        type: string
-      description:
-        type: string
-      image_url:
-        type: string
   BadgeListResponse:
     type: array
     items:
-      $ref: "#/definitions/BadgeRecord"
+      $ref: "#/definitions/BadgeInfo"
   HelpItemResponse:
     type: object
     properties:

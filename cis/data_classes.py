@@ -313,9 +313,10 @@ class SemsSiteResponse:
 @dataclass_json
 @dataclass 
 class BadgeInfo:
-    badge_title: str
-    badge_description: str
-    badge_image: str
+    id: str
+    name: str
+    description: str
+    image_url: str
 
 @dataclass_json
 @dataclass 

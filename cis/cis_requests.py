@@ -342,7 +342,7 @@ def get_badge_info(config):
   r = requests.post(url, params=params)
   if r.status_code != 200:
     return Response(StatusResponse(status='Failed', reason='Badge info request returned status ' + str(r.status_code) + ' and error ' + str(r.text), request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-  return Response(json.dumps(r.json()), status=200, mimetype='application/json')
+  return Response([BadgeInfo(**x).to_json() for x in r.json()], status=200, mimetype='application/json')
 
 def get_overall_leaderboard(config):
   url = 'https://' + config.patt_host + '/app/mu-plugins/pattracking/includes/admin/pages/games/overall_leader_board.php'
@@ -615,9 +615,10 @@ def get_badges(config, employee_number):
   url = 'https://' + config.patt_host + '/app/mu-plugins/pattracking/includes/admin/pages/games/receiver.php'
   r = requests.post(url, params=params)
   if r.status_code != 200:
+    app.logger.error('Badge request failed for employee number ' + employee_number)
     return []
   else:
-    return [BadgeInfo(badge_title=x['badge_title'], badge_description=x['badge_description'], badge_image=x['badge_image']) for x in r.json()]
+    return [BadgeInfo(**x) for x in r.json()]
 
 def get_profile(config, employee_number):
   if employee_number is None:
