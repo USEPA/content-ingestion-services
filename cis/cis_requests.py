@@ -342,7 +342,7 @@ def get_badge_info(config):
   r = requests.post(url, params=params)
   if r.status_code != 200:
     return Response(StatusResponse(status='Failed', reason='Badge info request returned status ' + str(r.status_code) + ' and error ' + str(r.text), request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-  return Response([BadgeInfo(**x).to_dict() for x in r.json()], status=200, mimetype='application/json')
+  return Response(json.dumps([BadgeInfo(**x).to_dict() for x in r.json()]), status=200, mimetype='application/json')
 
 def get_overall_leaderboard(config):
   url = 'https://' + config.patt_host + '/app/mu-plugins/pattracking/includes/admin/pages/games/overall_leader_board.php'
