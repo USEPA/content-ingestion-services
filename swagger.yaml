@@ -301,6 +301,54 @@ paths:
           description: "Server side error - description in response."
           schema:
             $ref: "#/definitions/StatusResponse"
+  /get_emails/{emailsource}:
+    get:
+      tags:
+      - "email"
+      summary: "List the emails in a given mailbox."
+      consumes:
+        - application/json
+      parameters:
+        - in: path
+          name: emailsource
+          type: string
+          required: true
+          description: Options are regular and archive.
+        - in: query
+          name: "mailbox"
+          type: string
+        - in: query
+          name: "items_per_page"
+          type: integer
+        - in: query
+          name: "page_number"
+          type: integer
+        - in: header
+          name: "Authorization"
+          type: string
+          format: "jwt"
+          required: true
+        - in: header
+          name: "X-Access-Token"
+          type: string
+          required: true
+      responses:
+        200:
+          description: "Emails successfully retrieved."
+          schema:
+            $ref: "#/definitions/GetEmailResponse"
+        400:
+          description: "Invalid request - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        401:
+          description: "Unauthorized - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        500:
+          description: "Server side error - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"  
   /upload_email:
     post:
       tags:
@@ -1217,7 +1265,7 @@ paths:
     get:
       tags:
       - "gamification"
-      summary: "Get office leaderboard the application."
+      summary: "Get leaderboard for the office."
       consumes:
         - application/json
       parameters:
@@ -1874,5 +1922,3 @@ definitions:
         type: string
       event_id:
         type: string
-
-

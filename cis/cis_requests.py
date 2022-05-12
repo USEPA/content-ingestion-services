@@ -102,7 +102,7 @@ def create_outlook_record_category(access_token, user_email):
       app.logger.error('Failed to create Outlook Record category for user ' + user_email)
   except:
     app.logger.error('Failed to create Outlook Record category for user ' + user_email)
-  
+
 def list_email_metadata(req: GetEmailRequest, user_email, access_token, config):
   # First get regular total
   headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}
@@ -155,8 +155,8 @@ def list_email_metadata(req: GetEmailRequest, user_email, access_token, config):
     body['mailbox'] = 'Regular'
     body['offset'] = total_offset
     p = requests.get(
-      "http://" + config.ezemail_server + "/ezemail/v1/getrecords/", 
-      data=json.dumps(body), 
+      "http://" + config.ezemail_server + "/ezemail/v1/getrecords/",
+      data=json.dumps(body),
       headers=headers,
       timeout=60
     )
@@ -270,6 +270,92 @@ def list_email_metadata(req: GetEmailRequest, user_email, access_token, config):
 
   return Response(GetEmailResponse(total_count=total_count, items_per_page=req.items_per_page, page_number=req.page_number, emails=emails).to_json(), status=200, mimetype="application/json")
 
+def list_email_metadata_graph(req: GetEmailRequest, user_email, access_token, config):
+
+  #get records from archive
+  if req.emailsource.lower() == 'archive':
+    headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}
+    body = {"mailbox": 'Archive', 'pageSize': req.items_per_page, "offset": req.items_per_page * (req.page_number -1)}
+    p = requests.get(
+        "http://" + config.ezemail_server + "/ezemail/v1/getrecords/", 
+        data=json.dumps(body), 
+        headers=headers,
+        timeout=60
+      )
+    if p.status_code != 200:
+        app.logger.info("getrecords request failed with status " + str(p.status_code) + ". " + p.text)
+        return Response(StatusResponse(status='Failed', reason="Unable to retrieve records.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+    
+    resp = p.json()    
+    
+    for count in resp["total_count"]:
+      if 'archive' in count:
+        total_count = int(count['archive'])
+
+    if total_count == 0: emails = []
+    
+    else:
+      emails = [EmailMetadata(
+        unid=x['unid'], 
+        subject=x['subject'], 
+        email_id=x['emailid'], 
+        received=x['received'], 
+        _from=x['from'], 
+        to=x['to'], 
+        sent=x['sent'],
+        attachments=extract_attachments_from_response(x),
+        mailbox_source='archive'
+      ) for x in resp['email_items']]
+
+  else:
+    mailbox = 'me'
+
+    if req.mailbox != user_email:
+      mailbox= 'users/' + req.mailbox
+      #maybe https://graph.microsoft.com/v1.0/users/sharedmailbox-emailaddress/mailfolders/inbox/messages?$top=4
+
+    headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}
+    url = "https://graph.microsoft.com/v1.0/" + mailbox + "/messages?$filter=categories/any(a:a+eq+'Record')&$top="+ str(req.items_per_page) + "&$skip=" + str((req.page_number -1)*req.items_per_page) + "&$count=true" 
+    p = requests.get(url, headers=headers, timeout=60)
+    
+    if p.status_code != 200:
+      app.logger.info("Regular getrecords graph request failed for mailbox " + req.mailbox + " with status " + str(p.status_code) + ". " + p.text)
+      return Response(StatusResponse(status='Failed', reason="Unable to retrieve records.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+    
+    resp = p.json() 
+    emails = [EmailMetadata(
+      unid=x['id'], 
+      subject=x['subject'], 
+      email_id=x['internetMessageId'], 
+      received=x['receivedDateTime'], 
+      _from=x['from'], 
+      to=x['toRecipients'], 
+      sent=x['sentDateTime'],
+      attachments= extract_attachments_from_response_graph(x['id'],x['hasAttachments'], mailbox, access_token),
+      mailbox_source= req.emailsource
+    ) for x in resp['value']]
+
+    total_count=resp['@odata.count'] 
+    
+    #'@odata.count' will add 1 for each "meetingMessageType": "meetingRequest" type, this value is not present for regular messages 
+    count = 0
+    for x in resp['value']:
+      if "meetingMessageType" in x.keys():
+        count =+ 1 
+    total_count -= count
+
+  return Response(GetEmailResponse(total_count=total_count, items_per_page=req.items_per_page, page_number=req.page_number, emails=emails).to_json(), status=200, mimetype="application/json")
+
+
+def extract_attachments_from_response_graph(messageId, hasAttachments, mailbox, access_token):
+  if hasAttachments:
+    url = "https://graph.microsoft.com/v1.0/" + mailbox + "/messages/" + str(messageId) + "/attachments"
+    headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}
+    p = requests.get(url, headers=headers, timeout=60)
+    resp = p.json()
+    return [x['id'] for x in resp['value']]
+  else: return []
+  
 def extract_attachments_from_response(ezemail_response):
   if 'attachments' not in ezemail_response:
     return []

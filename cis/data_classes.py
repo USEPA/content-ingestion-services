@@ -404,6 +404,7 @@ class GetEmailRequest:
     items_per_page: int 
     page_number: int
     mailbox: str
+    emailsource: str
 
 @dataclass_json
 @dataclass 
