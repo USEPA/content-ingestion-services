@@ -184,12 +184,12 @@ def get_emails():
         req['items_per_page'] = req.pop('count', 10)
     if 'page_number' not in req:
         req['page_number'] = 1
-    req = GetEmailRequest(items_per_page=int(req['items_per_page']), page_number=int(req['page_number']), mailbox=req['mailbox'])
+    req = GetEmailRequest(items_per_page=int(req['items_per_page']), page_number=int(req['page_number']), mailbox=req['mailbox'], emailsource=None)
     if not mailbox_manager.validate_mailbox(g.token_data['email'], req.mailbox):
         return Response(StatusResponse(status='Failed', reason="User " + g.token_data['email'] + " is not authorized to access " + req.mailbox + ".", request_id=g.get('request_id', None)).to_json(), status=401, mimetype='application/json')
     return list_email_metadata(req, g.token_data['email'], g.access_token, c)
 
-@app.route('/get_emails_graph/<emailsource>', methods=['GET'])
+@app.route('/get_emails/<emailsource>', methods=['GET'])
 def get_emails_graph(emailsource):
     if g.access_token is None:
         return Response(StatusResponse(status='Failed', reason="X-Access-Token is required.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
