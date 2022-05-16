@@ -704,7 +704,7 @@ def get_badges(config, employee_number):
     app.logger.error('Badge request failed for employee number ' + employee_number)
     return []
   else:
-    return [IssuedBadge(id=x['id'], badge_title=x['badge_title'], points=x['points'], badge_description=x['badge_description'], badge_image=x['badge_image']) for x in r.json()]
+    return [BadgeInfo(id=x['id'], name=x['badge_title'], description=x['badge_description'], image_url=x['badge_image']) for x in r.json()]
 
 def get_profile(config, employee_number):
   if employee_number is None:
