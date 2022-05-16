@@ -1711,7 +1711,7 @@ definitions:
       badges:
         type: array
         items:
-          $ref: "#/definitions/BadgeInfo"
+          $ref: "#/definitions/IssuedBadge"
       profile:
         $ref: "#/definitions/ProfileInfo"
       user_settings:
@@ -1722,7 +1722,7 @@ definitions:
       badges:
         type: array
         items:
-          $ref: "#/definitions/BadgeInfo"
+          $ref: "#/definitions/IssuedBadge"
       profile:
         $ref: "#/definitions/ProfileInfo"
   BadgeInfo:
@@ -1736,6 +1736,19 @@ definitions:
         type: string
       image_url:
         type: string
+  IssuedBadge:
+    type: object
+      properties:
+        id: 
+          type: string
+        badge_name: 
+          type: string
+        badge_description: 
+          type: string
+        badge_image:
+          type: string
+        points:
+          type: string
   ProfileInfo:
     type: object
     properties:
