@@ -324,9 +324,9 @@ def list_email_metadata_graph(req: GetEmailRequest, user_email, access_token, co
     
     resp = p.json() 
     emails = [EmailMetadata(
-      unid=x['id'], #
+      unid=x['internetMessageId'], #internetMessageId contains '.prod.outlook.com'
       subject=x['subject'], 
-      email_id=x['internetMessageId'], #internetMessageId contains '.prod.outlook.com'
+      email_id=x['id'], 
       received=x['receivedDateTime'], 
       _from=x['from']['emailAddress']['address'],
       to=';'.join([(y['emailAddress']['address']) for y in x['toRecipients']]),
@@ -353,7 +353,7 @@ def extract_attachments_from_response_graph(messageId, hasAttachments, mailbox, 
     headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}
     p = requests.get(url, headers=headers, timeout=60)
     resp = p.json()
-    attachments = [{x['name']:x['id']} for x in resp['value']]
+    attachments = [EmailAttachment(name=x['name'], attachment_id=x['id']) for x in resp['value']]
     return attachments
   else: return []
   
