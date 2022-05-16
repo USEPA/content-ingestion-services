@@ -704,7 +704,7 @@ def get_badges(config, employee_number):
     app.logger.error('Badge request failed for employee number ' + employee_number)
     return []
   else:
-    return [BadgeInfo(**x) for x in r.json()]
+    return [IssuedBadge(id=x['id'], badge_title=x['badge_title'], points=x['points'], badge_description=x['badge_description'], badge_image=x['badge_image']) for x in r.json()]
 
 def get_profile(config, employee_number):
   if employee_number is None:
@@ -809,8 +809,9 @@ def get_gamification_data(config, employee_number):
     data = GamificationDataResponse(badges, profile)
     return Response(data.to_json(), status=200, mimetype='application/json')
   except:
-    app.logger.error('Profile requests failed for employee number ' + employee_number)
-    return Response(StatusResponse(status='Failed', reason='Profile requests failed for employee number ' + employee_number, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+    badges=[]
+    profile=None
+    app.logger.info('Profile requests failed for ' + employee_number)
 
 def get_sems_special_processing(config, region):
   special_processing = requests.get('http://' + config.sems_host + '/sems-ws/outlook/getSpecialProcessing/' + region, timeout=10)

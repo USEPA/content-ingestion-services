@@ -320,6 +320,23 @@ class BadgeInfo:
 
 @dataclass_json
 @dataclass 
+class BadgeInfo:
+    id: str
+    name: str
+    description: str
+    image_url: str
+
+@dataclass_json
+@dataclass 
+class IssuedBadge:
+    id: str
+    badge_title: str
+    badge_description: str
+    badge_image: str
+    points: str
+
+@dataclass_json
+@dataclass 
 class ProfileInfo:
     points: str
     level: str
