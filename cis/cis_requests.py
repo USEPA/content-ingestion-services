@@ -324,12 +324,12 @@ def list_email_metadata_graph(req: GetEmailRequest, user_email, access_token, co
     
     resp = p.json() 
     emails = [EmailMetadata(
-      unid=x['id'], 
+      unid=x['internetMessageId'], #internetMessageId contains '.prod.outlook.com'
       subject=x['subject'], 
-      email_id=x['internetMessageId'], 
+      email_id=x['id'], 
       received=x['receivedDateTime'], 
-      _from=x['from'], 
-      to=x['toRecipients'], 
+      _from=x['from']['emailAddress']['address'],
+      to=';'.join([(y['emailAddress']['address']) for y in x['toRecipients']]),
       sent=x['sentDateTime'],
       attachments= extract_attachments_from_response_graph(x['id'],x['hasAttachments'], mailbox, access_token),
       mailbox_source= req.emailsource
@@ -337,7 +337,7 @@ def list_email_metadata_graph(req: GetEmailRequest, user_email, access_token, co
 
     total_count=resp['@odata.count'] 
     
-    #'@odata.count' will add 1 for each "meetingMessageType": "meetingRequest" type, this value is not present for regular messages 
+    #'@odata.count' will add 1 for each "meetingMessageType": "meetingRequest" type, this value is not present for regular messages
     count = 0
     for x in resp['value']:
       if "meetingMessageType" in x.keys():
@@ -353,7 +353,8 @@ def extract_attachments_from_response_graph(messageId, hasAttachments, mailbox, 
     headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}
     p = requests.get(url, headers=headers, timeout=60)
     resp = p.json()
-    return [x['id'] for x in resp['value']]
+    attachments = [EmailAttachment(name=x['name'], attachment_id=x['id']) for x in resp['value']]
+    return attachments
   else: return []
   
 def extract_attachments_from_response(ezemail_response):
