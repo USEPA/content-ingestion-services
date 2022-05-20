@@ -443,7 +443,7 @@ def get_office_leaderboard(config, parent_org_code):
   params={'api_key':config.patt_api_key, 'office_code' : parent_org_code}
   r = requests.post(url, params=params, verify=False)
   if r.status_code != 200:
-    return Response(StatusResponse(status='Failed', reason= parent_org_code + ' leaderboard request returned status ' + str(r.status_code) + ' and error ' + str(r.text), request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+    return Response(StatusResponse(status='Failed', reason= 'Leaderboard request returned status ' + str(r.status_code) + ' and error ' + str(r.text), request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
   return Response(json.dumps(r.json()), status=200, mimetype='application/json')
 
 def get_erma_content_count(config, lan_id, query, env):
@@ -653,7 +653,7 @@ def download_documentum_record(config, user_info, object_ids, env):
   for object_id in object_ids:
     valid = object_id_is_valid(config, object_id)
     if not valid:
-      return Response(StatusResponse(status='Failed', reason='Object ID invalid: ' + object_id, request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
+      return Response(StatusResponse(status='Failed', reason='Object ID invalid.', request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
   doc_where_clause = ' OR '.join(["s.r_object_id = '" + str(x) + "'" for x in object_ids])
   doc_info_sql = "select s.ERMA_CUSTODIAN as erma_doc_custodian, r_object_id, r_object_type from erma_content s where " + doc_where_clause + ";"
   # This gives some buffer, even though there should be exactly len(object_ids) items to recover
@@ -674,11 +674,11 @@ def download_documentum_record(config, user_info, object_ids, env):
       entries.append(x)
   missing_ids = set(object_ids) - set([doc['content']['properties']['r_object_id'] for doc in entries])
   if len(missing_ids) != 0:
-    return Response(StatusResponse(status='Failed', reason='The following object_ids could not be found: ' + ', '.join(list(missing_ids)), request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
+    return Response(StatusResponse(status='Failed', reason='Some object_ids could not be found.', request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
   # TODO: Reenable custodian validation
   for doc in entries:
     if doc['content']['properties'].get('erma_doc_custodian', '') != lan_id:
-      return Response(StatusResponse(status='Failed', reason='User ' + lan_id + ' is not the custodian of all files requested.', request_id=g.get('request_id', None)).to_json(), status=401, mimetype='application/json')
+      return Response(StatusResponse(status='Failed', reason='User is not the custodian of all files requested.', request_id=g.get('request_id', None)).to_json(), status=401, mimetype='application/json')
   
   hrefs = ['https://' + ecms_host + '/dctm-rest/repositories/ecmsrmr65/objects/' + obj for obj in object_ids]
   data = {'hrefs': list(set(hrefs))}
@@ -1227,7 +1227,7 @@ def update_sharepoint_record_status(site_id, list_id, item_id, status, access_to
   update_req = requests.patch(url, json=data, headers=headers, timeout=30)
   if update_req.status_code != 200:
     app.logger.error('Unable to update item with item_id = ' + item_id + ': ' + update_req.text)
-    return False, Response(StatusResponse(status='Failed', reason='Unable to update item with item_id = ' + item_id, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+    return False, Response(StatusResponse(status='Failed', reason='Unable to update some items.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
   else:
     return True, None
 
