@@ -236,8 +236,9 @@ def download_email():
         Response(StatusResponse(status='Failed', reason="File download failed. Ensure that email_id is valid.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
     return send_file(BytesIO(content), attachment_filename=req.file_name, as_attachment=True)
 
-@app.route('/mark_email_saved', methods=['POST'])
-def mark_email_saved():
+#mark and untag email
+@app.route('/mark_email_saved/<emailsource>', methods=['POST'])
+def mark_email_saved(emailsource):
     if g.access_token is None:
         return Response(StatusResponse(status='Failed', reason="X-Access-Token is required.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
     req = request.json
@@ -245,7 +246,7 @@ def mark_email_saved():
         req = MarkSavedRequest.from_dict(req)
     except:
         return Response(StatusResponse(status='Failed', reason="Request is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
-    return mark_saved(req, g.access_token, c)
+    return mark_saved(req, g.access_token, emailsource, c)
 
 @app.route('/badge_info', methods=['GET'])
 def badge_info():
