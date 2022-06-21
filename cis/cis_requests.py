@@ -68,15 +68,26 @@ def get_cui_categories(file, config):
     app.logger.error("Tika metadata request completed with status " + str(response_meta.status_code) + " for request ID " + str(g.get('request_id', None)))
     return []
 
-def get_eml_file(email_id, file_name, access_token, config):
-  headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}
-  body = {"filename":file_name, "emailid":email_id}
-  r = requests.get("http://" + config.ezemail_server + "/ezemail/v1/getemlfile", data=json.dumps(body), headers=headers, timeout=30)
-  if r.status_code == 200:
-    return r.content
+def get_eml_file(email_id, file_name, emailsource, mailbox, access_token, config):
+
+  if emailsource.lower() == 'archive':
+    headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}
+    body = {"filename":file_name, "emailid":email_id}
+    r = requests.get("http://" + config.ezemail_server + "/ezemail/v1/getemlfile", data=json.dumps(body), headers=headers, timeout=30)
+    if r.status_code == 200:
+      return r.content
+    else:
+      app.logger.error('Get EML file request ended with status ' + str(r.status_code) + '. Response: ' + r.text)
+      return None
   else:
-    app.logger.error('Get EML file request ended with status ' + str(r.status_code) + '. Response: ' + r.text)
-    return None
+    headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}
+    url = "https://graph.microsoft.com/v1.0/users/" + mailbox + "/messages/" + email_id + "/$value"
+    r = requests.get(url, headers=headers, timeout=30)
+    if r.status_code == 200:
+        return r.content
+    else:
+      app.logger.error('Get EML file request with graph, ended with status ' + str(r.status_code) + '. Response: ' + r.text)
+      return None
 
 def get_email_html(email_id, access_token, config):
   body = {"emailid": email_id,
@@ -365,35 +376,75 @@ def extract_attachments_from_response(ezemail_response):
   else:
     return [EmailAttachment(name=attachment['name'], attachment_id=attachment['attachment_id']) for attachment in ezemail_response['attachments']]
 
-def mark_saved(req: MarkSavedRequest, access_token, config):
-  headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}
-  body = {"emailid": req.email_id}
-  if req.sensitivity.lower() == 'private':
-    body['sensitivityid'] = 3
-  p = requests.post(
-    "http://" + config.ezemail_server + "/ezemail/v1/setcategory", 
-    json=body, 
-    headers=headers,
-    timeout=30
-  )
-  if p.status_code != 204:
-    return Response(StatusResponse(status='Failed', reason="Unable to mark as saved.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-  else:
-    return Response(StatusResponse(status="OK", reason="Email with id " + req.email_id + " was marked saved.", request_id=g.get('request_id', None)).to_json(), status=200, mimetype="application/json")
+#combined untag and mark_saved
+def mark_saved(req: MarkSavedRequest, access_token, emailsource, config):
+  if emailsource.lower() == 'archive':
+    headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}
+    body = {"emailid": req.email_id}
+    if req.sensitivity.lower() == 'private':
+      body['sensitivityid'] = 3
+    p = requests.post(
+      "http://" + config.ezemail_server + "/ezemail/v1/setcategory", 
+      json=body, 
+      headers=headers,
+      timeout=30
+    )
+    if p.status_code != 204:
+      return Response(StatusResponse(status='Failed', reason="Unable to mark as saved.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+    else:
+      return Response(StatusResponse(status="OK", reason="Email with id " + req.email_id + " was marked saved.", request_id=g.get('request_id', None)).to_json(), status=200, mimetype="application/json")
 
-def untag(req: UntagRequest, access_token, config):
-  headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}
-  body = {"emailid": req.email_id}
-  p = requests.post(
-    "http://" + config.ezemail_server + "/ezemail/v1/removecategory", 
-    json=body, 
-    headers=headers,
-    timeout=30
-  )
-  if p.status_code != 204:
-    return Response(StatusResponse(status='Failed', reason="Unable to remove Record category.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
   else:
-    return Response(StatusResponse(status="OK", reason="Email with id " + req.email_id + " is no longer categorized as a record.", request_id=g.get('request_id', None)).to_json(), status=200, mimetype="application/json")
+    headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}
+    #TODO: Make this work for shared email boxes
+    #get current categories for message to mark_saved without removing other categories
+    urlo =  "https://graph.microsoft.com/v1.0/users/" + req.mailbox + "/messages/" + req.email_id + '?$select=categories'
+    p = requests.get(urlo, headers=headers)
+    cats = p.json()['categories']
+    if 'Record' in cats: 
+      cats.remove('Record')
+    cats.append('Saved to ARMS')
+    #update categories
+    url = "https://graph.microsoft.com/v1.0/users/" + req.mailbox + "/messages/" + req.email_id
+    body = json.dumps({'categories':cats})
+    p = requests.patch(url, headers=headers, data=body, timeout=30)
+    if p.status_code != 200:
+      return Response(StatusResponse(status='Failed', reason="Unable to mark as saved.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+    else:
+      return Response(StatusResponse(status="OK", reason="Email with id " + req.email_id + " was marked saved.", request_id=g.get('request_id', None)).to_json(), status=200, mimetype="application/json")
+    
+#not used, mark_saved already untag the message
+def untag(req: UntagRequest, access_token, config, emailsource):
+  headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}
+
+  if emailsource.lower() == 'archive':
+    body = {"emailid": req.email_id}
+    p = requests.post(
+      "http://" + config.ezemail_server + "/ezemail/v1/removecategory", 
+      json=body, 
+      headers=headers,
+      timeout=30
+    )
+    if p.status_code != 204:
+      return Response(StatusResponse(status='Failed', reason="Unable to remove Record category.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+    else:
+      return Response(StatusResponse(status="OK", reason="Email with id " + req.email_id + " is no longer categorized as a record.", request_id=g.get('request_id', None)).to_json(), status=200, mimetype="application/json")
+  else:
+    #TODO: Make this work for shared email boxes
+    #get current categories for message to mark_saved without removing other categories
+    urlo =  "https://graph.microsoft.com/v1.0/users/" + req.mailbox + "/messages/" + req.email_id + '?$select=categories'
+    p = requests.get(urlo, headers=headers)
+    cats = p.json()['categories']
+    if 'Record' in cats: 
+      cats.remove('Record')
+    #update categories
+    url = "https://graph.microsoft.com/v1.0/users/" + req.mailbox + "/messages/" + req.email_id
+    body = json.dumps({'categories':cats})
+    p = requests.patch(url, headers=headers, data=body, timeout=30)
+    if p.status_code != 200:
+      return Response(StatusResponse(status='Failed', reason="Unable to remove Record category.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+    else:
+      return Response(StatusResponse(status="OK", reason="Email with id " + req.email_id + " is no longer categorized as a record.", request_id=g.get('request_id', None)).to_json(), status=200, mimetype="application/json")
 
 def dql_request(config, sql, items_per_page, page_number, env):
   if env == 'prod':
@@ -893,7 +944,7 @@ def convert_metadata(ecms_metadata, unid=None):
 
 def upload_documentum_email(upload_email_request, access_token, user_info, config):
   ecms_metadata = upload_email_request.metadata
-  content = get_eml_file(upload_email_request.email_id, ecms_metadata.title, access_token, config)
+  content = get_eml_file(upload_email_request.email_id, ecms_metadata.title, upload_email_request.mailbox, access_token, config)
   if content is None:
     return Response(StatusResponse(status='Failed', reason='Unable to retrieve email.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
   documentum_metadata = convert_metadata(ecms_metadata, upload_email_request.email_unid)
@@ -1077,7 +1128,7 @@ def upload_sharepoint_record(req: SharepointUploadRequest, access_token, user_in
   site_id = drive_item['sharepointIds']['siteId']
   list_id = drive_item['sharepointIds']['listId']
   list_item_id = drive_item['sharepointIds']['listItemId']
-  status = "Saved to ECMS Staging"
+  status = "Saved to ARMS"
   success, response = update_sharepoint_record_status(site_id, list_id, list_item_id, status, access_token)
   if not success:
     return response 

@@ -223,6 +223,14 @@ class EmailPredictionRequest:
 
 @dataclass_json
 @dataclass 
+class EmailPredictionRequestGraph:
+    email_id: str
+    mailbox: str
+    file_name: Optional[str] = None
+    department: Optional[str] = None
+
+@dataclass_json
+@dataclass 
 class GetMailboxesResponse:
     mailboxes: list[str]
 
@@ -459,8 +467,21 @@ class MarkSavedRequest:
 
 @dataclass_json
 @dataclass 
+class MarkSavedRequestGraph:
+    sensitivity: str 
+    email_id: str
+    mailbox: str
+
+@dataclass_json
+@dataclass 
 class UntagRequest:
     email_id: str
+
+@dataclass_json
+@dataclass 
+class UntagRequestGraph:
+    email_id: str
+    mailbox: str
 
 @dataclass_json
 @dataclass 

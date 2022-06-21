@@ -109,7 +109,38 @@ def text_metadata_prediction():
     prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description, default_schedule=default_schedule, subjects=subjects, identifiers=identifiers)
     return Response(prediction.to_json(), status=200, mimetype='application/json')
 
-@app.route('/email_metadata_prediction', methods=['GET'])
+@app.route('/email_metadata_prediction/<emailsource>', methods=['GET'])
+def email_metadata_prediction_graph(emailsource):
+    if g.access_token is None:
+        return Response(StatusResponse(status='Failed', reason='X-Access-Token is required.', request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
+    req = request.args
+    try:
+        req = EmailPredictionRequestGraph.from_dict(req)
+    except:
+        return Response(StatusResponse(status='Failed', reason='Missing required parameters.', request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
+    eml_file = get_eml_file(req.email_id, "default_file_name", emailsource, req.mailbox, g.access_token, c)
+    if eml_file is None:
+        return Response(StatusResponse(status='Failed', reason="Could not retrieve eml file.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+    success, text, response = tika(eml_file, c, extraction_type='text')
+    if not success:
+        return response
+    schedules = schedule_cache.get_schedules().schedules
+    valid_schedules = list(filter(lambda x: x.ten_year, schedules))
+    valid_schedules = ["{fn}-{sn}-{dn}".format(fn=x.function_number, sn=x.schedule_number, dn=x.disposition_number) for x in valid_schedules]
+    keyword_weights = keyword_extractor.extract_keywords(text)
+    keywords = [x[0] for x in sorted(keyword_weights.items(), key=lambda y: y[1], reverse=True)][:5]
+    subjects=keyword_extractor.extract_subjects(text, keyword_weights)
+    has_capstone=capstone_detector.detect_capstone_text(text)
+    identifiers=identifier_extractor.extract_identifiers(text)
+    # TODO: Handle case where attachments are present
+    predicted_schedules, default_schedule = model.predict(text, 'email', PredictionMetadata(req.file_name, req.department), has_capstone, keywords, subjects, attachments=[], valid_schedules=valid_schedules)
+    
+    predicted_title = mock_prediction_with_explanation
+    predicted_description = mock_prediction_with_explanation
+    prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description, default_schedule=default_schedule, subjects=subjects, identifiers=identifiers)
+    return Response(prediction.to_json(), status=200, mimetype='application/json')
+
+@app.route('/email_metadata_prediction/', methods=['GET'])
 def email_metadata_prediction():
     if g.access_token is None:
         return Response(StatusResponse(status='Failed', reason='X-Access-Token is required.', request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
@@ -118,7 +149,7 @@ def email_metadata_prediction():
         req = EmailPredictionRequest.from_dict(req)
     except:
         return Response(StatusResponse(status='Failed', reason='Missing required parameters.', request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
-    eml_file = get_eml_file(req.email_id, "default_file_name", g.access_token, c)
+    eml_file = get_eml_file(req.email_id, "default_file_name", 'archive', None, g.access_token, c)
     if eml_file is None:
         return Response(StatusResponse(status='Failed', reason="Could not retrieve eml file.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
     success, text, response = tika(eml_file, c, extraction_type='text')
@@ -198,6 +229,8 @@ def get_emails_graph(emailsource):
         req['items_per_page'] = req.pop('count', 10)
     if 'page_number' not in req:
         req['page_number'] = 1
+    if 'mailbox' not in req:
+        req['mailbox'] = g.token_data['email']
     req = GetEmailRequest(items_per_page=int(req['items_per_page']), page_number=int(req['page_number']), mailbox=req['mailbox'], emailsource=emailsource)
     if not mailbox_manager.validate_mailbox(g.token_data['email'], req.mailbox):
         return Response(StatusResponse(status='Failed', reason="User is not authorized to access selected mailbox.", request_id=g.get('request_id', None)).to_json(), status=401, mimetype='application/json')
@@ -236,7 +269,8 @@ def download_email():
         Response(StatusResponse(status='Failed', reason="File download failed. Ensure that email_id is valid.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
     return send_file(BytesIO(content), attachment_filename=req.file_name, as_attachment=True)
 
-@app.route('/mark_email_saved', methods=['POST'])
+#mark and untag email
+@app.route('/mark_email_saved/', methods=['POST'])
 def mark_email_saved():
     if g.access_token is None:
         return Response(StatusResponse(status='Failed', reason="X-Access-Token is required.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
@@ -245,7 +279,19 @@ def mark_email_saved():
         req = MarkSavedRequest.from_dict(req)
     except:
         return Response(StatusResponse(status='Failed', reason="Request is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
-    return mark_saved(req, g.access_token, c)
+    return mark_saved(req, g.access_token, 'archive', c)
+
+#mark and untag email
+@app.route('/mark_email_saved/<emailsource>', methods=['POST'])
+def mark_email_saved_graph(emailsource):
+    if g.access_token is None:
+        return Response(StatusResponse(status='Failed', reason="X-Access-Token is required.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
+    req = request.json
+    try:
+        req = MarkSavedRequestGraph.from_dict(req)
+    except:
+        return Response(StatusResponse(status='Failed', reason="Request is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
+    return mark_saved(req, g.access_token, emailsource, c)
 
 @app.route('/badge_info', methods=['GET'])
 def badge_info():
@@ -282,7 +328,18 @@ def untag_email():
         req = UntagRequest.from_dict(req)
     except:
         return Response(StatusResponse(status='Failed', reason="Request is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
-    return untag(req, g.access_token, c)
+    return untag(req, g.access_token, c, 'archive')
+
+@app.route('/untag_email/<emailsource>', methods=['POST'])
+def untag_email_graph(emailsource):
+    if g.access_token is None:
+        return Response(StatusResponse(status='Failed', reason="X-Access-Token is required.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
+    req = request.json
+    try:
+        req = UntagRequestGraph.from_dict(req)
+    except:
+        return Response(StatusResponse(status='Failed', reason="Request is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
+    return untag(req, g.access_token, c, emailsource)
 
 @app.route('/get_favorites', methods=['GET'])
 def get_favorites():
