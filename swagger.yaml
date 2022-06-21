@@ -110,7 +110,7 @@ paths:
           description: "Server side error - description in response."
           schema:
             $ref: "#/definitions/StatusResponse"
-  /email_metadata_prediction:
+  /email_metadata_prediction/{emailsource}:
     get:
       tags:
       - "schedule_predictions"
@@ -119,6 +119,11 @@ paths:
       consumes:
         - application/json
       parameters:
+        - in: path
+          name: emailsource
+          type: string
+          required: true
+          description: Options are regular and archive.
         - in: query
           name: "email_id"
           type: string

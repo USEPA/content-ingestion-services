@@ -109,8 +109,8 @@ def text_metadata_prediction():
     prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description, default_schedule=default_schedule, subjects=subjects, identifiers=identifiers)
     return Response(prediction.to_json(), status=200, mimetype='application/json')
 
-@app.route('/email_metadata_prediction', methods=['GET'])
-def email_metadata_prediction():
+@app.route('/email_metadata_prediction/<emailsource>', methods=['GET'])
+def email_metadata_prediction(emailsource):
     if g.access_token is None:
         return Response(StatusResponse(status='Failed', reason='X-Access-Token is required.', request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
     req = request.args
@@ -118,7 +118,7 @@ def email_metadata_prediction():
         req = EmailPredictionRequest.from_dict(req)
     except:
         return Response(StatusResponse(status='Failed', reason='Missing required parameters.', request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
-    eml_file = get_eml_file(req.email_id, "default_file_name", g.access_token, c)
+    eml_file = get_eml_file(req.email_id, "default_file_name", emailsource, g.access_token, c)
     if eml_file is None:
         return Response(StatusResponse(status='Failed', reason="Could not retrieve eml file.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
     success, text, response = tika(eml_file, c, extraction_type='text')
@@ -198,6 +198,8 @@ def get_emails_graph(emailsource):
         req['items_per_page'] = req.pop('count', 10)
     if 'page_number' not in req:
         req['page_number'] = 1
+    if 'mailbox' not in req:
+        req['mailbox'] = g.token_data['email']
     req = GetEmailRequest(items_per_page=int(req['items_per_page']), page_number=int(req['page_number']), mailbox=req['mailbox'], emailsource=emailsource)
     if not mailbox_manager.validate_mailbox(g.token_data['email'], req.mailbox):
         return Response(StatusResponse(status='Failed', reason="User " + g.token_data['email'] + " is not authorized to access " + req.mailbox + ".", request_id=g.get('request_id', None)).to_json(), status=401, mimetype='application/json')

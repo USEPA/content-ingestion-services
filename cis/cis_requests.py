@@ -68,9 +68,9 @@ def get_cui_categories(file, config):
     app.logger.error("Tika metadata request completed with status " + str(response_meta.status_code) + " for request ID " + str(g.get('request_id', None)))
     return []
 
-def get_eml_file(email_id, file_name, access_token, config):
+def get_eml_file(email_id, file_name, emailsource, access_token, config):
 
-  def get_eml_file_archive(email_id, file_name, access_token, config):
+  if emailsource.lower() == 'archive':
     headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}
     body = {"filename":file_name, "emailid":email_id}
     r = requests.get("http://" + config.ezemail_server + "/ezemail/v1/getemlfile", data=json.dumps(body), headers=headers, timeout=30)
@@ -80,15 +80,15 @@ def get_eml_file(email_id, file_name, access_token, config):
       app.logger.error('Get EML file request ended with status ' + str(r.status_code) + '. Response: ' + r.text)
       return None
 
-  #graph email_id can not use the / and does not have +
-  if '+' not in email_id and '/' not in email_id:
+  else:
     headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}
     url = "https://graph.microsoft.com/v1.0/me/messages/" + email_id + "/$value"
     r = requests.get(url, headers=headers, timeout=30)
     if r.status_code == 200:
         return r.content
-  else:
-    return get_eml_file_archive(email_id, file_name, access_token, config)
+    else:
+      app.logger.error('Get EML file request with graph, ended with status ' + str(r.status_code) + '. Response: ' + r.text)
+      return None
 
 def get_email_html(email_id, access_token, config):
   body = {"emailid": email_id,
@@ -401,15 +401,13 @@ def mark_saved(req: MarkSavedRequest, access_token, emailsource, config):
     urlo =  "https://graph.microsoft.com/v1.0/me/messages/" + req.email_id + '?$select=categories'
     p = requests.get(urlo, headers=headers)
     cats = p.json()['categories']
-    try: cats.remove('Record')
-    except: pass
+    if 'Record' in cats: cats.remove('Record')
     cats.append('Saved to ARMS')
 
     #update categories
     url = "https://graph.microsoft.com/v1.0/me/messages/" + req.email_id
     body = json.dumps({'categories':cats})
-    if req.sensitivity.lower() == 'private':
-      body['sensitivityid'] = 3
+
     p = requests.patch(url, headers=headers, data=body, timeout=30)
     if p.status_code != 200:
       return Response(StatusResponse(status='Failed', reason="Unable to mark as saved.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
