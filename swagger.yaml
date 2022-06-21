@@ -110,6 +110,50 @@ paths:
           description: "Server side error - description in response."
           schema:
             $ref: "#/definitions/StatusResponse"
+  /email_metadata_prediction/:
+    get:
+      tags:
+      - "schedule_predictions"
+      - "email"
+      summary: "Gets metadata recommendations for given email."
+      consumes:
+        - application/json
+      parameters:
+        - in: query
+          name: "email_id"
+          type: string
+        - in: query
+          name: "file_name"
+          type: string
+        - in: query
+          name: "department"
+          type: string
+        - in: header
+          name: "Authorization"
+          type: string
+          format: "jwt"
+          required: true
+        - in: header
+          name: "X-Access-Token"
+          type: string
+          required: true
+      responses:
+        200:
+          description: "Recommendations were successfully given."
+          schema:
+            $ref: "#/definitions/MetadataPrediction"
+        400:
+          description: "Invalid request - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        401:
+          description: "Unauthorized - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        500:
+          description: "Server side error - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
   /email_metadata_prediction/{emailsource}:
     get:
       tags:
@@ -132,6 +176,9 @@ paths:
           type: string
         - in: query
           name: "department"
+          type: string
+        - in: query
+          name: "mailbox"
           type: string
         - in: header
           name: "Authorization"
@@ -432,6 +479,44 @@ paths:
           description: "Server side error - description in response."
           schema:
             $ref: "#/definitions/StatusResponse"
+  /mark_email_saved/:
+    post:
+      tags:
+      - "email"
+      summary: "Mark an email with the saved tag in Outlook."
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: "MarkSavedRequest"
+          schema: 
+            $ref: "#/definitions/MarkSavedRequest"
+        - in: header
+          name: "Authorization"
+          type: string
+          format: "jwt"
+          required: true
+        - in: header
+          name: "X-Access-Token"
+          type: string
+          required: true
+      responses:
+        200:
+          description: "Email marked as saved."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        400:
+          description: "Invalid request - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        401:
+          description: "Unauthorized - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        500:
+          description: "Server side error - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
   /mark_email_saved/{emailsource}:
     post:
       tags:
@@ -446,9 +531,9 @@ paths:
           required: true
           description: Options are regular and archive.
         - in: body
-          name: "MarkSavedRequest"
+          name: "MarkSavedRequestGraph"
           schema: 
-            $ref: "#/definitions/MarkSavedRequest"
+            $ref: "#/definitions/MarkSavedRequestGraph"
         - in: header
           name: "Authorization"
           type: string
@@ -487,6 +572,44 @@ paths:
           name: "UntagRequest"
           schema: 
             $ref: "#/definitions/UntagRequest"
+        - in: header
+          name: "Authorization"
+          type: string
+          format: "jwt"
+          required: true
+        - in: header
+          name: "X-Access-Token"
+          type: string
+          required: true
+      responses:
+        200:
+          description: "Record tag for email has been removed."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        400:
+          description: "Invalid request - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        401:
+          description: "Unauthorized - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        500:
+          description: "Server side error - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+  /untag_email/{emailsource}:
+    post:
+      tags:
+      - "email"
+      summary: "Remove record tag in Outlook."
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: "UntagRequestGraph"
+          schema: 
+            $ref: "#/definitions/UntagRequestGraph"
         - in: header
           name: "Authorization"
           type: string
@@ -1575,10 +1698,27 @@ definitions:
       sensitivity:
         type: string
         enum: ["shared", "private"]
+  MarkSavedRequestGraph:
+    type: object
+    properties:
+      email_id:
+        type: string
+      sensitivity:
+        type: string
+        enum: ["shared", "private"]
+      mailbox:
+        type: string
   UntagRequest:
     type: object
     properties:
       email_id:
+        type: string
+  UntagRequestGraph:
+    type: object
+    properties:
+      email_id:
+        type: string
+      mailbox:
         type: string
   ECMSMetadata:
     type: object
