@@ -156,6 +156,7 @@ class MetadataPrediction:
     subjects: list[str]
     identifiers: Dict[str, str]
     cui_categories: Optional[list[str]] = None
+    is_encrypted: bool = False
 
 mock_predicted_schedules = [
     Recommendation(**{"schedule": RecordSchedule(**{"function_number": "404", "schedule_number": "1012", "disposition_number": "e"}), "probability": 0.6403017640113831}), 

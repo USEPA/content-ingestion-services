@@ -124,6 +124,11 @@ def email_metadata_prediction_graph(emailsource):
     success, text, response = tika(eml_file, c, extraction_type='text')
     if not success:
         return response
+    if 'Content-Type: application/pkcs7-mime' in str(eml_file):
+        is_encrypted = True
+    else:
+        print(text)
+        is_encrypted = False
     schedules = schedule_cache.get_schedules().schedules
     valid_schedules = list(filter(lambda x: x.ten_year, schedules))
     valid_schedules = ["{fn}-{sn}-{dn}".format(fn=x.function_number, sn=x.schedule_number, dn=x.disposition_number) for x in valid_schedules]
@@ -137,7 +142,7 @@ def email_metadata_prediction_graph(emailsource):
     
     predicted_title = mock_prediction_with_explanation
     predicted_description = mock_prediction_with_explanation
-    prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description, default_schedule=default_schedule, subjects=subjects, identifiers=identifiers)
+    prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description, default_schedule=default_schedule, subjects=subjects, identifiers=identifiers, is_encrypted=is_encrypted)
     return Response(prediction.to_json(), status=200, mimetype='application/json')
 
 @app.route('/email_metadata_prediction/', methods=['GET'])

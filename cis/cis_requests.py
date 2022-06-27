@@ -362,13 +362,14 @@ def list_email_metadata_graph(req: GetEmailRequest, user_email, access_token, co
 
 def extract_attachments_from_response_graph(messageId, hasAttachments, mailbox, access_token):
   if hasAttachments:
-    url = "https://graph.microsoft.com/v1.0/" + mailbox + "/messages/" + str(messageId) + "/attachments"
+    url = "https://graph.microsoft.com/v1.0/" + mailbox + "/messages/" + str(messageId) + "/attachments?$select=name,id"
     headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}
     p = requests.get(url, headers=headers, timeout=60)
     resp = p.json()
     attachments = [EmailAttachment(name=x['name'], attachment_id=x['id']) for x in resp['value']]
     return attachments
-  else: return []
+  else: 
+    return []
   
 def extract_attachments_from_response(ezemail_response):
   if 'attachments' not in ezemail_response:
