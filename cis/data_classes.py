@@ -615,6 +615,7 @@ class LogActivityRequest:
     lan_id: str
     office_code: str
     event_id: str
+    bulk_number: int
 
 @dataclass_json
 @dataclass

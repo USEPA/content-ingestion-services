@@ -1197,6 +1197,11 @@ def upload_sharepoint_batch(req: SharepointBatchUploadRequest, user_info, c, acc
     batch_update_status(req, site_id, list_id, access_token)
   except:
     Response(StatusResponse(status='Failed', reason='Unable to update Sharepoint status.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+  try:
+    log_upload_activity(user_info, None, None, c, count=len(req.sharepoint_items))
+  except:
+    Response(StatusResponse(status='OK', reason='Unable to reward points for sharepoint batch.', request_id=g.get('request_id', None)).to_json(), status=200, mimetype='application/json')
+    app.logger.error('Unable to reward points for sharepoint batch for user ' + user_info.lan_id)
   return Response(StatusResponse(status='OK', reason='Uploaded batch to S3.', request_id=g.get('request_id', None)).to_json(), status=200, mimetype='application/json')
 
 def sched_to_string(sched):
@@ -1310,16 +1315,16 @@ def submit_sems_email(req: SEMSEmailUploadRequest, config):
     return Response(StatusResponse(status='Failed', reason='Failed to send email to SEMS.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
   return Response(r.json(), status=200, mimetype='application/json')
 
-def log_upload_activity(user_info, user_activity, metadata, config):
-  safe_user_activity_request(user_info.employee_number, user_info.lan_id, user_info.parent_org_code, '3', config)
-  if not user_activity.used_default_schedule or user_activity.used_schedule_dropdown or user_activity.used_recommended_schedule:
+def log_upload_activity(user_info, user_activity, metadata, config, count=1):
+  safe_user_activity_request(user_info.employee_number, user_info.lan_id, user_info.parent_org_code, '3', config, count)
+  if user_activity is not None and not user_activity.used_default_schedule or user_activity.used_schedule_dropdown or user_activity.used_recommended_schedule:
       safe_user_activity_request(user_info.employee_number, user_info.lan_id, user_info.parent_org_code, '4', config)
-  if len(metadata.description) > 0 or len(metadata.close_date) > 0 or metadata.rights is not None or metadata.coverage is not None or metadata.relationships is not None or metadata.tags is not None:
+  if metadata is not None and len(metadata.description) > 0 or len(metadata.close_date) > 0 or metadata.rights is not None or metadata.coverage is not None or metadata.relationships is not None or metadata.tags is not None:
       safe_user_activity_request(user_info.employee_number, user_info.lan_id, user_info.parent_org_code, '6', config)
 
-def safe_user_activity_request(employee_id, lan_id, office_code, event_id, config):
+def safe_user_activity_request(employee_id, lan_id, office_code, event_id, config, count=1):
   try:
-    activity_request = LogActivityRequest(employee_id=employee_id, lan_id=lan_id, office_code=office_code, event_id=event_id)
+    activity_request = LogActivityRequest(employee_id=employee_id, lan_id=lan_id, office_code=office_code, event_id=event_id, bulk_number=count)
     success, error_status = user_activity_request(activity_request, config)
     if not success:
         app.logger.info('Failed to log user activity for ' + lan_id + '. Activity request failed with status ' + str(error_status))
@@ -1327,7 +1332,7 @@ def safe_user_activity_request(employee_id, lan_id, office_code, event_id, confi
     app.logger.info('Failed to log user activity for ' + lan_id)
 
 def user_activity_request(req: LogActivityRequest, config):
-  params={'employee_id':req.employee_id, 'lan_id':req.lan_id, 'office_code':req.office_code, 'event_id':req.event_id, 'api_key':config.patt_api_key}
+  params={'employee_id':req.employee_id, 'lan_id':req.lan_id, 'bulk_number':req.bulk_number, 'office_code':req.office_code, 'event_id':req.event_id, 'api_key':config.patt_api_key}
   url = 'https://' + config.patt_host + '/app/mu-plugins/pattracking/includes/admin/pages/games/activity.php'
   r = requests.post(url, params=params)
   if r.status_code == 200:
