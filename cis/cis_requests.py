@@ -805,8 +805,17 @@ def get_wam_info_by_display_name(config, display_name):
   else:
     app.logger.error('User data empty for display_name ' + display_name)
     return None
-
-def get_user_info(config, token_data):
+  
+def get_direct_reports(token_data, access_token):
+  headers = {'Authorization': 'Bearer ' + access_token, 'Content-Type':'application/json'}
+  r = requests.get("https://graph.microsoft.com/v1.0/me/directReports", headers=headers, timeout=10)
+  if r.status_code != 200:
+    app.logger.error('Failed to fetch direct reports for ' + token_data['email'])
+    return []
+  else:
+    return [x['userPrincipalName'] for x in r.json()['value']]
+  
+def get_user_info(config, token_data, access_token=None):
   # Handle service accounts separately
   if token_data['email'][:4].lower() == 'svc_' or 'java_review' in token_data['email'].lower():
     return True, None, UserInfo(token_data['email'], token_data['email'], token_data['email'].split('@')[0], 'SERVICE_ACCOUNT', '', None, None, '', [], None, default_settings)
@@ -855,7 +864,11 @@ def get_user_info(config, token_data):
   except:
     user_settings = default_settings
     app.logger.info('Preferred system database read failed for ' + token_data['email'])
-  return True, None, UserInfo(token_data['email'], display_name, lan_id, department, enterprise_department, manager_department, manager_enterprise_department, employee_number, badges, profile, user_settings)
+  if access_token is not None:
+    direct_reports = get_direct_reports(token_data, access_token)
+  else:
+    direct_reports = []
+  return True, None, UserInfo(token_data['email'], display_name, lan_id, department, enterprise_department, manager_department, manager_enterprise_department, employee_number, badges, profile, user_settings, direct_reports)
 
 def get_gamification_data(config, employee_number):
   try:

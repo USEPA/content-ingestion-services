@@ -453,7 +453,7 @@ def my_records():
 
 @app.route('/get_user_info', methods=['GET'])
 def user_info():
-    success, message, user_info = get_user_info(c, g.token_data)
+    success, message, user_info = get_user_info(c, g.token_data, g.access_token)
     if not success:
         return Response(StatusResponse(status='Failed', reason=message, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
     return Response(user_info.to_json(), status=200, mimetype='application/json')

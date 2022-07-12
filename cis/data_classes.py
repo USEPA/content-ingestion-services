@@ -365,6 +365,7 @@ class UserInfo:
     badges: list[BadgeInfo]
     profile: Optional[ProfileInfo]
     user_settings: UserSettings
+    direct_reports: list[str]
 
 @dataclass_json
 @dataclass 

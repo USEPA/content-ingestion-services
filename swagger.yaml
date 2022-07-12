@@ -217,6 +217,10 @@ paths:
           type: string
           format: "jwt"
           required: true
+        - in: header
+          name: "X-Access-Token"
+          type: string
+          required: true
       responses:
         200:
           description: "User information retrieved."
@@ -606,6 +610,11 @@ paths:
       consumes:
         - application/json
       parameters:
+        - in: path
+          name: emailsource
+          type: string
+          required: true
+          description: Options are regular and archive.
         - in: body
           name: "UntagRequestGraph"
           schema: 
@@ -1866,6 +1875,10 @@ definitions:
         $ref: "#/definitions/ProfileInfo"
       user_settings:
         $ref: "#/definitions/UserSettings"
+      direct_reports:
+        type: array
+        items:
+          type: string
   GamificationDataResponse:
     type: object
     properties:
