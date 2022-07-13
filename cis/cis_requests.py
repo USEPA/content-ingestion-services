@@ -693,6 +693,42 @@ def get_documentum_records(config, lan_id, items_per_page, page_number, query, e
 def object_id_is_valid(config, object_id):
   return re.fullmatch('[a-z0-9]{16}', object_id) is not None and object_id[2:8] == config.records_repository_id
 
+def get_nuxeo_creds(c, env):
+  if env == 'dev':
+    return c.nuxeo_dev_url, c.nuxeo_dev_username, c.nuxeo_dev_password
+  else:
+    return c.nuxeo_prod_url, c.nuxeo_prod_username, c.nuxeo_prod_password
+
+def validate_by_uid(c, uid, env, employee_number):
+  headers = {'Content-Type':'application/json', 'X-NXproperties':'*'}
+  try:
+    nuxeo_url, nuxeo_username, nuxeo_password = get_nuxeo_creds(c, env)
+    r = requests.get(nuxeo_url + '/nuxeo/api/v1/search/lang/NXQL/execute?query=select * from epa_record where ecm:uuid="' + uid + '"', headers=headers, auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))
+    record_custodian = r.json()['entries'][0]['properties']['arms:epa_contact']
+    if record_custodian == employee_number:
+      return True, None, True
+    else:
+      return True, None, False
+  except:
+    return False, 'Failed to find record metadata for validation', None
+  
+def download_nuxeo_record(c, user_info, req):
+  # Validate that the user is the custodian
+  success, error, valid = validate_by_uid(c, req.uid, req.nuxeo_env, user_info.employee_number)
+  if not success:
+    return Response(StatusResponse(status='Failed', reason=error, request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
+  if not valid:
+    return Response(StatusResponse(status='Failed', reason='User is not authorized to download this record.', request_id=g.get('request_id', None)).to_json(), status=401, mimetype='application/json')
+
+  # Download record
+  nuxeo_url, nuxeo_username, nuxeo_password = get_nuxeo_creds(c, req.nuxeo_env)
+  headers = {'Content-Type':'application/json', 'X-NXproperties':'*'}
+  d = requests.get(nuxeo_url + '/nuxeo/nxfile/default/' + req.uid + '/file:content/' + req.name, headers=headers, auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))  
+  if d.status_code != 200:
+    return Response(StatusResponse(status='Failed', reason='Failed to download record.', request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
+  b = io.BytesIO(d.content)
+  return send_file(b, mimetype='application/octet-stream', as_attachment=True, attachment_filename=req.name)
+
 def download_documentum_record(config, user_info, object_ids, env):
   lan_id = user_info.lan_id
   if env == 'prod':

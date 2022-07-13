@@ -941,6 +941,49 @@ paths:
           description: "Server side error - description in response."
           schema:
             $ref: "#/definitions/StatusResponse"
+  /my_records_download/v2:
+    get:
+      tags:
+      - "my_records"
+      summary: "Download existing records."
+      consumes:
+        - application/json
+      parameters:
+        - in: header
+          name: "Authorization"
+          type: string
+          format: "jwt"
+          required: true
+        - in: query
+          name: "uid"
+          type: string
+          required: true
+        - in: query
+          name: "name"
+          type: string
+          required: true
+        - in: query
+          name: "nuxeo_env"
+          type: string
+          required: false
+          default: "dev"
+      responses:
+        200:
+          description: "Records zip file downloaded."
+          schema:
+            type: "file"
+        400:
+          description: "Invalid request - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        401:
+          description: "Unauthorized - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        500:
+          description: "Server side error - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
   /get_sites:
     get:
       tags:

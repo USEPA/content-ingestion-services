@@ -145,6 +145,12 @@ class RecordDownloadRequest:
     object_ids: list[str]
     documentum_env: Optional[str] = "dev"
 
+@dataclass_json
+@dataclass 
+class RecordDownloadRequestV2:
+    name: str
+    uid: str
+    nuxeo_env: Optional[str] = "dev"
 
 @dataclass_json
 @dataclass 

@@ -207,6 +207,18 @@ def upload_file():
     #     return Response(StatusResponse(status='OK', reason='File successfully uploaded.', request_id=g.get('request_id', None)).to_json(), status=200, mimetype='application/json')
     return Response(StatusResponse(status='OK', reason='File successfully uploaded.', request_id=g.get('request_id', None)).to_json(), status=200, mimetype='application/json')   
 
+@app.route('/my_records_download/v2', methods=['GET'])
+def download_v2():
+    success, message, user_info = get_user_info(c, g.token_data)
+    if not success:
+        return Response(StatusResponse(status='Failed', reason=message, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+    req = dict(request.args)
+    try:
+        req = RecordDownloadRequestV2.from_dict(req)
+    except:
+        return Response(StatusResponse(status='Failed', reason="Request is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
+    return download_nuxeo_record(c, user_info, req)
+
 @app.route('/get_mailboxes', methods=['GET'])
 def get_mailboxes():
     return mailbox_manager.list_shared_mailboxes(g.token_data['email'])
