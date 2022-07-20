@@ -125,18 +125,43 @@ class DocumentumDocInfo:
 
 @dataclass_json
 @dataclass 
+class NuxeoDocInfo:
+    sensitivity: str
+    uid: str
+    name: str
+    size: float
+    custodian: str
+    upload_date: str
+    metadata: Optional[ECMSMetadata] = None
+
+@dataclass_json
+@dataclass 
 class DocumentumRecordList:
     records: list[DocumentumDocInfo]
+    total: int
+
+@dataclass_json
+@dataclass 
+class NuxeoRecordList:
+    records: list[NuxeoDocInfo]
     total: int
     
 @dataclass_json
 @dataclass 
 class MyRecordsRequest:
     lan_id: str
-    items_per_page: int
-    page_number: int
+    items_per_page: int = 10
+    page_number: int = 0
     query: Optional[str] = None
     documentum_env: Optional[str] = "dev"
+
+@dataclass_json
+@dataclass 
+class MyRecordsRequestV2:
+    items_per_page: int = 10
+    page_number: int = 0
+    query: Optional[str] = None
+    nuxeo_env: Optional[str] = "dev"
 
 @dataclass_json
 @dataclass 

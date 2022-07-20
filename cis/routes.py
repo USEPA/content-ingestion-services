@@ -207,6 +207,39 @@ def upload_file():
     #     return Response(StatusResponse(status='OK', reason='File successfully uploaded.', request_id=g.get('request_id', None)).to_json(), status=200, mimetype='application/json')
     return Response(StatusResponse(status='OK', reason='File successfully uploaded.', request_id=g.get('request_id', None)).to_json(), status=200, mimetype='application/json')   
 
+@app.route('/upload_file/v2', methods=['POST'])
+def upload_file_v2():
+    success, message, user_info = get_user_info(c, g.token_data)
+    if not success:
+        return Response(StatusResponse(status='Failed', reason=message, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+    file = request.files.get('file')
+    try:
+        metadata = ECMSMetadata.from_json(request.form['metadata'])
+    except:
+        return Response(StatusResponse(status='Failed', reason="Metadata is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
+    try:
+        user_activity = SubmissionAnalyticsMetadata.from_json(request.form['user_activity'])
+    except:
+        return Response(StatusResponse(status='Failed', reason="User activity data is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
+    # Default to dev environment
+    env = request.form.get('nuxeo_env', 'dev')
+    if metadata.custodian != user_info.lan_id:
+        return Response(StatusResponse(status='Failed', reason="Custodian must match authorized user's lan_id.", request_id=g.get('request_id', None)).to_json(), status=401, mimetype='application/json')
+    if file is None:
+        return Response(StatusResponse(status='Failed', reason="No file found.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype="application/json")
+    # This is where we need to upload record to ARMS
+    success, error, batch_id = submit_nuxeo_file(c, file, user_info, metadata, env)
+    if not success:
+        return Response(StatusResponse(status='Failed', reason=error, request_id=g.get('request_id', None)).to_json(), status=500, mimetype="application/json")
+
+    # Add submission analytics
+    success, response = add_submission_analytics(user_activity, metadata.record_schedule, user_info.lan_id, batch_id, None)
+    if not success:
+        return response
+    else:
+        log_upload_activity(user_info, user_activity, metadata, c)
+        return Response(StatusResponse(status='OK', reason='File successfully uploaded.', request_id=g.get('request_id', None)).to_json(), status=200, mimetype='application/json')
+
 @app.route('/my_records_download/v2', methods=['GET'])
 def download_v2():
     success, message, user_info = get_user_info(c, g.token_data)
@@ -251,8 +284,6 @@ def get_emails_graph(emailsource):
     req = GetEmailRequest(items_per_page=int(req['items_per_page']), page_number=int(req['page_number']), mailbox=req['mailbox'], emailsource=emailsource)
     if not mailbox_manager.validate_mailbox(g.token_data['email'], req.mailbox):
         return Response(StatusResponse(status='Failed', reason="User is not authorized to access selected mailbox.", request_id=g.get('request_id', None)).to_json(), status=401, mimetype='application/json')
-    #if req['emailsource'].lower() == 'archive': req['emailsource'] = 'Archive'
-    #else: req['emailsource'] = 'Regular'
     return list_email_metadata_graph(req, g.token_data['email'], g.access_token, c)
 
 @app.route('/upload_email', methods=['POST'])
@@ -460,8 +491,22 @@ def my_records():
     if user_info.lan_id != req.lan_id:
         return Response(StatusResponse(status='Failed', reason='User is not authorized to download records for this lan_id.', request_id=g.get('request_id', None)).to_json(), status=401, mimetype='application/json')
     if req.documentum_env not in ['dev', 'prod']:
-        return Response(StatusResponse(status='Failed', reason='Invalid documentum_env.', request_id=g.get('request_id', None)).to_json(), status=401, mimetype='application/json')
+        return Response(StatusResponse(status='Failed', reason='Invalid documentum_env.', request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
     return get_documentum_records(c, user_info.lan_id, int(req.items_per_page), int(req.page_number), req.query, req.documentum_env)
+
+@app.route('/my_records/v2', methods=['GET'])
+def my_records_v2():
+    success, message, user_info = get_user_info(c, g.token_data)
+    if not success:
+        return Response(StatusResponse(status='Failed', reason=message, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+    req = dict(request.args)
+    try:
+        req = MyRecordsRequestV2.from_dict(req)
+    except:
+        return Response(StatusResponse(status='Failed', reason="Request is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
+    if req.nuxeo_env not in ['dev', 'prod']:
+        return Response(StatusResponse(status='Failed', reason='Invalid nuxeo_env.', request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
+    return get_nuxeo_records(c, req, user_info.employee_number)
 
 @app.route('/get_user_info', methods=['GET'])
 def user_info():

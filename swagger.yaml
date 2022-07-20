@@ -284,6 +284,52 @@ paths:
           description: "Server side error - description in response."
           schema:
             $ref: "#/definitions/StatusResponse"
+  /upload_file/v2:
+    post:
+      tags:
+      - "desktop"
+      summary: "Upload a file to ECMS with metadata."
+      consumes:
+        - multipart/form-data
+      parameters:
+        - in: "formData"
+          name: "file"
+          type: "file"
+          description: "Binary content of file to upload."
+        - in: "formData"
+          name: "metadata"
+          type: string
+          description: "String of serialized JSON with ECMS metadata."
+        - in: "formData"
+          name: "user_activity"
+          type: string
+          description: "String of serialized JSON with user activity data."
+        - in: "formData"
+          name: "nuxeo_env"
+          type: string
+          description: "Environment - either dev or prod."
+        - in: header
+          name: "Authorization"
+          type: string
+          format: "jwt"
+          required: true
+      responses:
+        200:
+          description: "File was successfully uploaded."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        400:
+          description: "Invalid request - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        401:
+          description: "Unauthorized - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        500:
+          description: "Server side error - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
   /get_mailboxes:
     get:
       tags:
@@ -884,6 +930,53 @@ paths:
           description: "Record information retrieved."
           schema:
             $ref: "#/definitions/DocumentumRecordList"
+        400:
+          description: "Invalid request - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        401:
+          description: "Unauthorized - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        500:
+          description: "Server side error - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+  /my_records/v2:
+    get:
+      tags:
+      - "my_records"
+      summary: "Get information for existing records."
+      consumes:
+        - application/json
+      parameters:
+        - in: header
+          name: "Authorization"
+          type: string
+          format: "jwt"
+          required: true
+        - in: query
+          name: query
+          type: string
+          required: false
+        - in: query
+          name: "items_per_page"
+          type: number
+          required: true
+        - in: query
+          name: "page_number"
+          type: number
+          required: true
+        - in: query
+          name: "nuxeo_env"
+          type: string
+          required: false
+          default: "dev"
+      responses:
+        200:
+          description: "Record information retrieved."
+          schema:
+            $ref: "#/definitions/NuxeoRecordList"
         400:
           description: "Invalid request - description in response."
           schema:
@@ -1988,6 +2081,33 @@ definitions:
         type: array
         items: 
           $ref: "#/definitions/DocumentumDocInfo"
+  NuxeoRecordList:
+    type: object
+    properties:
+      total:
+        type: number
+      records:
+        type: array
+        items: 
+          $ref: "#/definitions/NuxeoDocInfo"
+  NuxeoDocInfo:
+    type: object
+    properties:
+      uid: 
+        type: string
+      name: 
+        type: string
+      sensitivity:
+        type: string
+        enum: ["shared", "private"] 
+      size: 
+        type: number
+      custodian:
+        type: string
+      upload_date:
+        type: string
+      metadata:
+        $ref: "#/definitions/ECMSMetadata"
   SharepointItem:
     type: object
     properties:

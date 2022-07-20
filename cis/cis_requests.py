@@ -1,3 +1,4 @@
+from itsdangerous import NoneAlgorithm
 import requests
 from requests.auth import HTTPBasicAuth
 from .data_classes import *
@@ -729,6 +730,73 @@ def download_nuxeo_record(c, user_info, req):
   b = io.BytesIO(d.content)
   return send_file(b, mimetype='application/octet-stream', as_attachment=True, attachment_filename=req.name)
 
+def convert_nuxeo_metadata(nuxeo_dict):
+  properties = nuxeo_dict['properties']
+  file_path = properties.get('arms:folder_path', '')
+  ## TODO: Use WAM to recover the LAN ID
+  custodian = properties.get('arms:epa_contact')
+  title = nuxeo_dict.get('title', '')
+  nuxeo_sched = properties.get('arms:record_schedule', None)
+  record_schedule = schedule_cache.get_schedule_mapping().get(nuxeo_sched, None)
+  if properties.get('sensitivity', '1') == '0':
+    sensitivity = 'Shared'
+  else:
+    sensitivity = 'Private'
+  description: Optional[str] = properties.get('dc:description', '')
+  creator: Optional[str] = properties.get('dc:creator', '')
+  creation_date: Optional[str] = properties.get('dc:created', '')
+  ## TODO: This will change with changes to date input
+  close_date: Optional[str] = ''
+  rights: Optional[list[str]] = properties.get('arms:rights_holder', [])
+  coverage: Optional[list[str]] = properties.get('dc:coverage', [])
+  ## TODO: Update this since relationships field is out of date
+  relationships: Optional[list[str]] = None
+  tags: Optional[list[str]] = [x['label'] for x in properties.get('nxtag:tags', [])]
+  
+  return ECMSMetadata(
+    file_path=file_path, 
+    custodian=custodian, 
+    title=title, 
+    record_schedule=record_schedule, 
+    sensitivity=sensitivity,
+    description=description, 
+    creator=creator,
+    creation_date=creation_date,
+    close_date=close_date,
+    rights=rights,
+    coverage=coverage,
+    relationships=relationships,
+    tags=tags
+    )
+
+def convert_nuxeo_record(nuxeo_dict):
+  metadata = convert_nuxeo_metadata(nuxeo_dict)
+  properties = nuxeo_dict['properties']
+  if properties.get('sensitivity', '1') == '0':
+    sensitivity = 'Shared'
+  else:
+    sensitivity = 'Private'
+  size = properties.get('file:content', {}).get('length', 0)
+  name = properties.get('file:content', {}).get('name', '')
+  custodian = properties.get('arms:epa_contact', '')
+  upload_date = properties.get('dc:created', '')
+  return NuxeoDocInfo(sensitivity=sensitivity, uid=nuxeo_dict['uid'], name=name, size=size, custodian=custodian, upload_date=upload_date, metadata=metadata)
+
+def get_nuxeo_records(c, req, employee_number):
+  nuxeo_url, nuxeo_username, nuxeo_password = get_nuxeo_creds(c, req.nuxeo_env)
+  headers = {'Content-Type':'application/json', 'X-NXproperties':'*'}
+  if req.query is not None:
+    r = requests.get(nuxeo_url + '/nuxeo/api/v1/search/lang/NXQL/execute?query=select * from epa_record where arms:epa_contact="' + employee_number + '" and dc:title LIKE "%' + req.query + '%" order by dc:created desc&pageSize=' + str(req.items_per_page) + '&currentPageIndex=' + str(req.page_number), headers=headers, auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))
+  else:
+    r = requests.get(nuxeo_url + '/nuxeo/api/v1/search/lang/NXQL/execute?query=select * from epa_record where arms:epa_contact="' + employee_number + '" order by dc:created desc&pageSize=' + str(req.items_per_page) + '&currentPageIndex=' + str(req.page_number), headers=headers, auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))
+
+  if r.status_code != 200:
+    return Response(StatusResponse(status='Failed', reason='.', request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
+  data = r.json()
+  records = [convert_nuxeo_record(x) for x in r.json()['entries']]
+  response = NuxeoRecordList(total=data['resultsCount'], records=records)
+  return Response(response.to_json(), status=200, mimetype='application/json')
+
 def download_documentum_record(config, user_info, object_ids, env):
   lan_id = user_info.lan_id
   if env == 'prod':
@@ -1255,6 +1323,101 @@ def upload_sharepoint_batch(req: SharepointBatchUploadRequest, user_info, c, acc
 
 def sched_to_string(sched):
   return '-'.join([sched.function_number, sched.schedule_number, sched.disposition_number])
+
+def create_nuxeo_batch(config, env):
+  try:
+    nuxeo_url, nuxeo_username, nuxeo_password = get_nuxeo_creds(config, env)
+    r = requests.post(nuxeo_url + '/nuxeo/api/v1/upload/new/default', auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))
+    return r.json()['batchId']
+  except:
+    return None
+
+def upload_nuxeo_file(config, file, file_name, batch_id, env, index=0):
+  try:
+    nuxeo_url, nuxeo_username, nuxeo_password = get_nuxeo_creds(config, env)
+    files = {'file': (file_name, file)}
+    headers = {'X-File-Name':file_name}
+    r = requests.post(nuxeo_url + '/nuxeo/api/v1/upload/' + batch_id + '/' + str(index), files=files, headers=headers, auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))
+  except:
+    return False
+  
+  if r.status_code == 201:
+    return True
+  else:
+    return False
+
+def convert_metadata_for_nuxeo(batch_id, user_info, metadata, doc_type, file_id=0):
+  data = { "entity-type": "document", "name": metadata.title, "type": "epa_record"}
+  schedule = metadata.record_schedule.schedule_number + metadata.record_schedule.disposition_number
+  sensitivity = "1"
+  if metadata.sensitivity.lower() == 'shared':
+    sensitivity = "0"
+  # TODO: Where does coverage go?
+  properties = {
+    "arms:epa_contact": user_info.employee_number,
+    "arms:document_type": doc_type,
+    "arms:record_schedule": schedule,
+    # TODO: Whato to put for essential_records?
+    "arms:essential_records": True,
+    "arms:folder_path": metadata.file_path,
+    # TODO: What to put for record_type?
+    "arms:record_type": "",
+    # TODO: What to put for application_id?
+    "arms:application_id": "",
+    # TODO: Is this the right field for program office?
+    "arms:program_office": user_info.department,
+    "arms:sensitivity": sensitivity,
+    "arms:rights_holder": metadata.rights,
+    # TODO: What to put for addressee?
+    "arms:addressee": [metadata.custodian],
+    "arms:aa_ship": user_info.manager_parent_org_code,
+    ## TODO: Fix close date once fiscal and calendar year dates are incorporated
+    "arms:close_date": null,
+    "dc:description": metadata.description,
+    "dc:creator": metadata.creator,
+    "dc:title": metadata.title,
+    "dc:subjects": [],
+    "nxtag:tags": [{"label": tag,"username": metadata.custodian} for tag in metadata.tags],
+    "file:content": {
+      "upload-batch": batch_id,
+      "upload-fileId": file_id
+    }
+  }
+  data['properties'] = properties
+
+def create_nuxeo_record(config, batch_id, user_info, metadata, env):
+  nuxeo_url, nuxeo_username, nuxeo_password = get_nuxeo_creds(config, env)
+  org = user_info.department.split('-')[0]
+  headers = {'Content-Type': 'application/json'}
+  data = convert_metadata_for_nuxeo(batch_id, user_info, metadata, 'Document')
+  try:
+    r = requests.post(nuxeo_url + '/nuxeo/api/v1/path/EPA Organization/' + org, json=data, headers=headers, auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))
+    if r.status_code == 201:
+      return True, None 
+    else:
+      return False, "Record creation request returned " + str(r.status_code) + ' response.'
+  except:
+    return False, "Failed to complete record creation request."
+
+def submit_nuxeo_file(config, file, user_info, metadata, env):
+  # Step 1: Create Nuxeo Batch
+  batch_id = create_nuxeo_batch(config, env)
+
+  if batch_id is None:
+    return False, "Failed to create batch ID.", None
+
+  # Step 2: Upload file
+  success = upload_nuxeo_file(config, file, metadata.title, batch_id, env)
+
+  if not success:
+    return False, "Failed to upload file.", None
+  
+  # Step 3: Create Nuxeo record
+  success, error = create_nuxeo_record(config, batch_id, user_info, metadata, env)
+  if not success:
+    return False, error, None
+  
+  return True, None, batch_id
 
 def add_submission_analytics(data: SubmissionAnalyticsMetadata, selected_schedule, lan_id, documentum_id, nuxeo_id):
   # Handle nulls for documentum and nuxeo ids
