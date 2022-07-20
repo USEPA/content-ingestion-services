@@ -108,6 +108,9 @@ class ECMSMetadata:
     coverage: Optional[list[str]] = None
     relationships: Optional[list[str]] = None
     tags: Optional[list[str]] = None
+
+## Example metadata:
+## {"file_path":"", "custodian":"", "title":"", "record_schedule":{"function_number":"401","schedule_number":"1006","disposition_number":"b"}, "sensitivity":"shared"}
     
 @dataclass_json
 @dataclass 
