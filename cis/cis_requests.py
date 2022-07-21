@@ -287,6 +287,8 @@ def list_email_metadata_graph(req: GetEmailRequest, user_email, access_token, co
   if req.emailsource.lower() == 'archive':
     headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}
     body = {"mailbox": 'Archive', 'pageSize': req.items_per_page, "offset": req.items_per_page * (req.page_number -1)}
+    if req.mailbox != user_email:
+    body['shared_mailbox'] = req.mailbox
     p = requests.get(
         "http://" + config.ezemail_server + "/ezemail/v1/getrecords/", 
         data=json.dumps(body), 
@@ -294,8 +296,8 @@ def list_email_metadata_graph(req: GetEmailRequest, user_email, access_token, co
         timeout=60
       )
     if p.status_code != 200:
-        app.logger.info("getrecords request failed with status " + str(p.status_code) + ". " + p.text)
-        return Response(StatusResponse(status='Failed', reason="Unable to retrieve records.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+        app.logger.info("Archive getrecords request failed for mailbox " + req.mailbox + " with status " + str(p.status_code) + ". " + p.text)
+        return Response(StatusResponse(status='Failed', reason="Unable to retrieve records for archive " + req.mailbox, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
     
     resp = p.json()    
     
@@ -331,7 +333,7 @@ def list_email_metadata_graph(req: GetEmailRequest, user_email, access_token, co
     
     if p.status_code != 200:
       app.logger.info("Regular getrecords graph request failed for mailbox " + req.mailbox + " with status " + str(p.status_code) + ". " + p.text)
-      return Response(StatusResponse(status='Failed', reason="Unable to retrieve records.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+      return Response(StatusResponse(status='Failed', reason="Unable to retrieve records for regular " + req.mailbox, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
     
     resp = p.json() 
     emails = [EmailMetadata(
