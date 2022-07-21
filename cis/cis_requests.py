@@ -288,7 +288,7 @@ def list_email_metadata_graph(req: GetEmailRequest, user_email, access_token, co
     headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}
     body = {"mailbox": 'Archive', 'pageSize': req.items_per_page, "offset": req.items_per_page * (req.page_number -1)}
     if req.mailbox != user_email:
-    body['shared_mailbox'] = req.mailbox
+      body['shared_mailbox'] = req.mailbox
     p = requests.get(
         "http://" + config.ezemail_server + "/ezemail/v1/getrecords/", 
         data=json.dumps(body), 
