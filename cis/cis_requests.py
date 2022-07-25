@@ -282,6 +282,64 @@ def list_email_metadata(req: GetEmailRequest, user_email, access_token, config):
 
   return Response(GetEmailResponse(total_count=total_count, items_per_page=req.items_per_page, page_number=req.page_number, emails=emails).to_json(), status=200, mimetype="application/json")
 
+def eml_to_pdf(e,n):
+  #must be bytes not i.o buffer
+    if 'Buffer' in str(type(eml)):    
+       eml = eml.read()
+    try:
+        name = eml.name[0:-3] + 'pdf'
+    except:
+        pass
+        
+    
+    msg = BytesParser(policy=policy.default).parsebytes(eml)
+    emb_img = {} #[base64,filename]
+    attachments = []
+    #html = msg.get_body(preferencelist=('html')).get_content()
+    for part in msg.walk():
+        
+        
+        #may not need to check this
+        if part.get_content_maintype() == 'multipart' and part.is_multipart():
+            continue
+        
+        if 'html' in part.get_content_type():
+            html = part.get_content()
+
+        if ('image' in part.get_content_type()) and (not part.is_attachment()):
+            a=part.get_payload()
+            emb_img['src="cid:' + part['Content-ID'].replace('<','').replace('>','')] = 'src="data:image/' + part.get_filename()[-3:] + ';base64, ' + a +'"'
+            #print(getsizeof(a))
+            
+        if part.is_attachment():
+            attachments.append(part.get_filename())
+            #base64 = part.get_payload()
+            #TODO keep base64 attachments?
+        
+    for i in emb_img.keys():
+        html = html.replace(i,emb_img[i])
+                
+    #need to check each field
+    field = ['To','From','Cc','Bcc'] #subject as name if name not provided
+    final_text = ''
+    for i in field:
+        if msg[i] is not None:
+            final_text += "<strong>" + i +": </strong>" + msg[i].replace("<", "&#60;").replace(">", "&#62;") + "</br>"
+
+
+    final_text += "<strong>Subject: </strong>" + msg['subject'] + "</br>" + "<strong>Date: </strong>" + msg['date'] + "</br></br></br>"
+
+    if len(attachments) > 0:
+        final_text += "<strong> Attachments: </strong>" + str(attachments) + "</br>"
+
+    final_text += html
+
+    #conversion --return as bytes
+    result = io.BytesIO()
+    pisa_status = pisa.CreatePDF(final_text,dest=result)
+    #fail to render pdf
+    return result
+
 def list_email_metadata_graph(req: GetEmailRequest, user_email, access_token, config):
 
   #get records from archive
