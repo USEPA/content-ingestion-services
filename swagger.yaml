@@ -217,6 +217,10 @@ paths:
           type: string
           format: "jwt"
           required: true
+        - in: header
+          name: "X-Access-Token"
+          type: string
+          required: true
       responses:
         200:
           description: "User information retrieved."
@@ -256,6 +260,52 @@ paths:
           description: "String of serialized JSON with user activity data."
         - in: "formData"
           name: "documentum_env"
+          type: string
+          description: "Environment - either dev or prod."
+        - in: header
+          name: "Authorization"
+          type: string
+          format: "jwt"
+          required: true
+      responses:
+        200:
+          description: "File was successfully uploaded."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        400:
+          description: "Invalid request - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        401:
+          description: "Unauthorized - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        500:
+          description: "Server side error - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+  /upload_file/v2:
+    post:
+      tags:
+      - "desktop"
+      summary: "Upload a file to ECMS with metadata."
+      consumes:
+        - multipart/form-data
+      parameters:
+        - in: "formData"
+          name: "file"
+          type: "file"
+          description: "Binary content of file to upload."
+        - in: "formData"
+          name: "metadata"
+          type: string
+          description: "String of serialized JSON with ECMS metadata."
+        - in: "formData"
+          name: "user_activity"
+          type: string
+          description: "String of serialized JSON with user activity data."
+        - in: "formData"
+          name: "nuxeo_env"
           type: string
           description: "Environment - either dev or prod."
         - in: header
@@ -606,6 +656,11 @@ paths:
       consumes:
         - application/json
       parameters:
+        - in: path
+          name: emailsource
+          type: string
+          required: true
+          description: Options are regular and archive.
         - in: body
           name: "UntagRequestGraph"
           schema: 
@@ -887,6 +942,53 @@ paths:
           description: "Server side error - description in response."
           schema:
             $ref: "#/definitions/StatusResponse"
+  /my_records/v2:
+    get:
+      tags:
+      - "my_records"
+      summary: "Get information for existing records."
+      consumes:
+        - application/json
+      parameters:
+        - in: header
+          name: "Authorization"
+          type: string
+          format: "jwt"
+          required: true
+        - in: query
+          name: query
+          type: string
+          required: false
+        - in: query
+          name: "items_per_page"
+          type: number
+          required: true
+        - in: query
+          name: "page_number"
+          type: number
+          required: true
+        - in: query
+          name: "nuxeo_env"
+          type: string
+          required: false
+          default: "dev"
+      responses:
+        200:
+          description: "Record information retrieved."
+          schema:
+            $ref: "#/definitions/NuxeoRecordList"
+        400:
+          description: "Invalid request - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        401:
+          description: "Unauthorized - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        500:
+          description: "Server side error - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
   /my_records_download:
     get:
       tags:
@@ -912,6 +1014,49 @@ paths:
           required: true
         - in: query
           name: "documentum_env"
+          type: string
+          required: false
+          default: "dev"
+      responses:
+        200:
+          description: "Records zip file downloaded."
+          schema:
+            type: "file"
+        400:
+          description: "Invalid request - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        401:
+          description: "Unauthorized - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        500:
+          description: "Server side error - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+  /my_records_download/v2:
+    get:
+      tags:
+      - "my_records"
+      summary: "Download existing records."
+      consumes:
+        - application/json
+      parameters:
+        - in: header
+          name: "Authorization"
+          type: string
+          format: "jwt"
+          required: true
+        - in: query
+          name: "uid"
+          type: string
+          required: true
+        - in: query
+          name: "name"
+          type: string
+          required: true
+        - in: query
+          name: "nuxeo_env"
           type: string
           required: false
           default: "dev"
@@ -1866,6 +2011,10 @@ definitions:
         $ref: "#/definitions/ProfileInfo"
       user_settings:
         $ref: "#/definitions/UserSettings"
+      direct_reports:
+        type: array
+        items:
+          type: string
   GamificationDataResponse:
     type: object
     properties:
@@ -1878,11 +2027,13 @@ definitions:
   BadgeInfo:
     type: object
     properties:
-      badge_title: 
+      id: 
         type: string
-      badge_description: 
+      name: 
         type: string
-      badge_image: 
+      description: 
+        type: string
+      image_url:
         type: string
   ProfileInfo:
     type: object
@@ -1930,6 +2081,33 @@ definitions:
         type: array
         items: 
           $ref: "#/definitions/DocumentumDocInfo"
+  NuxeoRecordList:
+    type: object
+    properties:
+      total:
+        type: number
+      records:
+        type: array
+        items: 
+          $ref: "#/definitions/NuxeoDocInfo"
+  NuxeoDocInfo:
+    type: object
+    properties:
+      uid: 
+        type: string
+      name: 
+        type: string
+      sensitivity:
+        type: string
+        enum: ["shared", "private"] 
+      size: 
+        type: number
+      custodian:
+        type: string
+      upload_date:
+        type: string
+      metadata:
+        $ref: "#/definitions/ECMSMetadata"
   SharepointItem:
     type: object
     properties:
@@ -2006,21 +2184,10 @@ definitions:
     type: array
     items:
       $ref: "#/definitions/LeaderboardRecord"
-  BadgeRecord:
-    type: object
-    properties:
-      id:
-        type: string
-      name:
-        type: string
-      description:
-        type: string
-      image_url:
-        type: string
   BadgeListResponse:
     type: array
     items:
-      $ref: "#/definitions/BadgeRecord"
+      $ref: "#/definitions/BadgeInfo"
   HelpItemResponse:
     type: object
     properties:

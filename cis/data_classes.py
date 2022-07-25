@@ -108,6 +108,9 @@ class ECMSMetadata:
     coverage: Optional[list[str]] = None
     relationships: Optional[list[str]] = None
     tags: Optional[list[str]] = None
+
+## Example metadata:
+## {"file_path":"", "custodian":"", "title":"", "record_schedule":{"function_number":"401","schedule_number":"1006","disposition_number":"b"}, "sensitivity":"shared"}
     
 @dataclass_json
 @dataclass 
@@ -125,18 +128,43 @@ class DocumentumDocInfo:
 
 @dataclass_json
 @dataclass 
+class NuxeoDocInfo:
+    sensitivity: str
+    uid: str
+    name: str
+    size: float
+    custodian: str
+    upload_date: str
+    metadata: Optional[ECMSMetadata] = None
+
+@dataclass_json
+@dataclass 
 class DocumentumRecordList:
     records: list[DocumentumDocInfo]
+    total: int
+
+@dataclass_json
+@dataclass 
+class NuxeoRecordList:
+    records: list[NuxeoDocInfo]
     total: int
     
 @dataclass_json
 @dataclass 
 class MyRecordsRequest:
     lan_id: str
-    items_per_page: int
-    page_number: int
+    items_per_page: int = 10
+    page_number: int = 0
     query: Optional[str] = None
     documentum_env: Optional[str] = "dev"
+
+@dataclass_json
+@dataclass 
+class MyRecordsRequestV2:
+    items_per_page: int = 10
+    page_number: int = 0
+    query: Optional[str] = None
+    nuxeo_env: Optional[str] = "dev"
 
 @dataclass_json
 @dataclass 
@@ -145,6 +173,12 @@ class RecordDownloadRequest:
     object_ids: list[str]
     documentum_env: Optional[str] = "dev"
 
+@dataclass_json
+@dataclass 
+class RecordDownloadRequestV2:
+    name: str
+    uid: str
+    nuxeo_env: Optional[str] = "dev"
 
 @dataclass_json
 @dataclass 
@@ -156,6 +190,7 @@ class MetadataPrediction:
     subjects: list[str]
     identifiers: Dict[str, str]
     cui_categories: Optional[list[str]] = None
+    is_encrypted: bool = False
 
 mock_predicted_schedules = [
     Recommendation(**{"schedule": RecordSchedule(**{"function_number": "404", "schedule_number": "1012", "disposition_number": "e"}), "probability": 0.6403017640113831}), 
@@ -321,9 +356,18 @@ class SemsSiteResponse:
 @dataclass_json
 @dataclass 
 class BadgeInfo:
-    badge_title: str
-    badge_description: str
-    badge_image: str
+    id: str
+    name: str
+    description: str
+    image_url: str
+
+@dataclass_json
+@dataclass 
+class BadgeInfo:
+    id: str
+    name: str
+    description: str
+    image_url: str
 
 @dataclass_json
 @dataclass 
@@ -355,6 +399,7 @@ class UserInfo:
     badges: list[BadgeInfo]
     profile: Optional[ProfileInfo]
     user_settings: UserSettings
+    direct_reports: list[str]
 
 @dataclass_json
 @dataclass 
@@ -605,6 +650,7 @@ class LogActivityRequest:
     lan_id: str
     office_code: str
     event_id: str
+    bulk_number: int
 
 @dataclass_json
 @dataclass

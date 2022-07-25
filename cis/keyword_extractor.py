@@ -88,7 +88,7 @@ class CapstoneDetector():
 
 class KeywordExtractor():
     def __init__(self, vocab_path, priority_categories_path, keyword_idf_path):
-        with open(vocab_path, 'r') as f:
+        with open(vocab_path, 'r', encoding='cp1252') as f:
             self.keyword_mapping = dict(csv.reader(f))
         with open(priority_categories_path, 'r') as f:
             self.priority_categories = f.read().splitlines()
