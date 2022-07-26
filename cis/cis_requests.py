@@ -1006,9 +1006,11 @@ def get_user_info(config, token_data, access_token=None):
   try:
     badges = get_badges(config, employee_number)
     profile = get_profile(config, employee_number)
+    if profile is None:
+      profile = ProfileInfo(points="0", level="Beginner", office_rank="1000", overall_rank="10000")
   except:
     badges = []
-    profile = ProfileInfo(points="0", level="Beginner", office_rank="", overall_rank="")
+    profile = ProfileInfo(points="0", level="Beginner", office_rank="1000", overall_rank="10000")
     app.logger.info('Profile requests failed for ' + token_data['email'])
   try:
     user_settings = get_user_settings(lan_id)
@@ -1476,7 +1478,7 @@ def submit_nuxeo_file(config, file, user_info, metadata, env):
   if batch_id is None:
     return False, "Failed to create batch ID.", None
 
-  # Step 2: Upload allfile
+  # Step 2: Upload file
   success = upload_nuxeo_file(config, file, metadata.title, batch_id, env)
 
   if not success:
