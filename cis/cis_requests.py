@@ -959,6 +959,8 @@ def get_user_info(config, token_data, access_token=None):
   try:
     badges = get_badges(config, employee_number)
     profile = get_profile(config, employee_number)
+    if profile is None:
+      profile = ProfileInfo(points="0", level="Beginner", office_rank="1000", overall_rank="10000")
   except:
     badges = []
     profile = ProfileInfo(points="0", level="Beginner", office_rank="1000", overall_rank="10000")
