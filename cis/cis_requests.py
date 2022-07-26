@@ -1,3 +1,4 @@
+from itsdangerous import NoneAlgorithm
 import requests
 from requests.auth import HTTPBasicAuth
 from .data_classes import *
@@ -11,6 +12,11 @@ from .models import User, RecordSubmission, db
 from sqlalchemy import null
 from . import model, help_item_cache, schedule_cache, keyword_extractor, identifier_extractor, capstone_detector
 import boto3
+from xhtml2pdf import pisa
+from email import policy 
+from email.parser import BytesParser
+import hashlib
+import base64
 
 TIKA_CUTOFF = 20
 
@@ -281,12 +287,56 @@ def list_email_metadata(req: GetEmailRequest, user_email, access_token, config):
 
   return Response(GetEmailResponse(total_count=total_count, items_per_page=req.items_per_page, page_number=req.page_number, emails=emails).to_json(), status=200, mimetype="application/json")
 
+def eml_to_pdf(eml):    
+    msg = BytesParser(policy=policy.default).parsebytes(eml)
+    emb_img = {} 
+    attachments = []
+    
+    for part in msg.walk():
+        if part.get_content_maintype() == 'multipart' and part.is_multipart():
+            continue
+        
+        if 'html' in part.get_content_type():
+            html = part.get_content()
+
+        if ('image' in part.get_content_type()) and (not part.is_attachment()):
+            a=part.get_payload()
+            emb_img['src="cid:' + part['Content-ID'].replace('<','').replace('>','')] = 'src="data:image/' + part.get_filename()[-3:] + ';base64, ' + a +'"'
+            
+        if part.is_attachment():
+            attachments.append((part.get_filename(), part.get_payload()))
+        
+    for i in emb_img.keys():
+        html = html.replace(i,emb_img[i])
+                
+    #need to check each field
+    field = ['To','From','Cc','Bcc'] #subject as name if name not provided
+    final_text = ''
+    for i in field:
+        if msg[i] is not None:
+            final_text += "<strong>" + i +": </strong>" + msg[i].replace("<", "&#60;").replace(">", "&#62;") + "</br>"
+
+    final_text += "<strong>Subject: </strong>" + msg['subject'] + "</br>" + "<strong>Date: </strong>" + msg['date'] + "</br></br></br>"
+
+    if len(attachments) > 0:
+        final_text += "<strong> Attachments: </strong>" + ', '.join([x[0] for x in attachments]) + "</br>"
+
+    final_text += html
+
+    #conversion --return as bytes
+    result = io.BytesIO()
+    pisa_status = pisa.CreatePDF(final_text,dest=result)
+
+    return pisa_status, result, attachments
+
 def list_email_metadata_graph(req: GetEmailRequest, user_email, access_token, config):
 
   #get records from archive
   if req.emailsource.lower() == 'archive':
     headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}
     body = {"mailbox": 'Archive', 'pageSize': req.items_per_page, "offset": req.items_per_page * (req.page_number -1)}
+    if req.mailbox != user_email:
+      body['shared_mailbox'] = req.mailbox
     p = requests.get(
         "http://" + config.ezemail_server + "/ezemail/v1/getrecords/", 
         data=json.dumps(body), 
@@ -294,8 +344,8 @@ def list_email_metadata_graph(req: GetEmailRequest, user_email, access_token, co
         timeout=60
       )
     if p.status_code != 200:
-        app.logger.info("getrecords request failed with status " + str(p.status_code) + ". " + p.text)
-        return Response(StatusResponse(status='Failed', reason="Unable to retrieve records.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+        app.logger.info("Archive getrecords request failed for mailbox " + req.mailbox + " with status " + str(p.status_code) + ". " + p.text)
+        return Response(StatusResponse(status='Failed', reason="Unable to retrieve records for archive " + req.mailbox, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
     
     resp = p.json()    
     
@@ -331,7 +381,7 @@ def list_email_metadata_graph(req: GetEmailRequest, user_email, access_token, co
     
     if p.status_code != 200:
       app.logger.info("Regular getrecords graph request failed for mailbox " + req.mailbox + " with status " + str(p.status_code) + ". " + p.text)
-      return Response(StatusResponse(status='Failed', reason="Unable to retrieve records.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+      return Response(StatusResponse(status='Failed', reason="Unable to retrieve records for regular " + req.mailbox, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
     
     resp = p.json() 
     emails = [EmailMetadata(
@@ -360,13 +410,14 @@ def list_email_metadata_graph(req: GetEmailRequest, user_email, access_token, co
 
 def extract_attachments_from_response_graph(messageId, hasAttachments, mailbox, access_token):
   if hasAttachments:
-    url = "https://graph.microsoft.com/v1.0/" + mailbox + "/messages/" + str(messageId) + "/attachments"
+    url = "https://graph.microsoft.com/v1.0/" + mailbox + "/messages/" + str(messageId) + "/attachments?$select=name,id"
     headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}
     p = requests.get(url, headers=headers, timeout=60)
     resp = p.json()
     attachments = [EmailAttachment(name=x['name'], attachment_id=x['id']) for x in resp['value']]
     return attachments
-  else: return []
+  else: 
+    return []
   
 def extract_attachments_from_response(ezemail_response):
   if 'attachments' not in ezemail_response:
@@ -480,7 +531,7 @@ def get_badge_info(config):
   r = requests.post(url, params=params)
   if r.status_code != 200:
     return Response(StatusResponse(status='Failed', reason='Badge info request returned status ' + str(r.status_code) + ' and error ' + str(r.text), request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-  return Response(json.dumps(r.json()), status=200, mimetype='application/json')
+  return Response(json.dumps([BadgeInfo(**x).to_dict() for x in r.json()]), status=200, mimetype='application/json')
 
 def get_overall_leaderboard(config):
   url = 'https://' + config.patt_host + '/app/mu-plugins/pattracking/includes/admin/pages/games/overall_leader_board.php'
@@ -494,7 +545,7 @@ def get_office_leaderboard(config, parent_org_code):
   params={'api_key':config.patt_api_key, 'office_code' : parent_org_code}
   r = requests.post(url, params=params, verify=False)
   if r.status_code != 200:
-    return Response(StatusResponse(status='Failed', reason= parent_org_code + ' leaderboard request returned status ' + str(r.status_code) + ' and error ' + str(r.text), request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+    return Response(StatusResponse(status='Failed', reason= 'Leaderboard request returned status ' + str(r.status_code) + ' and error ' + str(r.text), request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
   return Response(json.dumps(r.json()), status=200, mimetype='application/json')
 
 def get_erma_content_count(config, lan_id, query, env):
@@ -690,6 +741,109 @@ def get_documentum_records(config, lan_id, items_per_page, page_number, query, e
 def object_id_is_valid(config, object_id):
   return re.fullmatch('[a-z0-9]{16}', object_id) is not None and object_id[2:8] == config.records_repository_id
 
+def get_nuxeo_creds(c, env):
+  if env == 'dev':
+    return c.nuxeo_dev_url, c.nuxeo_dev_username, c.nuxeo_dev_password
+  else:
+    return c.nuxeo_prod_url, c.nuxeo_prod_username, c.nuxeo_prod_password
+
+def validate_by_uid(c, uid, env, employee_number):
+  headers = {'Content-Type':'application/json', 'X-NXproperties':'*'}
+  try:
+    nuxeo_url, nuxeo_username, nuxeo_password = get_nuxeo_creds(c, env)
+    r = requests.get(nuxeo_url + '/nuxeo/api/v1/search/lang/NXQL/execute?query=select * from epa_record where ecm:uuid="' + uid + '"', headers=headers, auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))
+    record_custodian = r.json()['entries'][0]['properties']['arms:epa_contact']
+    if record_custodian == employee_number:
+      return True, None, True
+    else:
+      return True, None, False
+  except:
+    return False, 'Failed to find record metadata for validation', None
+  
+def download_nuxeo_record(c, user_info, req):
+  # Validate that the user is the custodian
+  success, error, valid = validate_by_uid(c, req.uid, req.nuxeo_env, user_info.employee_number)
+  if not success:
+    return Response(StatusResponse(status='Failed', reason=error, request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
+  if not valid:
+    return Response(StatusResponse(status='Failed', reason='User is not authorized to download this record.', request_id=g.get('request_id', None)).to_json(), status=401, mimetype='application/json')
+
+  # Download record
+  nuxeo_url, nuxeo_username, nuxeo_password = get_nuxeo_creds(c, req.nuxeo_env)
+  headers = {'Content-Type':'application/json', 'X-NXproperties':'*'}
+  d = requests.get(nuxeo_url + '/nuxeo/nxfile/default/' + req.uid + '/file:content/' + req.name, headers=headers, auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))  
+  if d.status_code != 200:
+    return Response(StatusResponse(status='Failed', reason='Failed to download record.', request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
+  b = io.BytesIO(d.content)
+  return send_file(b, mimetype='application/octet-stream', as_attachment=True, attachment_filename=req.name)
+
+def convert_nuxeo_metadata(nuxeo_dict):
+  properties = nuxeo_dict['properties']
+  file_path = properties.get('arms:folder_path', '')
+  ## TODO: Use WAM to recover the LAN ID
+  custodian = properties.get('arms:epa_contact')
+  title = nuxeo_dict.get('title', '')
+  nuxeo_sched = properties.get('arms:record_schedule', None)
+  record_schedule = schedule_cache.get_schedule_mapping().get(nuxeo_sched, None)
+  if properties.get('sensitivity', '1') == '0':
+    sensitivity = 'Shared'
+  else:
+    sensitivity = 'Private'
+  description: Optional[str] = properties.get('dc:description', '')
+  creator: Optional[str] = properties.get('dc:creator', '')
+  creation_date: Optional[str] = properties.get('dc:created', '')
+  ## TODO: This will change with changes to date input
+  close_date: Optional[str] = ''
+  rights: Optional[list[str]] = properties.get('arms:rights_holder', [])
+  coverage: Optional[list[str]] = properties.get('dc:coverage', [])
+  ## TODO: Update this since relationships field is out of date
+  relationships: Optional[list[str]] = None
+  tags: Optional[list[str]] = [x['label'] for x in properties.get('nxtag:tags', [])]
+  
+  return ECMSMetadata(
+    file_path=file_path, 
+    custodian=custodian, 
+    title=title, 
+    record_schedule=record_schedule, 
+    sensitivity=sensitivity,
+    description=description, 
+    creator=creator,
+    creation_date=creation_date,
+    close_date=close_date,
+    rights=rights,
+    coverage=coverage,
+    relationships=relationships,
+    tags=tags
+    )
+
+def convert_nuxeo_record(nuxeo_dict):
+  metadata = convert_nuxeo_metadata(nuxeo_dict)
+  properties = nuxeo_dict['properties']
+  if properties.get('sensitivity', '1') == '0':
+    sensitivity = 'Shared'
+  else:
+    sensitivity = 'Private'
+  size = properties.get('file:content', {}).get('length', 0)
+  name = properties.get('file:content', {}).get('name', '')
+  custodian = properties.get('arms:epa_contact', '')
+  upload_date = properties.get('dc:created', '')
+  return NuxeoDocInfo(sensitivity=sensitivity, uid=nuxeo_dict['uid'], name=name, size=size, custodian=custodian, upload_date=upload_date, metadata=metadata)
+
+def get_nuxeo_records(c, req, employee_number):
+  nuxeo_url, nuxeo_username, nuxeo_password = get_nuxeo_creds(c, req.nuxeo_env)
+  headers = {'Content-Type':'application/json', 'X-NXproperties':'*'}
+  if req.query is not None:
+    r = requests.get(nuxeo_url + '/nuxeo/api/v1/search/lang/NXQL/execute?query=select * from epa_record where arms:epa_contact="' + employee_number + '" and dc:title LIKE "%' + req.query + '%" order by dc:created desc&pageSize=' + str(req.items_per_page) + '&currentPageIndex=' + str(req.page_number), headers=headers, auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))
+  else:
+    r = requests.get(nuxeo_url + '/nuxeo/api/v1/search/lang/NXQL/execute?query=select * from epa_record where arms:epa_contact="' + employee_number + '" order by dc:created desc&pageSize=' + str(req.items_per_page) + '&currentPageIndex=' + str(req.page_number), headers=headers, auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))
+
+  if r.status_code != 200:
+    return Response(StatusResponse(status='Failed', reason='.', request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
+  data = r.json()
+  records = [convert_nuxeo_record(x) for x in r.json()['entries']]
+  response = NuxeoRecordList(total=data['resultsCount'], records=records)
+  return Response(response.to_json(), status=200, mimetype='application/json')
+
 def download_documentum_record(config, user_info, object_ids, env):
   lan_id = user_info.lan_id
   if env == 'prod':
@@ -704,7 +858,7 @@ def download_documentum_record(config, user_info, object_ids, env):
   for object_id in object_ids:
     valid = object_id_is_valid(config, object_id)
     if not valid:
-      return Response(StatusResponse(status='Failed', reason='Object ID invalid: ' + object_id, request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
+      return Response(StatusResponse(status='Failed', reason='Object ID invalid.', request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
   doc_where_clause = ' OR '.join(["s.r_object_id = '" + str(x) + "'" for x in object_ids])
   doc_info_sql = "select s.ERMA_CUSTODIAN as erma_doc_custodian, r_object_id, r_object_type from erma_content s where " + doc_where_clause + ";"
   # This gives some buffer, even though there should be exactly len(object_ids) items to recover
@@ -725,11 +879,11 @@ def download_documentum_record(config, user_info, object_ids, env):
       entries.append(x)
   missing_ids = set(object_ids) - set([doc['content']['properties']['r_object_id'] for doc in entries])
   if len(missing_ids) != 0:
-    return Response(StatusResponse(status='Failed', reason='The following object_ids could not be found: ' + ', '.join(list(missing_ids)), request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
+    return Response(StatusResponse(status='Failed', reason='Some object_ids could not be found.', request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
   # TODO: Reenable custodian validation
   for doc in entries:
     if doc['content']['properties'].get('erma_doc_custodian', '') != lan_id:
-      return Response(StatusResponse(status='Failed', reason='User ' + lan_id + ' is not the custodian of all files requested.', request_id=g.get('request_id', None)).to_json(), status=401, mimetype='application/json')
+      return Response(StatusResponse(status='Failed', reason='User is not the custodian of all files requested.', request_id=g.get('request_id', None)).to_json(), status=401, mimetype='application/json')
   
   hrefs = ['https://' + ecms_host + '/dctm-rest/repositories/ecmsrmr65/objects/' + obj for obj in object_ids]
   data = {'hrefs': list(set(hrefs))}
@@ -753,9 +907,10 @@ def get_badges(config, employee_number):
   url = 'https://' + config.patt_host + '/app/mu-plugins/pattracking/includes/admin/pages/games/receiver.php'
   r = requests.post(url, params=params)
   if r.status_code != 200:
+    app.logger.error('Badge request failed for employee number ' + employee_number)
     return []
   else:
-    return [BadgeInfo(badge_title=x['badge_title'], badge_description=x['badge_description'], badge_image=x['badge_image']) for x in r.json()]
+    return [BadgeInfo(id=x['id'], name=x['badge_title'], description=x['badge_description'], image_url=x['badge_image']) for x in r.json()]
 
 def get_profile(config, employee_number):
   if employee_number is None:
@@ -801,10 +956,19 @@ def get_wam_info_by_display_name(config, display_name):
   else:
     app.logger.error('User data empty for display_name ' + display_name)
     return None
-
-def get_user_info(config, token_data):
+  
+def get_direct_reports(token_data, access_token):
+  headers = {'Authorization': 'Bearer ' + access_token, 'Content-Type':'application/json'}
+  r = requests.get("https://graph.microsoft.com/v1.0/me/directReports", headers=headers, timeout=10)
+  if r.status_code != 200:
+    app.logger.error('Failed to fetch direct reports for ' + token_data['email'])
+    return []
+  else:
+    return [x['userPrincipalName'] for x in r.json()['value']]
+  
+def get_user_info(config, token_data, access_token=None):
   # Handle service accounts separately
-  if token_data['email'][:4].lower() == 'svc_':
+  if token_data['email'][:4].lower() == 'svc_' or 'java_review' in token_data['email'].lower():
     return True, None, UserInfo(token_data['email'], token_data['email'], token_data['email'].split('@')[0], 'SERVICE_ACCOUNT', '', None, None, '', [], None, default_settings)
   url = 'https://' + config.wam_host + '/iam/governance/scim/v1/Users?attributes=urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:manager&attributes=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:Department&attributes=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:Company&attributes=urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:department&attributes=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:PARENTORGCODE&attributes=urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:employeeNumber&attributes=userName&attributes=Active&attributes=displayName&filter=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:Upn eq "' + token_data['email'] + '"'
   try:
@@ -843,15 +1007,19 @@ def get_user_info(config, token_data):
     badges = get_badges(config, employee_number)
     profile = get_profile(config, employee_number)
   except:
-    badges=[]
-    profile=None
+    badges = []
+    profile = ProfileInfo(points="0", level="Beginner", office_rank="", overall_rank="")
     app.logger.info('Profile requests failed for ' + token_data['email'])
   try:
     user_settings = get_user_settings(lan_id)
   except:
     user_settings = default_settings
     app.logger.info('Preferred system database read failed for ' + token_data['email'])
-  return True, None, UserInfo(token_data['email'], display_name, lan_id, department, enterprise_department, manager_department, manager_enterprise_department, employee_number, badges, profile, user_settings)
+  if access_token is not None:
+    direct_reports = get_direct_reports(token_data, access_token)
+  else:
+    direct_reports = []
+  return True, None, UserInfo(token_data['email'], display_name, lan_id, department, enterprise_department, manager_department, manager_enterprise_department, employee_number, badges, profile, user_settings, direct_reports)
 
 def get_gamification_data(config, employee_number):
   try:
@@ -860,8 +1028,9 @@ def get_gamification_data(config, employee_number):
     data = GamificationDataResponse(badges, profile)
     return Response(data.to_json(), status=200, mimetype='application/json')
   except:
-    app.logger.error('Profile requests failed for employee number ' + employee_number)
-    return Response(StatusResponse(status='Failed', reason='Profile requests failed for employee number ' + employee_number, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+    badges=[]
+    profile=None
+    app.logger.info('Profile requests failed for ' + employee_number)
 
 def get_sems_special_processing(config, region):
   special_processing = requests.get('http://' + config.sems_host + '/sems-ws/outlook/getSpecialProcessing/' + region, timeout=10)
@@ -1192,10 +1361,183 @@ def upload_sharepoint_batch(req: SharepointBatchUploadRequest, user_info, c, acc
     batch_update_status(req, site_id, list_id, access_token)
   except:
     Response(StatusResponse(status='Failed', reason='Unable to update Sharepoint status.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+  try:
+    log_upload_activity(user_info, None, None, c, count=len(req.sharepoint_items))
+  except:
+    Response(StatusResponse(status='OK', reason='Unable to reward points for sharepoint batch.', request_id=g.get('request_id', None)).to_json(), status=200, mimetype='application/json')
+    app.logger.error('Unable to reward points for sharepoint batch for user ' + user_info.lan_id)
   return Response(StatusResponse(status='OK', reason='Uploaded batch to S3.', request_id=g.get('request_id', None)).to_json(), status=200, mimetype='application/json')
 
 def sched_to_string(sched):
   return '-'.join([sched.function_number, sched.schedule_number, sched.disposition_number])
+
+def create_nuxeo_batch(config, env):
+  try:
+    nuxeo_url, nuxeo_username, nuxeo_password = get_nuxeo_creds(config, env)
+    r = requests.post(nuxeo_url + '/nuxeo/api/v1/upload/new/default', auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))
+    return r.json()['batchId']
+  except:
+    return None
+
+def upload_nuxeo_file(config, file, file_name, batch_id, env, index=0):
+  try:
+    nuxeo_url, nuxeo_username, nuxeo_password = get_nuxeo_creds(config, env)
+    files = {'file': (file_name, file)}
+    headers = {'X-File-Name':file_name}
+    r = requests.post(nuxeo_url + '/nuxeo/api/v1/upload/' + batch_id + '/' + str(index), files=files, headers=headers, auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))
+  except:
+    return False
+  
+  if r.status_code == 201:
+    return True
+  else:
+    return False
+
+def convert_metadata_for_nuxeo(batch_id, user_info, metadata, doc_type, attachment_ids=[], file_id=0, parent_id=None):
+  data = { "entity-type": "document", "name": metadata.title, "type": "epa_record"}
+  schedule = metadata.record_schedule.schedule_number + metadata.record_schedule.disposition_number
+  sensitivity = "1"
+  if metadata.sensitivity.lower() == 'shared':
+    sensitivity = "0"
+  # TODO: Where does coverage go?
+  properties = {
+    "arms:epa_contact": user_info.employee_number,
+    "arms:document_type": doc_type,
+    "arms:record_schedule": schedule,
+    # TODO: Whato to put for essential_records?
+    "arms:essential_records": True,
+    "arms:folder_path": metadata.file_path,
+    # TODO: What to put for record_type?
+    "arms:record_type": "",
+    # TODO: What to put for application_id?
+    "arms:application_id": "",
+    # TODO: Is this the right field for program office?
+    "arms:program_office": user_info.department,
+    "arms:sensitivity": sensitivity,
+    "arms:rights_holder": metadata.rights,
+    # TODO: What to put for addressee?
+    "arms:addressee": [metadata.custodian],
+    "arms:aa_ship": user_info.manager_parent_org_code,
+    ## TODO: Fix close date once fiscal and calendar year dates are incorporated
+    "arms:close_date": null,
+    "dc:description": metadata.description,
+    "dc:creator": metadata.creator,
+    "dc:title": metadata.title,
+    "dc:subjects": [],
+    "nxtag:tags": [{"label": tag,"username": metadata.custodian} for tag in metadata.tags],
+    "file:content": {
+      "upload-batch": batch_id,
+      "upload-fileId": file_id
+    }
+  }
+  if len(attachment_ids) > 0:
+    properties["arms:attachment_file"] = []
+  for _id in attachment_ids:
+    properties["arms:attachment_file"].append({"upload-batch": batch_id, "upload-fileId": _id})
+  if parent_id is not None:
+    properties['arms:relation_is_part_of'] = [parent_id]
+  data['properties'] = properties
+  return data
+
+def create_nuxeo_record(config, batch_id, user_info, metadata, env, parent_id=None):
+  nuxeo_url, nuxeo_username, nuxeo_password = get_nuxeo_creds(config, env)
+  org = user_info.department.split('-')[0]
+  headers = {'Content-Type': 'application/json'}
+  data = convert_metadata_for_nuxeo(batch_id, user_info, metadata, 'Document', parent_id=parent_id)
+  try:
+    r = requests.post(nuxeo_url + '/nuxeo/api/v1/path/EPA Organization/' + org, json=data, headers=headers, auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))
+    if r.status_code == 201:
+      uid = r.json()['uid']
+      return True, None, uid
+    else:
+      return False, "Record creation request returned " + str(r.status_code) + ' response.', None
+  except:
+    return False, "Failed to complete record creation request.", None
+
+def create_nuxeo_email_record(config, batch_id, user_info, metadata, env):
+  nuxeo_url, nuxeo_username, nuxeo_password = get_nuxeo_creds(config, env)
+  org = user_info.department.split('-')[0]
+  headers = {'Content-Type': 'application/json'}
+  data = convert_metadata_for_nuxeo(batch_id, user_info, metadata, 'Email', ["1"])
+  try:
+    r = requests.post(nuxeo_url + '/nuxeo/api/v1/path/EPA Organization/' + org, json=data, headers=headers, auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))
+    if r.status_code == 201:
+      uid = r.json()['uid']
+      return True, None, uid
+    else:
+      return False, "Record creation request returned " + str(r.status_code) + ' response.', None
+  except:
+    return False, "Failed to complete record creation request.", None
+
+def submit_nuxeo_file(config, file, user_info, metadata, env):
+  # Step 1: Create Nuxeo Batch
+  batch_id = create_nuxeo_batch(config, env)
+
+  if batch_id is None:
+    return False, "Failed to create batch ID.", None
+
+  # Step 2: Upload allfile
+  success = upload_nuxeo_file(config, file, metadata.title, batch_id, env)
+
+  if not success:
+    return False, "Failed to upload file.", None
+  
+  # Step 3: Create Nuxeo record
+  success, error, _ = create_nuxeo_record(config, batch_id, user_info, metadata, env)
+  if not success:
+    return False, error, None
+  
+  return True, None, batch_id
+
+def upload_nuxeo_email(config, req, user_info):
+
+  # Step 0: Get EML file from graph
+  content = get_eml_file(req.email_id, req.metadata.title, req.metadata.mailbox, g.access_token, config)
+  if content is None:
+    return Response(StatusResponse(status='Failed', reason='Unable to retrieve email.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+
+  # Step 1: Create Nuxeo Batch
+  batch_id = create_nuxeo_batch(config, req.nuxeo_env)
+
+  if batch_id is None:
+    return Response(StatusResponse(status='Failed', reason='Unable to create batch.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+  
+  # Step 2: Upload all files - PDF rendition, EML, and attachments
+  success, pdf_render, attachments = eml_to_pdf(content)
+
+  # Upload PDF
+  pdf_md5 = hashlib.md5(pdf_render.encode('utf-8')).hexdigest()
+  success = upload_nuxeo_file(config, pdf_render, pdf_md5, batch_id, req.nuxeo_env, index=0)
+
+  if not success:
+    return Response(StatusResponse(status='Failed', reason='Unable to upload PDF rendition.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+  
+  # Upload original 
+  eml_md5 = hashlib.md5(content.encode('utf-8')).hexdigest()
+  success = upload_nuxeo_file(config, content, eml_md5, batch_id, req.nuxeo_env, index=1)
+  if not success:
+    return Response(StatusResponse(status='Failed', reason='Unable to upload EML.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+  
+  # Upload attachments
+  for i, attachment in enumerate(attachments):
+    attachment_content = base64.b64decode(attachment[1].encode('ascii'))
+    attachment_md5 = hashlib.md5(attachment_content.encode('utf-8')).hexdigest()
+    success = upload_nuxeo_file(config, attachment_content, attachment_md5, batch_id, req.nuxeo_env, index=i+2)
+    if not success:
+      return Response(StatusResponse(status='Failed', reason='Unable to upload attachment ' + attachment[0] + '.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+  
+  # Step 3: Create Nuxeo record
+  
+  # Create record for PDF rendition with EML as Nuxeo attachment
+  success, error, uid =  create_nuxeo_email_record(config, batch_id, user_info, req.metadata, req.nuxeo_env)
+
+  if not success:
+    return Response(StatusResponse(status='Failed', reason='Unable to create email record.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+
+  # Create records for each attachment listing the first record as a parent
+
+
+  # Update parent record to contain attachment links as children
 
 def add_submission_analytics(data: SubmissionAnalyticsMetadata, selected_schedule, lan_id, documentum_id, nuxeo_id):
   # Handle nulls for documentum and nuxeo ids
@@ -1276,7 +1618,7 @@ def update_sharepoint_record_status(site_id, list_id, item_id, status, access_to
   update_req = requests.patch(url, json=data, headers=headers, timeout=30)
   if update_req.status_code != 200:
     app.logger.error('Unable to update item with item_id = ' + item_id + ': ' + update_req.text)
-    return False, Response(StatusResponse(status='Failed', reason='Unable to update item with item_id = ' + item_id, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+    return False, Response(StatusResponse(status='Failed', reason='Unable to update some items.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
   else:
     return True, None
 
@@ -1305,16 +1647,16 @@ def submit_sems_email(req: SEMSEmailUploadRequest, config):
     return Response(StatusResponse(status='Failed', reason='Failed to send email to SEMS.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
   return Response(r.json(), status=200, mimetype='application/json')
 
-def log_upload_activity(user_info, user_activity, metadata, config):
-  safe_user_activity_request(user_info.employee_number, user_info.lan_id, user_info.parent_org_code, '3', config)
-  if not user_activity.used_default_schedule or user_activity.used_schedule_dropdown or user_activity.used_recommended_schedule:
+def log_upload_activity(user_info, user_activity, metadata, config, count=1):
+  safe_user_activity_request(user_info.employee_number, user_info.lan_id, user_info.parent_org_code, '3', config, count)
+  if user_activity is not None and not user_activity.used_default_schedule or user_activity.used_schedule_dropdown or user_activity.used_recommended_schedule:
       safe_user_activity_request(user_info.employee_number, user_info.lan_id, user_info.parent_org_code, '4', config)
-  if len(metadata.description) > 0 or len(metadata.close_date) > 0 or metadata.rights is not None or metadata.coverage is not None or metadata.relationships is not None or metadata.tags is not None:
+  if metadata is not None and len(metadata.description) > 0 or len(metadata.close_date) > 0 or metadata.rights is not None or metadata.coverage is not None or metadata.relationships is not None or metadata.tags is not None:
       safe_user_activity_request(user_info.employee_number, user_info.lan_id, user_info.parent_org_code, '6', config)
 
-def safe_user_activity_request(employee_id, lan_id, office_code, event_id, config):
+def safe_user_activity_request(employee_id, lan_id, office_code, event_id, config, count=1):
   try:
-    activity_request = LogActivityRequest(employee_id=employee_id, lan_id=lan_id, office_code=office_code, event_id=event_id)
+    activity_request = LogActivityRequest(employee_id=employee_id, lan_id=lan_id, office_code=office_code, event_id=event_id, bulk_number=count)
     success, error_status = user_activity_request(activity_request, config)
     if not success:
         app.logger.info('Failed to log user activity for ' + lan_id + '. Activity request failed with status ' + str(error_status))
@@ -1322,7 +1664,7 @@ def safe_user_activity_request(employee_id, lan_id, office_code, event_id, confi
     app.logger.info('Failed to log user activity for ' + lan_id)
 
 def user_activity_request(req: LogActivityRequest, config):
-  params={'employee_id':req.employee_id, 'lan_id':req.lan_id, 'office_code':req.office_code, 'event_id':req.event_id, 'api_key':config.patt_api_key}
+  params={'employee_id':req.employee_id, 'lan_id':req.lan_id, 'bulk_number':req.bulk_number, 'office_code':req.office_code, 'event_id':req.event_id, 'api_key':config.patt_api_key}
   url = 'https://' + config.patt_host + '/app/mu-plugins/pattracking/includes/admin/pages/games/activity.php'
   r = requests.post(url, params=params)
   if r.status_code == 200:

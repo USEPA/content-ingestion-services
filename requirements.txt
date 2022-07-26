@@ -16,3 +16,4 @@ certifi
 boto3==1.18.9
 rebulk==3.0.1
 pyahocorasick==1.4.4
+xhtml2pdf==0.2.8
