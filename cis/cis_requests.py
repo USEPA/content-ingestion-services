@@ -960,8 +960,8 @@ def get_user_info(config, token_data, access_token=None):
     badges = get_badges(config, employee_number)
     profile = get_profile(config, employee_number)
   except:
-    badges=[]
-    profile=None
+    badges = []
+    profile = ProfileInfo(points="0", level="Beginner", office_rank="", overall_rank="")
     app.logger.info('Profile requests failed for ' + token_data['email'])
   try:
     user_settings = get_user_settings(lan_id)
