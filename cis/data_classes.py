@@ -355,6 +355,17 @@ class SemsSiteResponse:
 
 @dataclass_json
 @dataclass 
+class GetCloseDate:
+    close_date: str
+    record_schedule: str
+
+@dataclass_json
+@dataclass 
+class DispositionDate:
+    disposition_date: str
+    
+@dataclass_json
+@dataclass 
 class BadgeInfo:
     id: str
     name: str
