@@ -856,7 +856,7 @@ def download_documentum_record(config, user_info, object_ids, env):
   return send_file(b, mimetype='application/zip', as_attachment=True, attachment_filename='ecms_download.zip')
 
 def get_disposition_date(req):
-if re.match(r'\d{4}-\d{2}-\d{2}',r.close_date) == None:
+  if re.match(r'\d{4}-\d{2}-\d{2}',r.close_date) == None:
     return Response(StatusResponse(status='Failed', reason="Incorrect data format, should be YYYY-MM-DD", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
 
   query = """query recSched {
