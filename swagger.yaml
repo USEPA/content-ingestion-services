@@ -1476,16 +1476,11 @@ paths:
           name: "record_schedule"
           type: string
           required: true
-        - in: header
-          name: "Authorization"
-          type: string
-          format: "jwt"
-          required: true
       responses:
         200:
           description: "Disposition date successfully given."
           schema:
-            $ref: "#/definitions/MetadataPrediction"
+            $ref: "#/definitions/DispositionDate"
         400:
           description: "Invalid request - description in response."
           schema:
@@ -2285,4 +2280,9 @@ definitions:
       office_code:
         type: string
       event_id:
+        type: string
+  DispositionDate:
+    type: object
+    properties:
+      disposition_date:
         type: string
