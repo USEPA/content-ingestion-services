@@ -1664,7 +1664,6 @@ def add_submission_analytics(data: SubmissionAnalyticsMetadata, selected_schedul
   except:
     return False, Response(StatusResponse(status='Failed', reason="Error committing submission analytics.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype="application/json")
 
-
 def update_sharepoint_record_status(site_id, list_id, item_id, status, access_token):
   url = 'https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{list_id}/items/{item_id}/fields'.format(site_id = site_id, list_id = list_id, item_id = item_id)
   headers = {'Authorization': 'Bearer ' + access_token}
