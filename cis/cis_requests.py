@@ -880,7 +880,6 @@ def get_disposition_date(req):
     return Response(StatusResponse(status='Failed', reason="Incorrect date format, should be YYYY-MM-DD", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
 
   # Determine Cutoff (9/30 or 12/31)
-  app.logger.info(str(close_date))
   month_only = close_date.month
   year_only = close_date.year
   year_only_1 = close_date.year + 1
