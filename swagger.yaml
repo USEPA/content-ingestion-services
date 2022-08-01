@@ -1460,6 +1460,44 @@ paths:
           description: "Server side error - description in response."
           schema:
             $ref: "#/definitions/StatusResponse"
+  /disposition_calc:
+    get:
+      tags:
+      - "disposition_calc"
+      summary: "Gets disposition date."
+      consumes:
+        - application/json
+      parameters:
+        - in: query
+          name: "close_date"
+          type: string
+          required: true
+        - in: query
+          name: "record_schedule"
+          type: string
+          required: true
+        - in: header
+          name: "Authorization"
+          type: string
+          format: "jwt"
+          required: true
+      responses:
+        200:
+          description: "Disposition date successfully given."
+          schema:
+            $ref: "#/definitions/MetadataPrediction"
+        400:
+          description: "Invalid request - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        401:
+          description: "Unauthorized - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        500:
+          description: "Server side error - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"  
   /log_activity:
     post:
       tags:

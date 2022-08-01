@@ -10,7 +10,7 @@ import json
 
 @app.before_request
 def log_request_info():
-    if 'favicon' not in request.path and 'swagger' not in request.path and request.path != '/':
+    if 'favicon' not in request.path and 'swagger' not in request.path and request.path != '/' and 'disposition_calc' not in request.path:
         valid, message, token_data = key_cache.validate_request(request, c)
         if not valid:
             return Response(StatusResponse(status='Authentication Token Validation Failed', reason=message, request_id=None).to_json(), status=401, mimetype='application/json')
@@ -340,6 +340,16 @@ def mark_email_saved_graph(emailsource):
     except:
         return Response(StatusResponse(status='Failed', reason="Request is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
     return mark_saved(req, g.access_token, emailsource, c)
+
+@app.route('/disposition_calc', methods=['GET'])
+def disposition_calc():
+    req = dict(request.args)
+    if 'close_date' not in req:
+        return Response(StatusResponse(status='Failed', reason="No close_date.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype="application/json")
+    if 'record_schedule' not in req:
+        return Response(StatusResponse(status='Failed', reason="No record_schedule.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype="application/json")
+    req = GetCloseDate(close_date=req['close_date'],record_schedule=req['record_schedule'])
+    return get_disposition_date(req)
 
 @app.route('/badge_info', methods=['GET'])
 def badge_info():
