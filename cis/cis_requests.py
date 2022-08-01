@@ -858,29 +858,16 @@ def download_documentum_record(config, user_info, object_ids, env):
 def get_disposition_date(req):
   if re.match(r'\d{4}-\d{2}-\d{2}',r.close_date) == None:
     return Response(StatusResponse(status='Failed', reason="Incorrect data format, should be YYYY-MM-DD", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
-
-  query = """query recSched {
-  ecms__record_schedule (where: {schedule_item_number: {equals:\"""" + r.record_schedule + """\"}}) {
-  fiscal_year_flag
-  calendar_year_flag
-  retention_year
-  retention_month
-  retention_day
-  }}"""
-
-  url = 'https://data.epa.gov/dmapservice/query'
-  records_table = requests.post(url, json={'query': query})
-  json_data = json.loads(records_table.text)
   
   # If record_schedule doesn't exist in db then return error
   if(json_data != '' and json_data != None):
 
-    fiscal_year_flag = 0 #json_data['data']['ecms__record_schedule'][0]['fiscal_year_flag']
-    calendar_year_flag = 1 #json_data['data']['ecms__record_schedule'][0]['calendar_year_flag']
+    fiscal_year_flag = schedule_cache.get_schedules().fiscal_year_flag
+    calendar_year_flag = schedule_cache.get_schedules().calendar_year_flag
     
-    retention_year = 0 #json_data['data']['ecms__record_schedule'][0]['retention_year']
-    retention_month = 0 #json_data['data']['ecms__record_schedule'][0]['retention_month']
-    retention_day = 60 #json_data['data']['ecms__record_schedule'][0]['retention_day']
+    retention_year = schedule_cache.get_schedules().retention_year
+    retention_month = schedule_cache.get_schedules().retention_month
+    retention_day = schedule_cache.get_schedules().retention_day
 
     if(retention_year == '' or retention_year == None):
       retention_year = 0
@@ -896,13 +883,13 @@ def get_disposition_date(req):
     year_only_1 = close_date.year+1
 
     # if all these conditions do not satisfy, need default cutoff date
-    if fiscal_year_flag == 1:
+    if fiscal_year_flag:
       if month_only <= 9:
           cutoff = str(year_only)+'-09-30'
       if month_only > 9:
           cutoff = str(year_only_1)+'-09-30'
       
-    if calendar_year_flag == 1:
+    if calendar_year_flag:
         cutoff = str(year_only)+'-12-31'
       
     cutoff_date = datetime.strptime(cutoff, '%Y-%m-%d').date()
