@@ -10,7 +10,7 @@ import json
 
 @app.before_request
 def log_request_info():
-    if 'favicon' not in request.path and 'swagger' not in request.path and request.path != '/':
+    if 'favicon' not in request.path and 'swagger' not in request.path and request.path != '/' and 'disposition_calc' not in request.path:
         valid, message, token_data = key_cache.validate_request(request, c)
         if not valid:
             return Response(StatusResponse(status='Authentication Token Validation Failed', reason=message, request_id=None).to_json(), status=401, mimetype='application/json')

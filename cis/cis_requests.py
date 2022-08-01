@@ -855,56 +855,55 @@ def download_documentum_record(config, user_info, object_ids, env):
   safe_user_activity_request(user_info.employee_number, user_info.lan_id, user_info.parent_org_code, '7', config)
   return send_file(b, mimetype='application/zip', as_attachment=True, attachment_filename='ecms_download.zip')
 
-def get_disposition_date(req):
-  if re.match(r'\d{4}-\d{2}-\d{2}',r.close_date) == None:
-    return Response(StatusResponse(status='Failed', reason="Incorrect data format, should be YYYY-MM-DD", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
+def get_disposition_date(req): 
+  # Find record schedule information
+  schedule_info = None
+  for item in schedule_cache.get_schedules().schedules:
+    if item.display_name == req.record_schedule:
+      schedule_info = item
+      break
   
   # If record_schedule doesn't exist in db then return error
-  if(json_data != '' and json_data != None):
+  if schedule_info is None:
+    return Response(StatusResponse(status='Failed', reason="Could not find record schedule.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
 
-    fiscal_year_flag = schedule_cache.get_schedules().fiscal_year_flag
-    calendar_year_flag = schedule_cache.get_schedules().calendar_year_flag
+  fiscal_year_flag = schedule_info.fiscal_year_flag
+  calendar_year_flag = schedule_info.calendar_year_flag
+  
+  retention_year = schedule_info.retention_year
+  retention_month = schedule_info.retention_month
+  retention_day = schedule_info.retention_day
+
+  try:
+    close_date = datetime.datetime.strptime(req.close_date, '%Y-%m-%d').date()
+  except:
+    return Response(StatusResponse(status='Failed', reason="Incorrect date format, should be YYYY-MM-DD", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
+
+  # Determine Cutoff (9/30 or 12/31)
+  app.logger.info(str(close_date))
+  month_only = close_date.month
+  year_only = close_date.year
+  year_only_1 = close_date.year + 1
+
+  # if all these conditions do not satisfy, need default cutoff date
+  if fiscal_year_flag:
+    if month_only <= 9:
+        cutoff = str(year_only)+'-09-30'
+    if month_only > 9:
+        cutoff = str(year_only_1)+'-09-30'
     
-    retention_year = schedule_cache.get_schedules().retention_year
-    retention_month = schedule_cache.get_schedules().retention_month
-    retention_day = schedule_cache.get_schedules().retention_day
-
-    if(retention_year == '' or retention_year == None):
-      retention_year = 0
-    if(retention_month == '' or retention_year == None):
-      retention_month = 0
-    if(retention_day == '' or retention_year == None):
-      retention_day = 0
-
-    close_date = datetime.strptime(r.close_date, '%Y-%m-%d').date()
-    #Determine Cutoff (9/30 or 12/31)
-    month_only = close_date.month
-    year_only = close_date.year
-    year_only_1 = close_date.year+1
-
-    # if all these conditions do not satisfy, need default cutoff date
-    if fiscal_year_flag:
-      if month_only <= 9:
-          cutoff = str(year_only)+'-09-30'
-      if month_only > 9:
-          cutoff = str(year_only_1)+'-09-30'
-      
-    if calendar_year_flag:
-        cutoff = str(year_only)+'-12-31'
-      
-    cutoff_date = datetime.strptime(cutoff, '%Y-%m-%d').date()
-
-    cutoff_date = cutoff_date + timedelta(days = 1)
-
-    add_years = cutoff_date + relativedelta(years = retention_year)
-    add_months = add_years + relativedelta(months = retention_month)
-    disposition_date = add_months + timedelta(days = retention_day)
+  if calendar_year_flag:
+      cutoff = str(year_only)+'-12-31'
     
-    return Response(DispositionDate(disposition_date=str(disposition_date)).to_json(), status=200, mimetype="application/json")
+  cutoff_date = datetime.datetime.strptime(cutoff, '%Y-%m-%d').date()
 
-  else:
-    return Response(StatusResponse(status='Failed', reason="Record schedule not found.", request_id=g.get('request_id', None)).to_json(), status=404, mimetype='application/json')
+  cutoff_date = cutoff_date + timedelta(days = 1)
 
+  add_years = cutoff_date + relativedelta(years = retention_year)
+  add_months = add_years + relativedelta(months = retention_month)
+  disposition_date = add_months + timedelta(days = retention_day)
+  
+  return Response(DispositionDate(disposition_date=str(disposition_date)).to_json(), status=200, mimetype="application/json")
 
 def get_badges(config, employee_number):
   if employee_number is None:
