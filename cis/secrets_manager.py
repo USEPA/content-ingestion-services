@@ -58,7 +58,10 @@ def load_all_secrets(c, region_name, logger):
     db_creds = json.loads(get_secret('cis-db-credentials', region_name))
     wam = json.loads(get_secret('wam-credentials', region_name))
     documentum = json.loads(get_secret('documentum-credentials', region_name))
+    nuxeo = json.loads(get_secret('nuxeo-credentials', region_name))
     logger.info('Finished loading secrets.')
+    c.nuxeo_dev_username = nuxeo['nuxeo_dev_username']
+    c.nuxeo_dev_password = nuxeo['nuxeo_dev_password']
     c.documentum_prod_username = documentum['documentum_production_username']
     c.documentum_prod_password = documentum['documentum_production_password']
     c.documentum_prod_api_key = documentum['documentum_production_api_key']
