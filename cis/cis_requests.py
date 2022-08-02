@@ -11,12 +11,14 @@ import uuid
 from .models import User, RecordSubmission, db
 from sqlalchemy import null
 from . import model, help_item_cache, schedule_cache, keyword_extractor, identifier_extractor, capstone_detector
-import boto3
 from xhtml2pdf import pisa
 from email import policy 
 from email.parser import BytesParser
 import hashlib
 import base64
+import datetime
+from datetime import timedelta
+from dateutil.relativedelta import relativedelta
 
 TIKA_CUTOFF = 20
 
@@ -900,6 +902,55 @@ def download_documentum_record(config, user_info, object_ids, env):
   safe_user_activity_request(user_info.employee_number, user_info.lan_id, user_info.parent_org_code, '7', config)
   return send_file(b, mimetype='application/zip', as_attachment=True, attachment_filename='ecms_download.zip')
 
+def get_disposition_date(req): 
+  # Find record schedule information
+  schedule_info = None
+  for item in schedule_cache.get_schedules().schedules:
+    if item.display_name == req.record_schedule:
+      schedule_info = item
+      break
+  
+  # If record_schedule doesn't exist in db then return error
+  if schedule_info is None:
+    return Response(StatusResponse(status='Failed', reason="Could not find record schedule.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
+
+  fiscal_year_flag = schedule_info.fiscal_year_flag
+  calendar_year_flag = schedule_info.calendar_year_flag
+  
+  retention_year = schedule_info.retention_year
+  retention_month = schedule_info.retention_month
+  retention_day = schedule_info.retention_day
+
+  try:
+    close_date = datetime.datetime.strptime(req.close_date, '%Y-%m-%d').date()
+  except:
+    return Response(StatusResponse(status='Failed', reason="Incorrect date format, should be YYYY-MM-DD", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
+
+  # Determine Cutoff (9/30 or 12/31)
+  month_only = close_date.month
+  year_only = close_date.year
+  year_only_1 = close_date.year + 1
+
+  # if all these conditions do not satisfy, need default cutoff date
+  if fiscal_year_flag:
+    if month_only <= 9:
+        cutoff = str(year_only)+'-09-30'
+    if month_only > 9:
+        cutoff = str(year_only_1)+'-09-30'
+    
+  if calendar_year_flag:
+      cutoff = str(year_only)+'-12-31'
+    
+  cutoff_date = datetime.datetime.strptime(cutoff, '%Y-%m-%d').date()
+
+  cutoff_date = cutoff_date + timedelta(days = 1)
+
+  add_years = cutoff_date + relativedelta(years = retention_year)
+  add_months = add_years + relativedelta(months = retention_month)
+  disposition_date = add_months + timedelta(days = retention_day)
+  
+  return Response(DispositionDate(disposition_date=str(disposition_date)).to_json(), status=200, mimetype="application/json")
+
 def get_badges(config, employee_number):
   if employee_number is None:
     return []
@@ -1272,7 +1323,7 @@ def sharepoint_record_prediction(req: SharepointPredictionRequest, access_token,
   prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description, default_schedule=default_schedule, subjects=subjects, identifiers=identifiers, cui_categories=cui_categories)
   return Response(prediction.to_json(), status=200, mimetype='application/json')
 
-def upload_sharepoint_record(req: SharepointUploadRequest, access_token, user_info, c):
+def upload_sharepoint_record_v2(req: SharepointUploadRequestV2, access_token, user_info, c):
   headers = {'Authorization': 'Bearer ' + access_token}
   url = 'https://graph.microsoft.com/v1.0/me/drive/items/' + req.drive_item_id + '?expand=listItem,sharepointIds'
   r = requests.get(url, headers=headers, timeout=30)
@@ -1286,10 +1337,9 @@ def upload_sharepoint_record(req: SharepointUploadRequest, access_token, user_in
     app.logger.error('Content request failed: ' + r.text)
     return Response(StatusResponse(status='Failed', reason='Content request failed with status ' + str(content_req.status_code), request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
   content = content_req.content
-  documentum_metadata = convert_metadata(req.metadata, req.drive_item_id)
-  success, r_object_id, resp = upload_documentum_record(content, documentum_metadata, c, req.documentum_env)
+  success, error, batch_id = submit_nuxeo_file(c, content, user_info, req.metadata, req.nuxeo_env)
   if not success:
-    return resp
+    return Response('Nuxeo upload fir sharepoint file failed with error ' + error, status=500, mimetype='application/json')
 
   ## If successful, update Sharepoint metadata
   site_id = drive_item['sharepointIds']['siteId']
@@ -1301,8 +1351,7 @@ def upload_sharepoint_record(req: SharepointUploadRequest, access_token, user_in
     return response 
   
   ## Add submission analytics to table
-  ## TODO: find correct path to id in upload_resp
-  success, response = add_submission_analytics(req.user_activity, req.metadata.record_schedule, user_info.lan_id, r_object_id, None)
+  success, response = add_submission_analytics(req.user_activity, req.metadata.record_schedule, user_info.lan_id, batch_id, None)
   if not success:
     return response
   else:

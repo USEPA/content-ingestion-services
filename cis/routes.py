@@ -10,7 +10,7 @@ import json
 
 @app.before_request
 def log_request_info():
-    if 'favicon' not in request.path and 'swagger' not in request.path and request.path != '/':
+    if 'favicon' not in request.path and 'swagger' not in request.path and request.path != '/' and 'disposition_calc' not in request.path:
         valid, message, token_data = key_cache.validate_request(request, c)
         if not valid:
             return Response(StatusResponse(status='Authentication Token Validation Failed', reason=message, request_id=None).to_json(), status=401, mimetype='application/json')
@@ -304,7 +304,7 @@ def upload_email():
     return Response(StatusResponse(status='OK', reason='Email successfully uploaded.', request_id=g.get('request_id', None)).to_json(), status=200, mimetype='application/json')   
 
 @app.route('/upload_email/v2', methods=['POST'])
-def upload_email():
+def upload_email_v2():
     success, message, user_info = get_user_info(c, g.token_data)
     if not success:
         return Response(StatusResponse(status='Failed', reason=message, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
@@ -359,6 +359,16 @@ def mark_email_saved_graph(emailsource):
     except:
         return Response(StatusResponse(status='Failed', reason="Request is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
     return mark_saved(req, g.access_token, emailsource, c)
+
+@app.route('/disposition_calc', methods=['GET'])
+def disposition_calc():
+    req = dict(request.args)
+    if 'close_date' not in req:
+        return Response(StatusResponse(status='Failed', reason="No close_date.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype="application/json")
+    if 'record_schedule' not in req:
+        return Response(StatusResponse(status='Failed', reason="No record_schedule.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype="application/json")
+    req = GetCloseDate(close_date=req['close_date'],record_schedule=req['record_schedule'])
+    return get_disposition_date(req)
 
 @app.route('/badge_info', methods=['GET'])
 def badge_info():
@@ -603,6 +613,20 @@ def sharepoint_upload():
     if not success:
         return Response(StatusResponse(status='Failed', reason=message, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
     return Response(StatusResponse(status='OK', reason='Sharepoint file successfully uploaded.', request_id=g.get('request_id', None)).to_json(), status=200, mimetype='application/json')   
+
+@app.route('/upload_sharepoint_record/v2', methods=['POST'])
+def sharepoint_upload_v2():
+    req = request.json
+    try:
+        req = SharepointUploadRequestV2.from_dict(req)
+    except:
+        return Response(StatusResponse(status='Failed', reason="Request is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
+    success, message, user_info = get_user_info(c, g.token_data)
+    if req.metadata.custodian != user_info.lan_id:
+        return Response(StatusResponse(status='Failed', reason="Custodian must match authorized user's lan_id.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
+    if not success:
+        return Response(StatusResponse(status='Failed', reason=message, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+    return upload_sharepoint_record_v2(req, g.access_token, user_info, c)   
 
 @app.route('/upload_sharepoint_batch', methods=['POST'])
 def sharepoint_batch_upload():

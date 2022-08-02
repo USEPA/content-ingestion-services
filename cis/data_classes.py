@@ -55,6 +55,32 @@ class RecordScheduleInformation:
     guidance: str
     keywords: str
     ten_year: bool
+    reserved_flag: bool
+    superseded_flag: bool
+    deleted_flag: bool
+    draft_flag: bool
+    system_flag: bool
+    calendar_year_flag: bool
+    fiscal_year_flag: bool
+    retention_year: int
+    retention_month: int
+    retention_day: int
+    epa_approval: str
+    nara_approval: str
+    previous_nara_disposal_authority: str
+    status: str
+    custodians: str
+    reasons_for_disposition: str
+    related_schedules: str
+    entry_date: str
+    revised_date: str
+    action: str
+    keywords_title: str
+    keywords_subject: str
+    keywords_org: str
+    related_terms: str
+    dnul_flag: bool
+    last_modified_flag: bool
 
 @dataclass_json
 @dataclass 
@@ -355,6 +381,17 @@ class SemsSiteResponse:
 
 @dataclass_json
 @dataclass 
+class GetCloseDate:
+    close_date: str
+    record_schedule: str
+
+@dataclass_json
+@dataclass 
+class DispositionDate:
+    disposition_date: str
+    
+@dataclass_json
+@dataclass 
 class BadgeInfo:
     id: str
     name: str
@@ -588,6 +625,14 @@ class SharepointUploadRequest:
     metadata: ECMSMetadata
     user_activity: SubmissionAnalyticsMetadata
     documentum_env: Optional[str] = 'dev'
+
+@dataclass_json
+@dataclass 
+class SharepointUploadRequestV2:
+    drive_item_id: str
+    metadata: ECMSMetadata
+    user_activity: SubmissionAnalyticsMetadata
+    nuxeo_env: Optional[str] = 'dev'
 
 @dataclass_json
 @dataclass 

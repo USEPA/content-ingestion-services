@@ -489,6 +489,44 @@ paths:
           description: "Server side error - description in response."
           schema:
             $ref: "#/definitions/StatusResponse"
+  /upload_email/v2:
+    post:
+      tags:
+        - "email"
+      summary: "Upload email to ARMS with metadata."
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: "upload_request"
+          schema: 
+            $ref: "#/definitions/UploadEmailRequestV2"
+        - in: header
+          name: "Authorization"
+          type: string
+          format: "jwt"
+          required: true
+        - in: header
+          name: "X-Access-Token"
+          type: string
+          required: true
+      responses:
+        200:
+          description: "Email successfully uploaded."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        400:
+          description: "Invalid request - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        401:
+          description: "Unauthorized - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        500:
+          description: "Server side error - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
   /download_email:
     get:
       tags:
@@ -1292,6 +1330,45 @@ paths:
           description: "Server side error - description in response."
           schema:
             $ref: "#/definitions/StatusResponse"
+  /upload_sharepoint_record/v2:
+    post:
+      tags:
+      - "sharepoint"
+      summary: "Upload Sharepoint record to ECMS."
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: "data"
+          description: "ID fields and metadata needed to upload the record."
+          schema:
+            $ref: "#/definitions/SharepointUploadRequestV2"
+        - in: header
+          name: "Authorization"
+          type: string
+          format: "jwt"
+          required: true
+        - in: header
+          name: "X-Access-Token"
+          type: string
+          required: true
+      responses:
+        200:
+          schema:
+            $ref: "#/definitions/StatusResponse"
+          description: "Record successfully uploaded."
+        400:
+          description: "Invalid request - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        401:
+          description: "Unauthorized - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        500:
+          description: "Server side error - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
   /upload_sharepoint_batch:
     post:
       tags:
@@ -1460,6 +1537,39 @@ paths:
           description: "Server side error - description in response."
           schema:
             $ref: "#/definitions/StatusResponse"
+  /disposition_calc:
+    get:
+      tags:
+      - "disposition_calc"
+      summary: "Gets disposition date."
+      consumes:
+        - application/json
+      parameters:
+        - in: query
+          name: "close_date"
+          type: string
+          required: true
+        - in: query
+          name: "record_schedule"
+          type: string
+          required: true
+      responses:
+        200:
+          description: "Disposition date successfully given."
+          schema:
+            $ref: "#/definitions/DispositionDate"
+        400:
+          description: "Invalid request - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        401:
+          description: "Unauthorized - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        500:
+          description: "Server side error - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"  
   /log_activity:
     post:
       tags:
@@ -1816,6 +1926,21 @@ definitions:
         type: string
         enum: ["dev", "prod"]
         default: "dev"
+  UploadEmailRequestV2:
+    type: object
+    properties:
+      email_id:
+        type: string
+      email_unid:
+        type: string
+      metadata:
+        $ref: "#/definitions/ECMSMetadata"
+      user_activity:
+        $ref: "#/definitions/SubmissionAnalyticsMetadata"
+      nuxeo_env:
+        type: string
+        enum: ["dev", "prod"]
+        default: "dev"
   SubmissionAnalyticsMetadata:
     type: object
     properties:
@@ -2165,6 +2290,17 @@ definitions:
         $ref: "#/definitions/SubmissionAnalyticsMetadata"
       documentum_env:
         type: string
+  SharepointUploadRequestV2:
+    type: object
+    properties:
+      drive_item_id:
+        type: string
+      metadata:
+        $ref: "#/definitions/ECMSMetadata"
+      user_activity:
+        $ref: "#/definitions/SubmissionAnalyticsMetadata"
+      nuxeo_env:
+        type: string
   LeaderboardRecord:
     type: object
     properties:
@@ -2247,4 +2383,9 @@ definitions:
       office_code:
         type: string
       event_id:
+        type: string
+  DispositionDate:
+    type: object
+    properties:
+      disposition_date:
         type: string
