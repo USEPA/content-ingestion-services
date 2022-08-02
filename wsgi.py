@@ -31,8 +31,6 @@ if __name__ == "__main__":
                     help='Whether to upgrade the db.')
     parser.add_argument('--mailbox_data_path', default='shared_mailboxes_by_user.json', 
                     help='Path to dictionary of shared mailboxes.')
-    parser.add_argument('--dnul_path', default='dnul.csv', 
-                    help='Do not use list for record schedules.')
     parser.add_argument('--vocab_path', default='keyword_category.csv', 
                     help='EPA enterprise vocabulary.')
     parser.add_argument('--keyword_idf_path', default='keyword_idf.json', 

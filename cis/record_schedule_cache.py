@@ -5,16 +5,10 @@ import threading
 import requests
 
 class RecordScheduleCache:
-    def __init__(self, config, dnul_path, logger):
-      self.logger = logger
-      dnu_items = []
-      with open(dnul_path, 'r') as f:
-        for line in f:
-          csv = line.split(',')
-          dnu_items.append(csv[1])
-      self.dnu_items = dnu_items
+    def __init__(self, config, logger):
+      self.logger = logger  
       self.config = config
-      _, self.schedules, self.schedule_mapping = get_record_schedules(config, self.dnu_items, self.logger)
+      _, self.schedules, self.schedule_mapping = get_record_schedules(config, self.logger)
       self.update_ts = datetime.now()
       self.lock = threading.Lock()
 
@@ -22,7 +16,7 @@ class RecordScheduleCache:
       with self.lock:
         diff = datetime.now() - self.update_ts
         if diff.total_seconds() > 24 * 60 * 60:
-          request_success, schedules, schedule_mapping = get_record_schedules(self.config, self.dnu_items, self.logger)
+          request_success, schedules, schedule_mapping = get_record_schedules(self.config, self.logger)
           if not request_success:
             self.logger.info('Record schedule refresh failed and no data is cached. Defaulting to local data.')
           self.schedules = schedules
@@ -83,7 +77,7 @@ def process_schedule_data(schedule_dict):
       last_modified_flag=int(schedule_dict['last_modified_flag']) == 1
   )
 
-def get_record_schedules(config, dnu_items, logger):
+def get_record_schedules(config, logger):
   # If API request fails, fall back to local data.
   try:
     data = {"query": "{ ecms__record_Schedule (orderBy: {id: \"asc\"}) {  __all_columns__  }}"}
@@ -95,7 +89,7 @@ def get_record_schedules(config, dnu_items, logger):
     with open('record_schedule_data.json', 'r') as f:
       result = json.loads(f.read())
     request_success = False
-  filtered_results = list(filter(lambda x: x['schedule_item_number'] not in dnu_items, result))
+  filtered_results = list(filter(lambda x: not x.get('dnul_flag', False), result))
   schedule_list = RecordScheduleList([process_schedule_data(x) for x in filtered_results])
   schedule_mapping = {
     (sched.display_name):RecordSchedule(sched.function_number, sched.schedule_number, sched.disposition_number) 

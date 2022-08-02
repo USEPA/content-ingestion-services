@@ -28,7 +28,7 @@ SWAGGER_PATH = 'swagger.yaml'
 swagger_yml = load(open(SWAGGER_PATH, 'r'), Loader=Loader)
 
 
-def create_app(env, region_name, model_path, capstone_path, label_mapping_path, office_info_mapping_path, config_path, mailbox_data_path, dnul_path, vocab_path, keyword_idf_path, database_uri, documentum_prod_username, documentum_prod_password, wam_username, wam_password, bucket_name, priority_categories_path, tika_server=None, cis_server=None, ezemail_server=None, upgrade_db=False, documentum_prod_url=None, wam_host=None):
+def create_app(env, region_name, model_path, capstone_path, label_mapping_path, office_info_mapping_path, config_path, mailbox_data_path, vocab_path, keyword_idf_path, database_uri, documentum_prod_username, documentum_prod_password, wam_username, wam_password, bucket_name, priority_categories_path, tika_server=None, cis_server=None, ezemail_server=None, upgrade_db=False, documentum_prod_url=None, wam_host=None):
     """Construct the core application."""
     app = Flask(__name__, instance_relative_config=False)
     app.config.from_object("flask_config.Config")
@@ -45,7 +45,7 @@ def create_app(env, region_name, model_path, capstone_path, label_mapping_path, 
     app.logger.info('Loading help items.')
     help_item_cache = HelpItemCache(c, app.logger)
     app.logger.info('Help items loaded.')
-    schedule_cache = RecordScheduleCache(c, dnul_path, app.logger)
+    schedule_cache = RecordScheduleCache(c, app.logger)
     app.logger.info('Record schedule cache loaded.')
     if tika_server:
         c.tika_server = tika_server
