@@ -36,13 +36,8 @@ class HuggingFaceModel():
                 group_name = ''
             if prediction_metadata.file_name is not None:
                 title = 'title: ' + prediction_metadata.file_name
-                if '.' in prediction_metadata.file_name:
-                    extension = prediction_metadata.file_name.split('.')[-1]
-                else:
-                    extension = ''
             else:
                 title = ''
-                extension = ''
         keywords = 'keywords: ' + ', '.join(keywords)
         topics = 'topics: ' + ', '.join(subjects)
         attachments = 'attachments: ' + ', '.join(attachments[:3])
@@ -50,7 +45,7 @@ class HuggingFaceModel():
             has_senior = 'mentions senior official'
         else:
             has_senior = ''
-        content = f'{title}, {extension}, {doc_type}, {group_name}, {keywords}, {topics}, {attachments}, {has_senior}, {body}'
+        content = f'{title}, {doc_type}, {group_name}, {keywords}, {topics}, {attachments}, {has_senior}, {body}'
         # Tokenize text
         # thread lock tokenization https://github.com/huggingface/tokenizers/issues/537
         with self.lock:
