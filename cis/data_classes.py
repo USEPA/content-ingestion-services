@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from re import S
 from dataclasses_json import dataclass_json
 from typing import Optional, Dict
@@ -111,12 +111,12 @@ mock_prediction_with_explanation = PredictionWithExplanation(value="", predictio
 @dataclass
 class SubmissionAnalyticsMetadata:
     predicted_schedules: list[Recommendation]
-    default_schedule: RecordSchedule
     used_modal_form: bool
     used_recommended_schedule: bool
     used_schedule_dropdown: bool
     used_default_schedule: bool
     used_favorite_schedule: bool
+    default_schedule: Optional[RecordSchedule] = None
 
 @dataclass_json
 @dataclass
@@ -534,12 +534,21 @@ class UploadEmailRequest:
 
 @dataclass_json
 @dataclass 
+class AttachmentSchedule:
+    name: str
+    schedule: RecordSchedule
+    close_date: str
+
+@dataclass_json
+@dataclass 
 class UploadEmailRequestV2:
-    metadata: ECMSMetadata 
+    metadata: ECMSMetadata
+    mailbox: str
     email_id: str
     email_unid: str
     user_activity: SubmissionAnalyticsMetadata
     nuxeo_env: Optional[str] = 'dev'
+    attachment_schedules: Optional[list[AttachmentSchedule]] = field(default_factory=list)
 
 @dataclass_json
 @dataclass 

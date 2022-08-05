@@ -1,4 +1,6 @@
+from configparser import Error
 from itsdangerous import NoneAlgorithm
+from matplotlib.pyplot import errorbar
 import requests
 from requests.auth import HTTPBasicAuth
 from .data_classes import *
@@ -19,6 +21,7 @@ import base64
 import datetime
 from datetime import timedelta
 from dateutil.relativedelta import relativedelta
+import boto3
 
 TIKA_CUTOFF = 20
 
@@ -328,8 +331,10 @@ def eml_to_pdf(eml):
     #conversion --return as bytes
     result = io.BytesIO()
     pisa_status = pisa.CreatePDF(final_text,dest=result)
+    success = pisa_status.err == 0
+    result.seek(0)
 
-    return pisa_status, result, attachments
+    return success, result, attachments
 
 def list_email_metadata_graph(req: GetEmailRequest, user_email, access_token, config):
 
@@ -794,8 +799,7 @@ def convert_nuxeo_metadata(nuxeo_dict):
   description: Optional[str] = properties.get('dc:description', '')
   creator: Optional[str] = properties.get('dc:creator', '')
   creation_date: Optional[str] = properties.get('dc:created', '')
-  ## TODO: This will change with changes to date input
-  close_date: Optional[str] = ''
+  close_date: Optional[str] = properties.get('arms:close_date', '')
   rights: Optional[list[str]] = properties.get('arms:rights_holder', [])
   coverage: Optional[list[str]] = properties.get('dc:coverage', [])
   ## TODO: Update this since relationships field is out of date
@@ -825,8 +829,12 @@ def convert_nuxeo_record(nuxeo_dict):
     sensitivity = 'Shared'
   else:
     sensitivity = 'Private'
-  size = properties.get('file:content', {}).get('length', 0)
-  name = properties.get('file:content', {}).get('name', '')
+  if properties['file:content'] is None:
+    size = None
+    name = properties.get('dc:title', '')
+  else:
+    size = properties.get('file:content', {}).get('length', 0)
+    name = properties.get('file:content', {}).get('name', '')
   custodian = properties.get('arms:epa_contact', '')
   upload_date = properties.get('dc:created', '')
   return NuxeoDocInfo(sensitivity=sensitivity, uid=nuxeo_dict['uid'], name=name, size=size, custodian=custodian, upload_date=upload_date, metadata=metadata)
@@ -842,6 +850,7 @@ def get_nuxeo_records(c, req, employee_number):
   if r.status_code != 200:
     return Response(StatusResponse(status='Failed', reason='.', request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
   data = r.json()
+  app.logger.info(r.json())
   records = [convert_nuxeo_record(x) for x in r.json()['entries']]
   response = NuxeoRecordList(total=data['resultsCount'], records=records)
   return Response(response.to_json(), status=200, mimetype='application/json')
@@ -1431,28 +1440,27 @@ def create_nuxeo_batch(config, env):
     return None
 
 def upload_nuxeo_file(config, file, file_name, batch_id, env, index=0):
-  try:
-    nuxeo_url, nuxeo_username, nuxeo_password = get_nuxeo_creds(config, env)
-    files = {'file': (file_name, file)}
-    headers = {'X-File-Name':file_name}
-    r = requests.post(nuxeo_url + '/nuxeo/api/v1/upload/' + batch_id + '/' + str(index), files=files, headers=headers, auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))
-  except:
-    return False
+  
+  nuxeo_url, nuxeo_username, nuxeo_password = get_nuxeo_creds(config, env)
+  headers = {'X-File-Name':file_name}
+  r = requests.post(nuxeo_url + '/nuxeo/api/v1/upload/' + batch_id + '/' + str(index), data=file, headers=headers, auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))
+
   
   if r.status_code == 201:
     return True
   else:
+    app.logger.error(str(r.status_code))
     return False
 
 def update_nuxeo_metadata(uid, properties, config, env):
   try:
     nuxeo_url, nuxeo_username, nuxeo_password = get_nuxeo_creds(config, env)
     body = {"entity-type": "document", "properties": properties}
-    r = requests.post(nuxeo_url + '/api/v1/id/' + uid, json=body, auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))
+    r = requests.put(nuxeo_url + '/nuxeo/api/v1/id/' + uid, json=body, auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))
     if r.status_code == 200:
       return True
     else:
-      app.logger.error('Nuxeo metadata update failed with status ' + str(r.status_code) + '. ' + r.text)
+      app.logger.error('Nuxeo metadata update failed for UID: ' + uid + ' with status ' + str(r.status_code) + '. ' + r.text)
       return False
   except:
     app.logger.error('Nuxeo metadata update failed.')
@@ -1465,27 +1473,21 @@ def convert_metadata_for_nuxeo(batch_id, user_info, metadata, doc_type, attachme
   sensitivity = "1"
   if metadata.sensitivity.lower() == 'shared':
     sensitivity = "0"
-  # TODO: Where does coverage go?
   properties = {
     "arms:epa_contact": user_info.employee_number,
-    "arms:document_type": doc_type,
+    ## TODO: What are valid record types?
+    ## TODO: What are valid doc types?
+    ### "arms:document_type": doc_type,
     "arms:record_schedule": schedule,
-    # TODO: Whato to put for essential_records?
-    "arms:essential_records": True,
     "arms:folder_path": metadata.file_path,
-    # TODO: What to put for record_type?
-    "arms:record_type": "",
-    # TODO: What to put for application_id?
-    "arms:application_id": "",
-    # TODO: Is this the right field for program office?
-    "arms:program_office": user_info.department,
+    "arms:application_id": "ARMS_UPLOADER",
+    "arms:program_office": user_info.manager_parent_org_code,
     "arms:sensitivity": sensitivity,
     "arms:rights_holder": metadata.rights,
-    # TODO: What to put for addressee?
-    "arms:addressee": [metadata.custodian],
-    "arms:aa_ship": user_info.manager_parent_org_code,
-    ## TODO: Fix close date once fiscal and calendar year dates are incorporated
-    "arms:close_date": null,
+    "arms:spatial_extent": metadata.coverage,
+    ## TODO: Use AA Ship code H0000000
+    ### "arms:aa_ship": user_info.manager_parent_org_code,
+    "arms:close_date": metadata.close_date,
     "dc:description": metadata.description,
     "dc:creator": metadata.creator,
     "dc:title": metadata.title,
@@ -1493,7 +1495,7 @@ def convert_metadata_for_nuxeo(batch_id, user_info, metadata, doc_type, attachme
     "nxtag:tags": [{"label": tag,"username": metadata.custodian} for tag in metadata.tags],
     "file:content": {
       "upload-batch": batch_id,
-      "upload-fileId": file_id
+      "upload-fileId": str(file_id)
     }
   }
   if len(attachment_ids) > 0:
@@ -1516,6 +1518,7 @@ def create_nuxeo_record(config, batch_id, user_info, metadata, env, parent_id=No
       uid = r.json()['uid']
       return True, None, uid
     else:
+      app.logger.error(r.text)
       return False, "Record creation request returned " + str(r.status_code) + ' response.', None
   except:
     return False, "Failed to complete record creation request.", None
@@ -1524,15 +1527,17 @@ def create_nuxeo_email_record(config, batch_id, user_info, metadata, env):
   nuxeo_url, nuxeo_username, nuxeo_password = get_nuxeo_creds(config, env)
   org = user_info.department.split('-')[0]
   headers = {'Content-Type': 'application/json'}
-  data = convert_metadata_for_nuxeo(batch_id, user_info, metadata, 'Email', attachment_ids=["1"])
+  data = convert_metadata_for_nuxeo(batch_id, user_info, metadata, 'Email', file_id=0, attachment_ids=["1"])
   try:
     r = requests.post(nuxeo_url + '/nuxeo/api/v1/path/EPA Organization/' + org, json=data, headers=headers, auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))
     if r.status_code == 201:
       uid = r.json()['uid']
       return True, None, uid
     else:
+      app.logger.error(r.text)
       return False, "Record creation request returned " + str(r.status_code) + ' response.', None
   except:
+    app.logger.error(r.text)
     return False, "Failed to complete record creation request.", None
 
 def submit_nuxeo_file(config, file, user_info, metadata, env):
@@ -1555,10 +1560,10 @@ def submit_nuxeo_file(config, file, user_info, metadata, env):
   
   return True, None, batch_id
 
-def upload_nuxeo_email(config, req, user_info):
+def upload_nuxeo_email(config, req, source, user_info):
 
   # Step 0: Get EML file from graph
-  content = get_eml_file(req.email_id, req.metadata.title, req.metadata.mailbox, g.access_token, config)
+  content = get_eml_file(req.email_id, req.metadata.title, source, req.mailbox, g.access_token, config)
   if content is None:
     return Response(StatusResponse(status='Failed', reason='Unable to retrieve email.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
 
@@ -1572,56 +1577,59 @@ def upload_nuxeo_email(config, req, user_info):
   success, pdf_render, attachments = eml_to_pdf(content)
 
   # Upload PDF
-  pdf_md5 = hashlib.md5(pdf_render.encode('utf-8')).hexdigest()
-  success = upload_nuxeo_file(config, pdf_render, pdf_md5, batch_id, req.nuxeo_env, index=0)
+  pdf_bytes = pdf_render.getvalue()
+  success = upload_nuxeo_file(config, pdf_bytes, req.metadata.title + ".pdf", batch_id, req.nuxeo_env, index=0)
 
   if not success:
     return Response(StatusResponse(status='Failed', reason='Unable to upload PDF rendition.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
   
   # Upload original 
-  eml_md5 = hashlib.md5(content.encode('utf-8')).hexdigest()
-  success = upload_nuxeo_file(config, content, eml_md5, batch_id, req.nuxeo_env, index=1)
+  success = upload_nuxeo_file(config, content, req.metadata.title + ".eml", batch_id, req.nuxeo_env, index=1)
   if not success:
     return Response(StatusResponse(status='Failed', reason='Unable to upload EML.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-  
-  # Upload attachments
-  for i, attachment in enumerate(attachments):
-    attachment_content = base64.b64decode(attachment[1].encode('ascii'))
-    attachment_md5 = hashlib.md5(attachment_content.encode('utf-8')).hexdigest()
-    success = upload_nuxeo_file(config, attachment_content, attachment_md5, batch_id, req.nuxeo_env, index=i+2)
-    if not success:
-      return Response(StatusResponse(status='Failed', reason='Unable to upload attachment ' + attachment[0] + '.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-  
+        
   # Step 3: Create Nuxeo record
   
   # Create record for PDF rendition with EML as Nuxeo attachment
   success, error, uid = create_nuxeo_email_record(config, batch_id, user_info, req.metadata, req.nuxeo_env)
 
   if not success:
+    app.logger.error(error)
     return Response(StatusResponse(status='Failed', reason='Unable to create email record.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
 
   # Create records for each attachment listing the first record as a parent
+  schedule_map = {x.name:x.schedule for x in req.attachment_schedules}
+  close_date_map = {x.name:x.close_date for x in req.attachment_schedules}
   attachment_uids = []
-  for i, attachment in enumerate(attachments):
-    file_id = i + 2
+
+  for attachment in attachments:
+    # Get batch id
+    attachment_batch_id = create_nuxeo_batch(config, req.nuxeo_env)
+
+    # Upload attachments
+    attachment_content = base64.b64decode(attachment[1].encode('ascii'))
+    success = upload_nuxeo_file(config, attachment_content, attachment[0], attachment_batch_id, req.nuxeo_env, index=0)
+    if not success:
+      return Response(StatusResponse(status='Failed', reason='Unable to upload attachment ' + attachment[0] + '.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+
+    # Create Nuxeo records for each
     metadata = ECMSMetadata(
       file_path = req.metadata.file_path,
       custodian = req.metadata.custodian,
       title = attachment[0],
-      # TODO: Change schedule when user specifies a different one for the attachment
-      record_schedule = req.metadata.record_schedule,
+      record_schedule = schedule_map.get(attachment[0], req.metadata.record_schedule),
       sensitivity = req.metadata.sensitivity,
       description = req.metadata.description,
       creator = req.metadata.creator,
       creation_date = req.metadata.creation_date,
-      # TODO: Fix close date when user can specify a different one per attachment
-      close_date = req.metadata.close_date,
+      close_date = close_date_map.get(attachment[0], req.metadata.close_date),
       rights = req.metadata.rights,
       coverage = req.metadata.coverage,
       relationships = req.metadata.relationships,
       tags = req.metadata.tags
     )
-    success, error, attachment_uid = create_nuxeo_record(config, batch_id, user_info, metadata, req.nuxeo_env, parent_id=uid, file_id=file_id)
+
+    success, error, attachment_uid = create_nuxeo_record(config, attachment_batch_id, user_info, metadata, req.nuxeo_env, parent_id=uid, file_id=0)
     if not success:
       app.logger.error('Failed to create atttachment record for attachment ' + str(attachment[0] + '. ' + error))
       return Response(StatusResponse(status='Failed', reason='Unable to create attachment record.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')

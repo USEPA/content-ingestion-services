@@ -303,8 +303,8 @@ def upload_email():
         return Response(StatusResponse(status='Failed', reason="Custodian must match authorized user's lan_id.", request_id=g.get('request_id', None)).to_json(), status=401, mimetype='application/json')
     return Response(StatusResponse(status='OK', reason='Email successfully uploaded.', request_id=g.get('request_id', None)).to_json(), status=200, mimetype='application/json')   
 
-@app.route('/upload_email/v2', methods=['POST'])
-def upload_email_v2():
+@app.route('/upload_email/v2/<emailsource>', methods=['POST'])
+def upload_email_v2(emailsource):
     success, message, user_info = get_user_info(c, g.token_data)
     if not success:
         return Response(StatusResponse(status='Failed', reason=message, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
@@ -319,8 +319,7 @@ def upload_email_v2():
     if req.metadata.custodian != user_info.lan_id:
         return Response(StatusResponse(status='Failed', reason="Custodian must match authorized user's lan_id.", request_id=g.get('request_id', None)).to_json(), status=401, mimetype='application/json')
     
-    return upload_nuxeo_email(c, req, user_info)
-
+    return upload_nuxeo_email(c, req, emailsource, user_info)
 
 @app.route('/download_email', methods=['GET'])
 def download_email():
