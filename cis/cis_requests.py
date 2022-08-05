@@ -1,6 +1,3 @@
-from configparser import Error
-from itsdangerous import NoneAlgorithm
-from matplotlib.pyplot import errorbar
 import requests
 from requests.auth import HTTPBasicAuth
 from .data_classes import *
