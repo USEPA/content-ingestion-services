@@ -845,7 +845,8 @@ def get_nuxeo_records(c, req, employee_number):
     r = requests.get(nuxeo_url + '/nuxeo/api/v1/search/lang/NXQL/execute?query=select * from epa_record where arms:epa_contact="' + employee_number + '" order by dc:created desc&pageSize=' + str(req.items_per_page) + '&currentPageIndex=' + str(req.page_number), headers=headers, auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))
 
   if r.status_code != 200:
-    return Response(StatusResponse(status='Failed', reason='.', request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
+    app.logger.error(r.text)
+    return Response(StatusResponse(status='Failed', reason='Failed to access Nuxeo find API.', request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
   data = r.json()
   app.logger.info(r.json())
   records = [convert_nuxeo_record(x) for x in r.json()['entries']]
