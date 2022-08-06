@@ -1346,7 +1346,7 @@ def upload_sharepoint_record_v2(req: SharepointUploadRequestV2, access_token, us
   content = content_req.content
   success, error, batch_id = submit_nuxeo_file(c, content, user_info, req.metadata, req.nuxeo_env)
   if not success:
-    return Response('Nuxeo upload fir sharepoint file failed with error ' + error, status=500, mimetype='application/json')
+    return Response(StatusResponse(status='Failed', reason='Nuxeo upload for sharepoint file failed with error ' + error, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
 
   ## If successful, update Sharepoint metadata
   site_id = drive_item['sharepointIds']['siteId']
