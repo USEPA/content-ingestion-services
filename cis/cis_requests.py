@@ -1483,8 +1483,6 @@ def convert_metadata_for_nuxeo(batch_id, user_info, metadata, doc_type, attachme
     "arms:sensitivity": sensitivity,
     "arms:rights_holder": metadata.rights,
     "arms:spatial_extent": metadata.coverage,
-    ## TODO: Use AA Ship code H0000000
-    ### "arms:aa_ship": user_info.manager_parent_org_code,
     "arms:close_date": metadata.close_date,
     "dc:description": metadata.description,
     "dc:creator": metadata.creator,
@@ -1507,11 +1505,10 @@ def convert_metadata_for_nuxeo(batch_id, user_info, metadata, doc_type, attachme
 
 def create_nuxeo_record(config, batch_id, user_info, metadata, env, parent_id=None, file_id=0):
   nuxeo_url, nuxeo_username, nuxeo_password = get_nuxeo_creds(config, env)
-  org = user_info.department.split('-')[0]
   headers = {'Content-Type': 'application/json'}
   data = convert_metadata_for_nuxeo(batch_id, user_info, metadata, 'Document', parent_id=parent_id, file_id=file_id)
   try:
-    r = requests.post(nuxeo_url + '/nuxeo/api/v1/path/EPA Organization/' + org, json=data, headers=headers, auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))
+    r = requests.post(nuxeo_url + '/nuxeo/api/v1/path/EPA Organization/ThirdParty', json=data, headers=headers, auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))
     if r.status_code == 201:
       uid = r.json()['uid']
       return True, None, uid
@@ -1523,11 +1520,10 @@ def create_nuxeo_record(config, batch_id, user_info, metadata, env, parent_id=No
 
 def create_nuxeo_email_record(config, batch_id, user_info, metadata, env):
   nuxeo_url, nuxeo_username, nuxeo_password = get_nuxeo_creds(config, env)
-  org = user_info.department.split('-')[0]
   headers = {'Content-Type': 'application/json'}
   data = convert_metadata_for_nuxeo(batch_id, user_info, metadata, 'Email', file_id=0, attachment_ids=["1"])
   try:
-    r = requests.post(nuxeo_url + '/nuxeo/api/v1/path/EPA Organization/' + org, json=data, headers=headers, auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))
+    r = requests.post(nuxeo_url + '/nuxeo/api/v1/path/EPA Organization/ThirdParty', json=data, headers=headers, auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))
     if r.status_code == 201:
       uid = r.json()['uid']
       return True, None, uid
