@@ -250,10 +250,10 @@ def send_notifications(username, password, client_id, client_secret, wam_usernam
             if time_diff.total_seconds() > 15 * 60:
                 service_token, chat_token = refresh_tokens(username, password, client_id, client_secret, tenant_id)
             if user_has_pending_email(user, service_token):
-                send_email_chat(user, chat_token, chat_account_id, service_token)
+                send_email_chat(user, chat_token, chat_account_id)
                 continue
             if user_has_pending_onedrive_file(user, service_token):
-                send_sharepoint_chat(user, chat_token, chat_account_id, service_token)
+                send_sharepoint_chat(user, chat_token, chat_account_id)
                 continue
 
 if __name__ == "__main__":
