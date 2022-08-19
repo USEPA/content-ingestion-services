@@ -109,18 +109,12 @@ def refresh_tokens(username, password, client_id, client_secret, tenant_id):
     chat_token = get_chat_token(username, password, client_id, client_secret, tenant_id)
     return service_token, chat_token
 
-def get_user_id(user, token):
-    headers = {'Authorization': 'Bearer ' + token}
-    r = requests.get("https://graph.microsoft.com/v1.0/users/" + user, headers=headers)
-    return r.json()['id']
-
 def get_chat_account_user_id(chat_token):
     headers = {'Authorization': 'Bearer ' + chat_token}
     r = requests.get("https://graph.microsoft.com/v1.0/me", headers=headers)
     return r.json()['id']
 
 def send_email_chat(user, chat_token, chat_account_user_id):
-    user_id = get_user_id(user, chat_token)
     headers = {'Authorization': 'Bearer ' + chat_token}
     chat_data = {
         "chatType": "oneOnOne",
@@ -137,7 +131,7 @@ def send_email_chat(user, chat_token, chat_account_user_id):
                 "roles": [
                     "owner"
                 ],
-                "user@odata.bind": "https://graph.microsoft.com/v1.0/users('" + user_id + "')"
+                "user@odata.bind": "https://graph.microsoft.com/v1.0/users('" + user + "')"
             }
         ]
     }
@@ -153,7 +147,6 @@ def send_email_chat(user, chat_token, chat_account_user_id):
     chat_req = requests.post('https://graph.microsoft.com/v1.0/chats/' + chat_id + '/messages', json=chat_message, headers=headers)
 
 def send_sharepoint_chat(user, chat_token, chat_account_user_id):
-    user_id = get_user_id(user, chat_token)
     headers = {'Authorization': 'Bearer ' + chat_token}
     chat_data = {
         "chatType": "oneOnOne",
@@ -170,7 +163,7 @@ def send_sharepoint_chat(user, chat_token, chat_account_user_id):
                 "roles": [
                     "owner"
                 ],
-                "user@odata.bind": "https://graph.microsoft.com/v1.0/users('" + user_id + "')"
+                "user@odata.bind": "https://graph.microsoft.com/v1.0/users('" + user + "')"
             }
         ]
     }
@@ -257,10 +250,10 @@ def send_notifications(username, password, client_id, client_secret, wam_usernam
             if time_diff.total_seconds() > 15 * 60:
                 service_token, chat_token = refresh_tokens(username, password, client_id, client_secret, tenant_id)
             if user_has_pending_email(user, service_token):
-                send_email_chat(user, chat_token, chat_account_id)
+                send_email_chat(user, chat_token, chat_account_id, service_token)
                 continue
             if user_has_pending_onedrive_file(user, service_token):
-                send_sharepoint_chat(user, chat_token, chat_account_id)
+                send_sharepoint_chat(user, chat_token, chat_account_id, service_token)
                 continue
 
 if __name__ == "__main__":
