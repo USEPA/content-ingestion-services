@@ -187,8 +187,11 @@ def send_sharepoint_chat(user, chat_token, chat_account_user_id):
 
 def user_has_pending_email(user, service_token):
     headers = {'Authorization': 'Bearer ' + service_token}
-    r = requests.get("https://graph.microsoft.com/v1.0/" + user + "/messages?$filter=categories/any(a:a+eq+'Record')&$top=1", headers=headers)
-    return len(r.json()['value']) > 0
+    r = requests.get("https://graph.microsoft.com/v1.0/users/" + user + "/messages?$filter=categories/any(a:a+eq+'Record')&$top=1", headers=headers)
+    if r.status_code != 200:
+        print('Email check failed for user ' + user)
+        return False
+    return 'value' in r.json() and len(r.json()['value']) > 0
 
 # Note: Depth increases when passing to a subfolder, or to a next page of results
 def read_sharepoint_folder(drive_id, relative_path, access_token, filter_status, depth, link = None, max_depth=3):
@@ -228,6 +231,7 @@ def user_has_pending_onedrive_file(user, service_token):
 
 def send_notifications(username, password, client_id, client_secret, wam_username, wam_password, wam_host, tenant_id, user_batch_size, full_run):
     test_users = set(['Kreisel.Michael@epa.gov', 'Yuen.Andrew@epa.gov', 'Schouw.Stephanie@epa.gov'])
+    
     print('Getting list of users.')
     index = 1
     wam_users = []
@@ -240,6 +244,7 @@ def send_notifications(username, password, client_id, client_secret, wam_usernam
         wam_users = wam_users + new_users
         index += user_batch_size
     users_with_upn = list(filter(lambda x: x!= None, wam_users))
+    print('Total active users with UPN: ' + str(len(users_with_upn)))
 
     token_time = datetime.datetime.now()
     print('Getting tokens')
