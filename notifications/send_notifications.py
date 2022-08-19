@@ -228,9 +228,12 @@ def user_has_pending_onedrive_file(user, service_token):
 
 def send_notifications(username, password, client_id, client_secret, wam_username, wam_password, wam_host, tenant_id, user_batch_size, full_run):
     test_users = set(['Kreisel.Michael@epa.gov', 'Yuen.Andrew@epa.gov', 'Schouw.Stephanie@epa.gov'])
+    print('Getting list of users.')
     index = 1
     wam_users = []
     while True:
+        if index % 10000 == 1:
+            print('At user index ' + str(index))
         new_users = list_wam_users(index, user_batch_size, wam_username, wam_password, wam_host)
         if len(new_users) == 0:
             break
@@ -239,10 +242,12 @@ def send_notifications(username, password, client_id, client_secret, wam_usernam
     users_with_upn = list(filter(lambda x: x!= None, wam_users))
 
     token_time = datetime.datetime.now()
+    print('Getting tokens')
     service_token, chat_token = refresh_tokens(username, password, client_id, client_secret, tenant_id)
     chat_account_id = get_chat_account_user_id(chat_token)
     for user in users_with_upn:
-        if full_run or user in test_users:
+        #if full_run or user in test_users:
+        if user in test_users:
             time_diff = datetime.datetime.now() - token_time
             if time_diff.total_seconds() > 15 * 60:
                 service_token, chat_token = refresh_tokens(username, password, client_id, client_secret, tenant_id)
