@@ -21,6 +21,7 @@ from dateutil.relativedelta import relativedelta
 import boto3
 
 TIKA_CUTOFF = 20
+TIKA_TEXT_UPPER_LIMIT = 10000
 
 def tika(file, config, extraction_type='text'):
   if extraction_type == 'html':
@@ -35,7 +36,7 @@ def tika(file, config, extraction_type='text'):
           }
   server = "http://" + config.tika_server + "/tika"
   try:
-    r = requests.put(server, data=file, headers=headers, timeout=30)
+    r = requests.put(server, data=file, headers=headers, stream=True, timeout=30)
   except:
     return False, None, Response(StatusResponse(status='Failed', reason='Could not connect to Tika server', request_id=g.get('request_id', None)).to_json(), 500, mimetype='application/json')
 
@@ -46,13 +47,20 @@ def tika(file, config, extraction_type='text'):
           "Cache-Control": "no-cache",
           "accept": accept
         }
-      r = requests.put(server, data=file, headers=headers)
+      r = requests.put(server, data=file, headers=headers, stream=True)
       if r.status_code != 200:
           return False, None, Response(StatusResponse(status='Failed', reason='Tika failed with status ' + str(r.status_code), request_id=g.get('request_id', None)).to_json(), 500, mimetype='application/json')
-      else:
-          return True, r.text, None
-  else:
-      return True, r.text, None
+  
+  try:
+    result = ""
+    for x in r.iter_content(chunk_size=100, decode_unicode=True):
+      result += x
+      if len(result) > TIKA_TEXT_UPPER_LIMIT:
+          break
+  except:
+    return False, None, Response(StatusResponse(status='Failed', reason='Could not stream Tika response.', request_id=g.get('request_id', None)).to_json(), 500, mimetype='application/json')
+
+  return True, result, None
 
 def get_cui_categories(file, config):
   try:
