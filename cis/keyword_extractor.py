@@ -439,5 +439,7 @@ class IdentifierExtractor():
             if len(extracted_val) > 0:
                 sln_numbers.add(extracted_val[0])
         response['EPA SLN Number'] = dedupe_lower(sln_numbers)
-        
+
+        # Limit all identifier lists to a max of 3 items
+        response = {k:v[:3] for k,v in response.items()}
         return response
