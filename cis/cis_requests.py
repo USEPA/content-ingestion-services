@@ -1473,7 +1473,7 @@ def update_nuxeo_metadata(uid, properties, config, env):
     return False
 
 
-def convert_metadata_for_nuxeo(batch_id, user_info, metadata, doc_type, attachment_ids=[], file_id=0, parent_id=None):
+def convert_metadata_for_nuxeo(user_info, metadata, doc_type, parent_id=None):
   data = { "entity-type": "document", "name": metadata.title, "type": "epa_record"}
   schedule = metadata.record_schedule.schedule_number + metadata.record_schedule.disposition_number
   sensitivity = "1"
@@ -1497,24 +1497,16 @@ def convert_metadata_for_nuxeo(batch_id, user_info, metadata, doc_type, attachme
     "dc:title": metadata.title,
     "dc:subjects": [],
     "nxtag:tags": [{"label": tag,"username": metadata.custodian} for tag in metadata.tags],
-    "file:content": {
-      "upload-batch": batch_id,
-      "upload-fileId": str(file_id)
-    }
   }
-  if len(attachment_ids) > 0:
-    properties["arms:attachment_file"] = []
-  for _id in attachment_ids:
-    properties["arms:attachment_file"].append({"upload-batch": batch_id, "upload-fileId": _id})
   if parent_id is not None:
     properties['arms:relation_is_part_of'] = [parent_id]
   data['properties'] = properties
   return data
 
-def create_nuxeo_record(config, batch_id, user_info, metadata, env, parent_id=None, file_id=0):
+def create_nuxeo_record(config, user_info, metadata, env, parent_id=None):
   nuxeo_url, nuxeo_username, nuxeo_password = get_nuxeo_creds(config, env)
   headers = {'Content-Type': 'application/json'}
-  data = convert_metadata_for_nuxeo(batch_id, user_info, metadata, 'Document', parent_id=parent_id, file_id=file_id)
+  data = convert_metadata_for_nuxeo(user_info, metadata, 'Document', parent_id=parent_id)
   try:
     r = requests.post(nuxeo_url + '/nuxeo/api/v1/path/EPA Organization/ThirdParty', json=data, headers=headers, auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))
     if r.status_code == 201:
@@ -1526,10 +1518,10 @@ def create_nuxeo_record(config, batch_id, user_info, metadata, env, parent_id=No
   except:
     return False, "Failed to complete record creation request.", None
 
-def create_nuxeo_email_record(config, batch_id, user_info, metadata, env):
+def create_nuxeo_email_record(config, user_info, metadata, env):
   nuxeo_url, nuxeo_username, nuxeo_password = get_nuxeo_creds(config, env)
   headers = {'Content-Type': 'application/json'}
-  data = convert_metadata_for_nuxeo(batch_id, user_info, metadata, 'Email', file_id=0, attachment_ids=["1"])
+  data = convert_metadata_for_nuxeo(user_info, metadata, 'Email')
   try:
     r = requests.post(nuxeo_url + '/nuxeo/api/v1/path/EPA Organization/ThirdParty', json=data, headers=headers, auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))
     if r.status_code == 201:
@@ -1543,7 +1535,7 @@ def create_nuxeo_email_record(config, batch_id, user_info, metadata, env):
     return False, "Failed to complete record creation request.", None
 
 def submit_nuxeo_file(config, file, user_info, metadata, env):
-  # Step 1: Create Nuxeo Batch
+  # Step 1: Upload file to S3
   batch_id = create_nuxeo_batch(config, env)
 
   if batch_id is None:
