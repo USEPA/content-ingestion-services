@@ -713,7 +713,7 @@ class LogActivityRequest:
     lan_id: str
     office_code: str
     event_id: str
-    bulk_number: int
+    bulk_number: Optional[int] = 1
 
 @dataclass_json
 @dataclass
