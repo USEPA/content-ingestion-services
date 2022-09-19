@@ -566,6 +566,8 @@ def get_sites():
     if 'region_id' not in req:
         return Response(StatusResponse(status='Failed', reason="region_id field is required", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
     req['region_id'] = req['region_id'].split(',')
+    if 'program_type' in req:
+        req['program_type'] = req['program_type'].split(',')
     try:
         req = SemsSiteRequest.from_dict(req)
     except:
