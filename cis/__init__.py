@@ -35,7 +35,10 @@ def create_app(env, region_name, model_path, capstone_path, label_mapping_path, 
     app = Flask(__name__, instance_relative_config=False)
     app.config.from_object("flask_config.Config")
     global model, c, mailbox_manager, schedule_cache, keyword_extractor, identifier_extractor, help_item_cache, capstone_detector
-
+    c = config_from_file(config_path)
+    if env == 'cloud':
+        load_all_secrets(c, region_name, app.logger)
+        app.logger.info('Secrets loaded.')
     if not db_schema_change:
         keyword_extractor = KeywordExtractor(vocab_path, priority_categories_path, keyword_idf_path)
         identifier_extractor = IdentifierExtractor()
@@ -43,7 +46,6 @@ def create_app(env, region_name, model_path, capstone_path, label_mapping_path, 
         app.logger.info('Keyword extractor initialized.')
         mailbox_manager = SharedMailboxManager(mailbox_data_path)
         app.logger.info('Mailboxes loaded.')
-        c = config_from_file(config_path)
         app.logger.info('Config loaded.')
         app.logger.info('Loading help items.')
         help_item_cache = HelpItemCache(c, app.logger)
@@ -72,9 +74,7 @@ def create_app(env, region_name, model_path, capstone_path, label_mapping_path, 
             c.wam_host = wam_host
         if bucket_name:
             c.bucket_name = bucket_name
-        if env == 'cloud':
-            load_all_secrets(c, region_name, app.logger)
-            app.logger.info('Secrets loaded.')
+        
         app.config['SQLALCHEMY_DATABASE_URI'] = c.database_uri
         app.app_context().push()
         model = HuggingFaceModel(model_path, label_mapping_path, office_info_mapping_path)
