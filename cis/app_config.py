@@ -36,7 +36,9 @@ class CISConfig:
         nuxeo_dev_password,
         nuxeo_prod_url,
         nuxeo_prod_username, 
-        nuxeo_prod_password
+        nuxeo_prod_password,
+        arms_upload_bucket,
+        arms_upload_prefix
         ):
         self.cis_server = cis_server
         self.tika_server = tika_server
@@ -66,4 +68,6 @@ class CISConfig:
         self.nuxeo_prod_url = nuxeo_prod_url
         self.nuxeo_prod_username = nuxeo_prod_username
         self.nuxeo_prod_password = nuxeo_prod_password
+        self.arms_upload_bucket = arms_upload_bucket
+        self.arms_upload_prefix = arms_upload_prefix
         

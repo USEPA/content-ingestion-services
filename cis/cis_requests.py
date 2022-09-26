@@ -19,6 +19,7 @@ import datetime
 from datetime import timedelta
 from dateutil.relativedelta import relativedelta
 import boto3
+import mimetypes
 
 TIKA_CUTOFF = 20
 TIKA_TEXT_UPPER_LIMIT = 10000
@@ -1445,17 +1446,12 @@ def create_nuxeo_batch(config, env):
   except:
     return None
 
-def upload_nuxeo_file(config, file, file_name, batch_id, env, index=0):
-  
-  nuxeo_url, nuxeo_username, nuxeo_password = get_nuxeo_creds(config, env)
-  headers = {'X-File-Name':file_name}
-  r = requests.post(nuxeo_url + '/nuxeo/api/v1/upload/' + batch_id + '/' + str(index), data=file, headers=headers, auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))
-
-  
-  if r.status_code == 201:
+def upload_nuxeo_file(config, file, file_md5):
+  client = boto3.client('s3')
+  try:
+    client.put_object(Body=file, Bucket=config.arms_upload_bucket, Key=config.arms_upload_prefix + '/' + file_md5)
     return True
-  else:
-    app.logger.error(str(r.status_code))
+  except:
     return False
 
 def update_nuxeo_metadata(uid, properties, config, env):
@@ -1483,11 +1479,11 @@ def convert_metadata_for_nuxeo(user_info, metadata, doc_type, parent_id=None):
     "arms:epa_contact": user_info.employee_number,
     ## TODO: What are valid record types?
     ## TODO: What are valid doc types?
-    ### "arms:document_type": doc_type,
+    "arms:document_type": doc_type,
     "arms:record_schedule": schedule,
     "arms:folder_path": metadata.file_path,
     "arms:application_id": "ARMS_UPLOADER",
-    "arms:program_office": user_info.manager_parent_org_code,
+    "arms:program_office": [user_info.manager_parent_org_code],
     "arms:sensitivity": sensitivity,
     "arms:rights_holder": metadata.rights,
     "arms:spatial_extent": metadata.coverage,
@@ -1497,7 +1493,7 @@ def convert_metadata_for_nuxeo(user_info, metadata, doc_type, parent_id=None):
     "dc:title": metadata.title,
     "dc:subjects": [],
     "nxtag:tags": [{"label": tag,"username": metadata.custodian} for tag in metadata.tags],
-  }
+    }
   if parent_id is not None:
     properties['arms:relation_is_part_of'] = [parent_id]
   data['properties'] = properties
@@ -1506,7 +1502,7 @@ def convert_metadata_for_nuxeo(user_info, metadata, doc_type, parent_id=None):
 def create_nuxeo_record(config, user_info, metadata, env, parent_id=None):
   nuxeo_url, nuxeo_username, nuxeo_password = get_nuxeo_creds(config, env)
   headers = {'Content-Type': 'application/json'}
-  data = convert_metadata_for_nuxeo(user_info, metadata, 'Document', parent_id=parent_id)
+  data = convert_metadata_for_nuxeo(user_info, metadata, 'Other', parent_id=parent_id)
   try:
     r = requests.post(nuxeo_url + '/nuxeo/api/v1/path/EPA Organization/ThirdParty', json=data, headers=headers, auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))
     if r.status_code == 201:
@@ -1517,6 +1513,31 @@ def create_nuxeo_record(config, user_info, metadata, env, parent_id=None):
       return False, "Record creation request returned " + str(r.status_code) + ' response.', None
   except:
     return False, "Failed to complete record creation request.", None
+
+def attach_nuxeo_blob(config, uid, content_blob: NuxeoBlob, attachment_blobs: list[NuxeoBlob], env):
+  nuxeo_url, nuxeo_username, nuxeo_password = get_nuxeo_creds(config, env)
+  headers = {'Content-Type': 'application/json'}
+  body = {
+    'input': uid,
+    'params': {
+      'blobs': {
+        'content': content_blob.to_dict()
+      }
+    }
+  }
+  if len(attachment_blobs) > 0:
+    body['params']['blobs']['arms:attachment_file'] = [x.to_dict() for x in attachment_blobs]
+
+  try:
+    r = requests.post(nuxeo_url + '/nuxeo/site/automation/LinkS3Blobs', json=body, headers=headers, auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))
+    if r.status_code == 200:
+      return True, None
+    else:
+      app.logger.error(r.text)
+      return False, "Link blobs request returned " + str(r.status_code) + ' response.'
+  except:
+    app.logger.error(r.text)
+    return False, "Failed to link S3 blobs."
 
 def create_nuxeo_email_record(config, user_info, metadata, env):
   nuxeo_url, nuxeo_username, nuxeo_password = get_nuxeo_creds(config, env)
@@ -1535,24 +1556,29 @@ def create_nuxeo_email_record(config, user_info, metadata, env):
     return False, "Failed to complete record creation request.", None
 
 def submit_nuxeo_file(config, file, user_info, metadata, env):
-  # Step 1: Upload file to S3
-  batch_id = create_nuxeo_batch(config, env)
 
-  if batch_id is None:
-    return False, "Failed to create batch ID.", None
-
-  # Step 2: Upload file
-  success = upload_nuxeo_file(config, file, metadata.title, batch_id, env)
+  # Step 1: Upload files
+  file_md5 = hashlib.md5(file).hexdigest()
+  success = upload_nuxeo_file(config, file, file_md5)
 
   if not success:
-    return False, "Failed to upload file.", None
+    return False, "Failed to upload file."
   
-  # Step 3: Create Nuxeo record
-  success, error, _ = create_nuxeo_record(config, batch_id, user_info, metadata, env)
+  # Step 2: Create Nuxeo record
+  success, error, uid = create_nuxeo_record(config, user_info, metadata, env)
   if not success:
-    return False, error, None
+    return False, error
   
-  return True, None, batch_id
+  # Step 3: Attach blob
+  mimetype = mimetypes.guess_type(metadata.title)[0]
+  if mimetype is None:
+    mimetype = 'application/octet-stream'
+  content_blob = NuxeoBlob(filename=metadata.title, mimetype=mimetype, digest=file_md5, length=len(file))
+  success, error = attach_nuxeo_blob(config, uid, content_blob, [], env)
+  if not success:
+    return False, error
+
+  return True, None
 
 def upload_nuxeo_email(config, req, source, user_info):
 
@@ -1561,35 +1587,39 @@ def upload_nuxeo_email(config, req, source, user_info):
   if content is None:
     return Response(StatusResponse(status='Failed', reason='Unable to retrieve email.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
 
-  # Step 1: Create Nuxeo Batch
-  batch_id = create_nuxeo_batch(config, req.nuxeo_env)
-
-  if batch_id is None:
-    return Response(StatusResponse(status='Failed', reason='Unable to create batch.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-  
-  # Step 2: Upload all files - PDF rendition, EML, and attachments
+  # Step 1: Upload all files - PDF rendition, EML, and attachments
   success, pdf_render, attachments = eml_to_pdf(content)
 
   # Upload PDF
   pdf_bytes = pdf_render.getvalue()
-  success = upload_nuxeo_file(config, pdf_bytes, req.metadata.title + ".pdf", batch_id, req.nuxeo_env, index=0)
+  pdf_md5 = hashlib.md5(pdf_bytes).hexdigest()
+  success = upload_nuxeo_file(config, pdf_bytes, pdf_md5)
 
   if not success:
     return Response(StatusResponse(status='Failed', reason='Unable to upload PDF rendition.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
   
-  # Upload original 
-  success = upload_nuxeo_file(config, content, req.metadata.title + ".eml", batch_id, req.nuxeo_env, index=1)
+  # Upload original
+  content_md5 = hashlib.md5(content).hexdigest() 
+  success = upload_nuxeo_file(config, content, content_md5)
   if not success:
     return Response(StatusResponse(status='Failed', reason='Unable to upload EML.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
         
   # Step 3: Create Nuxeo record
   
   # Create record for PDF rendition with EML as Nuxeo attachment
-  success, error, uid = create_nuxeo_email_record(config, batch_id, user_info, req.metadata, req.nuxeo_env)
+  success, error, uid = create_nuxeo_email_record(config, user_info, req.metadata, req.nuxeo_env)
 
   if not success:
     app.logger.error(error)
     return Response(StatusResponse(status='Failed', reason='Unable to create email record.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+
+  # Step 4: Attach blobs
+  content_blob = NuxeoBlob(filename=metadata.title + '.pdf', mimetype='application/pdf', digest=pdf_md5, length=len(pdf_bytes))
+  attachment_blob = NuxeoBlob(filename=metadata.title + '.eml', mimetype='application/octet-stream', digest=content_md5, length=len(content))
+  success, error = attach_nuxeo_blob(config, uid, content_blob, [attachment_blob], req.nuxeo_env)
+  if not success:
+    app.logger.error(error)
+    return Response(StatusResponse(status='Failed', reason='Unable to link email S3 blobs.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
 
   # Create records for each attachment listing the first record as a parent
   schedule_map = {x.name:x.schedule for x in req.attachment_schedules}
@@ -1597,12 +1627,11 @@ def upload_nuxeo_email(config, req, source, user_info):
   attachment_uids = []
 
   for attachment in attachments:
-    # Get batch id
-    attachment_batch_id = create_nuxeo_batch(config, req.nuxeo_env)
-
     # Upload attachments
+    attachment_name = attachment[0]
     attachment_content = base64.b64decode(attachment[1].encode('ascii'))
-    success = upload_nuxeo_file(config, attachment_content, attachment[0], attachment_batch_id, req.nuxeo_env, index=0)
+    attachment_md5 = hashlib.md5(attachment_content).hexdigest() 
+    success = upload_nuxeo_file(config, attachment_content, attachment_md5)
     if not success:
       return Response(StatusResponse(status='Failed', reason='Unable to upload attachment ' + attachment[0] + '.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
 
@@ -1623,21 +1652,31 @@ def upload_nuxeo_email(config, req, source, user_info):
       tags = req.metadata.tags
     )
 
-    success, error, attachment_uid = create_nuxeo_record(config, attachment_batch_id, user_info, metadata, req.nuxeo_env, parent_id=uid, file_id=0)
+    success, error, attachment_uid = create_nuxeo_record(config, user_info, metadata, req.nuxeo_env, parent_id=uid)
     if not success:
-      app.logger.error('Failed to create atttachment record for attachment ' + str(attachment[0] + '. ' + error))
+      app.logger.error('Failed to create attachment record for attachment ' + str(attachment[0] + '. ' + error))
+      return Response(StatusResponse(status='Failed', reason='Unable to create attachment record.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+    
+    # Link attachment blob
+    mimetype_guess = mimetypes.guess_type(attachment_name)[0]
+    if mimetype_guess is None:
+      mimetype_guess = 'application/octet-stream'
+    attachment_blob = NuxeoBlob(filename=attachment_name, mimetype=mimetype_guess, digest=attachment_md5, length=len(attachment_content))
+    success, error = attach_nuxeo_blob(config, uid, attachment_blob, [], req.nuxeo_env)
+    if not success:
+      app.logger.error('Failed to link attachment blob for attachment ' + str(attachment[0] + '. ' + error))
       return Response(StatusResponse(status='Failed', reason='Unable to create attachment record.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
     
     attachment_uids.append(attachment_uid)
 
-  # Step 4: Update parent record to contain attachment links as children
+  # Step 5: Update parent record to contain attachment links as children
   if len(attachment_uids) > 0:
     properties = {'arms:relation_has_part': attachment_uids}
     success = update_nuxeo_metadata(uid, properties, config, req.nuxeo_env)
     if not success:
       return Response(StatusResponse(status='Failed', reason='Failed to update document relationships.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
 
-  # Step 5: Store submission analytics
+  # Step 6: Store submission analytics
   success, response = add_submission_analytics(req.user_activity, req.metadata.record_schedule, user_info.lan_id, None, uid)
   if not success:
     return response

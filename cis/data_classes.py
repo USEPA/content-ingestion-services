@@ -343,6 +343,14 @@ class SemsSite:
 
 @dataclass_json
 @dataclass 
+class NuxeoBlob:
+    filename: str
+    mimetype: str
+    digest: str
+    length: int
+
+@dataclass_json
+@dataclass 
 class GetSitesResponse:
     sites: list[SemsSite]
 
