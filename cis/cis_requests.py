@@ -1534,6 +1534,7 @@ def attach_nuxeo_blob(config, uid, content_blob: NuxeoBlob, attachment_blobs: li
       return True, None
     else:
       app.logger.error(r.text)
+      app.logger.error('Request body that failed: ' + json.dumps(body))
       return False, "Link blobs request returned " + str(r.status_code) + ' response.'
   except:
     app.logger.error(r.text)
@@ -1556,10 +1557,11 @@ def create_nuxeo_email_record(config, user_info, metadata, env):
     return False, "Failed to complete record creation request.", None
 
 def submit_nuxeo_file(config, file, user_info, metadata, env):
+  file_bytes = file.read()
 
   # Step 1: Upload files
-  file_md5 = hashlib.md5(file).hexdigest()
-  success = upload_nuxeo_file(config, file, file_md5)
+  file_md5 = hashlib.md5(file_bytes).hexdigest()
+  success = upload_nuxeo_file(config, file_bytes, file_md5)
 
   if not success:
     return False, "Failed to upload file."
@@ -1614,8 +1616,8 @@ def upload_nuxeo_email(config, req, source, user_info):
     return Response(StatusResponse(status='Failed', reason='Unable to create email record.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
 
   # Step 4: Attach blobs
-  content_blob = NuxeoBlob(filename=metadata.title + '.pdf', mimetype='application/pdf', digest=pdf_md5, length=len(pdf_bytes))
-  attachment_blob = NuxeoBlob(filename=metadata.title + '.eml', mimetype='application/octet-stream', digest=content_md5, length=len(content))
+  content_blob = NuxeoBlob(filename=req.metadata.title + '.pdf', mimetype='application/pdf', digest=pdf_md5, length=len(pdf_bytes))
+  attachment_blob = NuxeoBlob(filename=req.metadata.title + '.eml', mimetype='application/octet-stream', digest=content_md5, length=len(content))
   success, error = attach_nuxeo_blob(config, uid, content_blob, [attachment_blob], req.nuxeo_env)
   if not success:
     app.logger.error(error)
