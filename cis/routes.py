@@ -228,7 +228,9 @@ def upload_file_v2():
     if file is None:
         return Response(StatusResponse(status='Failed', reason="No file found.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype="application/json")
     # This is where we need to upload record to ARMS
-    success, error = submit_nuxeo_file(c, file, user_info, metadata, env)
+    in_memory_file = BytesIO()
+    file.save(in_memory_file)
+    success, error = submit_nuxeo_file(c, in_memory_file, user_info, metadata, env)
     if not success:
         return Response(StatusResponse(status='Failed', reason=error, request_id=g.get('request_id', None)).to_json(), status=500, mimetype="application/json")
 

@@ -1557,11 +1557,9 @@ def create_nuxeo_email_record(config, user_info, metadata, env):
     return False, "Failed to complete record creation request.", None
 
 def submit_nuxeo_file(config, file, user_info, metadata, env):
-  file_bytes = file.read()
-
   # Step 1: Upload files
-  file_md5 = hashlib.md5(file_bytes).hexdigest()
-  success = upload_nuxeo_file(config, file_bytes, file_md5)
+  file_md5 = hashlib.md5(file).hexdigest()
+  success = upload_nuxeo_file(config, file, file_md5)
 
   if not success:
     return False, "Failed to upload file."
