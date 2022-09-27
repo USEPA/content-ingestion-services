@@ -1353,7 +1353,7 @@ def upload_sharepoint_record_v2(req: SharepointUploadRequestV2, access_token, us
     app.logger.error('Content request failed: ' + r.text)
     return Response(StatusResponse(status='Failed', reason='Content request failed with status ' + str(content_req.status_code), request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
   content = content_req.content
-  success, error = submit_nuxeo_file(c, content, user_info, req.metadata, req.nuxeo_env)
+  success, error, uid = submit_nuxeo_file(c, content, user_info, req.metadata, req.nuxeo_env)
   if not success:
     return Response(StatusResponse(status='Failed', reason='Nuxeo upload for sharepoint file failed with error ' + error, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
 
@@ -1367,7 +1367,7 @@ def upload_sharepoint_record_v2(req: SharepointUploadRequestV2, access_token, us
     return response 
   
   ## Add submission analytics to table
-  success, response = add_submission_analytics(req.user_activity, req.metadata.record_schedule, user_info.lan_id, batch_id, None)
+  success, response = add_submission_analytics(req.user_activity, req.metadata.record_schedule, user_info.lan_id, None, uid)
   if not success:
     return response
   else:
@@ -1567,7 +1567,7 @@ def submit_nuxeo_file(config, file, user_info, metadata, env):
   # Step 2: Create Nuxeo record
   success, error, uid = create_nuxeo_record(config, user_info, metadata, env)
   if not success:
-    return False, error
+    return False, error, None
   
   # Step 3: Attach blob
   mimetype = mimetypes.guess_type(metadata.title)[0]
@@ -1576,9 +1576,9 @@ def submit_nuxeo_file(config, file, user_info, metadata, env):
   content_blob = NuxeoBlob(filename=metadata.title, mimetype=mimetype, digest=file_md5, length=len(file))
   success, error = attach_nuxeo_blob(config, uid, content_blob, [], env)
   if not success:
-    return False, error
+    return False, error, None
 
-  return True, None
+  return True, None, uid
 
 def upload_nuxeo_email(config, req, source, user_info):
 
