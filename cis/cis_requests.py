@@ -1449,7 +1449,7 @@ def create_nuxeo_batch(config, env):
 def upload_nuxeo_file(config, file, file_md5):
   client = boto3.client('s3')
   try:
-    client.put_object(Body=file, Bucket=config.arms_upload_bucket, Key=config.arms_upload_prefix + '/' + file_md5)
+    client.put_object(Body=file, Bucket=config.arms_upload_bucket, Key=config.arms_upload_prefix + '/' + file_md5, ACL='bucket-owner-full-control')
     return True
   except:
     return False
