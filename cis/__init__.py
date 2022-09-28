@@ -75,13 +75,14 @@ def create_app(env, region_name, model_path, capstone_path, label_mapping_path, 
         if bucket_name:
             c.bucket_name = bucket_name
         
-        app.config['SQLALCHEMY_DATABASE_URI'] = c.database_uri
+        
         app.app_context().push()
         model = HuggingFaceModel(model_path, label_mapping_path, office_info_mapping_path)
         app.logger.info('Model loaded.')
         swagger_yml['host'] = c.cis_server
         blueprint = get_swaggerui_blueprint(SWAGGER_URL, SWAGGER_PATH, config={'spec': swagger_yml})
         app.register_blueprint(blueprint)
+    app.config['SQLALCHEMY_DATABASE_URI'] = c.database_uri
     db.init_app(app)
     migrate.init_app(app, db)
     app.logger.info('Database initialized.')
