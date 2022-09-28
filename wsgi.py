@@ -19,6 +19,10 @@ if __name__ == "__main__":
                     help='Path to mapping between office acronym and office description.')
     parser.add_argument('--config_path', default='dev_config.json',
                     help='Path to config file with environment dependent variables.')
+    parser.add_argument('--patt_host', default=None,
+                    help='Host for PATT service.')
+    parser.add_argument('--patt_api_key', default=None,
+                    help='API key for PATT service.')
     parser.add_argument('--tika_server', default=None,
                     help='Host for tika service.')
     parser.add_argument('--cis_server', default=None,
