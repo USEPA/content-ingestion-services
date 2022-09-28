@@ -328,9 +328,10 @@ def eml_to_pdf(eml):
             final_text += "<strong>" + i +": </strong>" + msg[i].replace("<", "&#60;").replace(">", "&#62;") + "</br>"
 
     final_text += "<strong>Subject: </strong>" + msg['subject'] + "</br>" + "<strong>Date: </strong>" + msg['date'] + "</br></br></br>"
-
+    # Only keep attachments with names
+    attachments = list(filter(lambda y: y[0] is not None, attachments))
     if len(attachments) > 0:
-        final_text += "<strong> Attachments: </strong>" + ', '.join([x[0] for x in attachments]) + "</br>"
+      final_text += "<strong> Attachments: </strong>" + ', '.join([x[0] for x in attachments]) + "</br>"
 
     final_text += html
 
