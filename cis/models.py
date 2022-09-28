@@ -21,7 +21,7 @@ class RecordSubmission(db.Model):
     __tablename__ = 'record_submission'
     id = db.Column(db.Integer, primary_key=True)
     arms_documentum_id = db.Column(db.String(30))
-    arms_nuxeo_id = db.Column(db.String(30))
+    arms_nuxeo_id = db.Column(db.String(100))
     predicted_schedule_one = db.Column(db.String(30))
     predicted_schedule_one_probability = db.Column(db.Float)
     predicted_schedule_two = db.Column(db.String(30))
