@@ -1679,7 +1679,7 @@ def upload_nuxeo_email(config, req, source, user_info):
 
   # Step 6: Mark record saved in Outlook
   save_req = MarkSavedRequest(email_id = req.email_id, sensitivity=req.metadata.sensitivity)
-  save_resp = mark_saved(save_req, g.access_token, config)
+  save_resp = mark_saved(save_req, g.access_token, source, config)
   if save_resp.status != '200 OK':
     return save_resp
   
