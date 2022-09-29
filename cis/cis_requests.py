@@ -440,7 +440,7 @@ def extract_attachments_from_response(ezemail_response):
     return [EmailAttachment(name=attachment['name'], attachment_id=attachment['attachment_id']) for attachment in ezemail_response['attachments']]
 
 #combined untag and mark_saved
-def mark_saved(req: MarkSavedRequest, access_token, emailsource, config):
+def mark_saved(req: MarkSavedRequestGraph, access_token, emailsource, config):
   if emailsource.lower() == 'archive':
     headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}
     body = {"emailid": req.email_id}
@@ -1678,7 +1678,7 @@ def upload_nuxeo_email(config, req, source, user_info):
       return Response(StatusResponse(status='Failed', reason='Failed to update document relationships.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
 
   # Step 6: Mark record saved in Outlook
-  save_req = MarkSavedRequest(email_id = req.email_id, sensitivity=req.metadata.sensitivity)
+  save_req = MarkSavedRequestGraph(email_id = req.email_id, sensitivity=req.metadata.sensitivity, mailbox=req.mailbox)
   save_resp = mark_saved(save_req, g.access_token, source, config)
   if save_resp.status != '200 OK':
     return save_resp
