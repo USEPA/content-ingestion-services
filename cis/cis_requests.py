@@ -1663,7 +1663,7 @@ def upload_nuxeo_email(config, req, source, user_info):
     if mimetype_guess is None:
       mimetype_guess = 'application/octet-stream'
     attachment_blob = NuxeoBlob(filename=attachment_name, mimetype=mimetype_guess, digest=attachment_md5, length=len(attachment_content))
-    success, error = attach_nuxeo_blob(config, uid, attachment_blob, [], req.nuxeo_env)
+    success, error = attach_nuxeo_blob(config, attachment_uid, attachment_blob, [], req.nuxeo_env)
     if not success:
       app.logger.error('Failed to link attachment blob for attachment ' + str(attachment[0] + '. ' + error))
       return Response(StatusResponse(status='Failed', reason='Unable to create attachment record.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
