@@ -1677,6 +1677,12 @@ def upload_nuxeo_email(config, req, source, user_info):
     if not success:
       return Response(StatusResponse(status='Failed', reason='Failed to update document relationships.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
 
+  # Step 6: Mark record saved in Outlook
+  save_req = MarkSavedRequest(email_id = req.email_id, sensitivity=req.metadata.sensitivity)
+  save_resp = mark_saved(save_req, g.access_token, config)
+  if save_resp.status != '200 OK':
+    return save_resp
+  
   # Step 6: Store submission analytics
   success, response = add_submission_analytics(req.user_activity, req.metadata.record_schedule, user_info.lan_id, None, uid)
   if not success:
