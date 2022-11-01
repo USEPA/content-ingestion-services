@@ -735,17 +735,17 @@ def update_preferred_system():
         db.session.add(user)
     else:
         user = user[0]
-        settings = user.user_settings
-        if len(settings) == 0:
-            user.user_settings.append(AppSettings(system=req.preferred_system, default_edit_mode='basic'))
-        else:
-            current_settings = settings[0]
-            user.user_settings = [AppSettings(system=req.preferred_system, default_edit_mode=current_settings.default_edit_mode)]
-        try:
-            db.session.commit()
-            return Response(StatusResponse(status="OK", reason="Preferred system updated.", request_id=g.get('request_id', None)).to_json(), status=200, mimetype="application/json")
-        except:
-            return Response(StatusResponse(status='Failed', reason="Error committing updates.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype="application/json")
+    settings = user.user_settings
+    if len(settings) == 0:
+        user.user_settings.append(AppSettings(system=req.preferred_system, default_edit_mode='basic'))
+    else:
+        current_settings = settings[0]
+        user.user_settings = [AppSettings(system=req.preferred_system, default_edit_mode=current_settings.default_edit_mode)]
+    try:
+        db.session.commit()
+        return Response(StatusResponse(status="OK", reason="Preferred system updated.", request_id=g.get('request_id', None)).to_json(), status=200, mimetype="application/json")
+    except:
+        return Response(StatusResponse(status='Failed', reason="Error committing updates.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype="application/json")
 
 @app.route('/update_default_edit_mode', methods=['POST'])
 def update_default_edit_mode():
