@@ -543,6 +543,15 @@ def user_info():
     success, message, user_info = get_user_info(c, g.token_data, g.access_token)
     if not success:
         return Response(StatusResponse(status='Failed', reason=message, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+    user = User.query.filter_by(lan_id = user_info.lan_id).all()
+    if len(user) == 0:
+        user = User(lan_id = user_info.lan_id)
+        db.session.add(user)
+        try:
+            db.session.commit()
+            return Response(StatusResponse(status="OK", reason="Preferred system updated.", request_id=g.get('request_id', None)).to_json(), status=200, mimetype="application/json")
+        except:
+            return Response(StatusResponse(status='Failed', reason="Error committing updates.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype="application/json")
     return Response(user_info.to_json(), status=200, mimetype='application/json')
 
 @app.route('/my_records_download', methods=['GET'])
