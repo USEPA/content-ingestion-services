@@ -1118,6 +1118,7 @@ def get_sems_sites(req: SemsSiteRequest, config):
   except:
     return Response(StatusResponse(status='Failed', reason="Request to SEMS server failed.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
   if sites.status_code == 200:
+    app.logger.info(sites.url)
     response_object = SemsSiteResponse.from_dict(sites.json())
     return Response(response_object.to_json(), status=200, mimetype='application/json')
   else:

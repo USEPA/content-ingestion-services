@@ -335,11 +335,11 @@ class SemsSite:
     id: str
     region: str
     epaId: str
-    siteName: str
-    operableUnits: list[SemsOperableUnit]
-    ssIds: list[str]
-    programId: str
+    siteName: str 
     programType: SemsProgramType
+    operableUnits: Optional[list[SemsOperableUnit]] = field(default_factory=list)
+    ssIds: Optional[list[str]] = field(default_factory=list)
+    programId: Optional[str] = None
 
 @dataclass_json
 @dataclass 
@@ -397,14 +397,6 @@ class GetCloseDate:
 @dataclass 
 class DispositionDate:
     disposition_date: str
-    
-@dataclass_json
-@dataclass 
-class BadgeInfo:
-    id: str
-    name: str
-    description: str
-    image_url: str
 
 @dataclass_json
 @dataclass 
