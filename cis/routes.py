@@ -549,9 +549,8 @@ def user_info():
         db.session.add(user)
         try:
             db.session.commit()
-            return Response(StatusResponse(status="OK", reason="Preferred system updated.", request_id=g.get('request_id', None)).to_json(), status=200, mimetype="application/json")
         except:
-            return Response(StatusResponse(status='Failed', reason="Error committing updates.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype="application/json")
+            return Response(StatusResponse(status='Failed', reason="Error creating new user.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype="application/json")
     return Response(user_info.to_json(), status=200, mimetype='application/json')
 
 @app.route('/my_records_download', methods=['GET'])
