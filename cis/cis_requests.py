@@ -1531,7 +1531,7 @@ def attach_nuxeo_blob(config, uid, content_blob: NuxeoBlob, attachment_blobs: li
     body['params']['blobs']['arms:attachment_file'] = [x.to_dict() for x in attachment_blobs]
 
   try:
-    r = requests.post(nuxeo_url + '/nuxeo/site/automation/LinkS3Blobs', json=body, headers=headers, auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))
+    r = requests.post(nuxeo_url + '/nuxeo/site/automation/ARMSLinkS3Blobs', json=body, headers=headers, auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))
     if r.status_code == 200:
       return True, None
     else:
