@@ -552,6 +552,14 @@ class UploadEmailRequestV2:
 
 @dataclass_json
 @dataclass 
+class UploadEmailResponse:
+    email_id: str
+    email_unid: str
+    nuxeo_id: str
+    attachment_ids: list[str]
+    
+@dataclass_json
+@dataclass 
 class MarkSavedRequest:
     sensitivity: str 
     email_id: str
@@ -642,6 +650,18 @@ class SharepointUploadRequestV2:
     metadata: ECMSMetadata
     user_activity: SubmissionAnalyticsMetadata
     nuxeo_env: Optional[str] = 'dev'
+
+@dataclass_json
+@dataclass 
+class SharepointUploadResponse:
+    drive_item_id: str
+    nuxeo_id: str
+
+@dataclass_json
+@dataclass 
+class FileUploadResponse:
+    file_path: str
+    nuxeo_id: str
 
 @dataclass_json
 @dataclass 

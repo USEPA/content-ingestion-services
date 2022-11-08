@@ -1374,7 +1374,8 @@ def upload_sharepoint_record_v2(req: SharepointUploadRequestV2, access_token, us
     return response
   else:
     log_upload_activity(user_info, req.user_activity, req.metadata, c)
-    return Response(StatusResponse(status='OK', reason='File successfully uploaded.', request_id=g.get('request_id', None)).to_json(), status=200, mimetype='application/json')
+    upload_resp = SharepointUploadResponse(drive_item_id=req.drive_item_id, nuxeo_id=uid)
+    return Response(upload_resp.to_json(), status=200, mimetype='application/json')
 
 def batch(iterable, n=1):
     l = len(iterable)
@@ -1481,9 +1482,11 @@ def convert_metadata_for_nuxeo(user_info, metadata, doc_type, parent_id=None):
     "arms:epa_contact": user_info.employee_number,
     ## TODO: What are valid record types?
     ## TODO: What are valid doc types?
+    # TODO: Need to verify this is a valid way to get org code
+    "arms:aa_ship": user_info.parent_org_code[0] + '0000000',
     "arms:document_type": doc_type,
     "arms:record_schedule": schedule,
-    "arms:folder_path": metadata.file_path,
+    "arms:folder_path": [metadata.file_path],
     "arms:application_id": "ARMS_UPLOADER",
     "arms:program_office": [user_info.manager_parent_org_code],
     "arms:sensitivity": sensitivity,
@@ -1688,8 +1691,10 @@ def upload_nuxeo_email(config, req, source, user_info):
   success, response = add_submission_analytics(req.user_activity, req.metadata.record_schedule, user_info.lan_id, None, uid)
   if not success:
     return response
+  
+  upload_resp = UploadEmailResponse(email_id=req.email_id, email_unid=req.email_unid, nuxeo_id=uid, attachment_ids=attachment_uids)
 
-  return Response(StatusResponse(status='OK', reason='Email uploaded successfully.', request_id=g.get('request_id', None)).to_json(), status=200, mimetype='application/json')
+  return Response(upload_resp.to_json(), status=200, mimetype='application/json')
 
 def add_submission_analytics(data: SubmissionAnalyticsMetadata, selected_schedule, lan_id, documentum_id, nuxeo_id):
   # Handle nulls for documentum and nuxeo ids

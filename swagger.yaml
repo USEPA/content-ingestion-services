@@ -317,7 +317,7 @@ paths:
         200:
           description: "File was successfully uploaded."
           schema:
-            $ref: "#/definitions/StatusResponse"
+            $ref: "#/definitions/FileUploadResponse"
         400:
           description: "Invalid request - description in response."
           schema:
@@ -519,7 +519,7 @@ paths:
         200:
           description: "Email successfully uploaded."
           schema:
-            $ref: "#/definitions/StatusResponse"
+            $ref: "#/definitions/UploadEmailResponse"
         400:
           description: "Invalid request - description in response."
           schema:
@@ -1362,7 +1362,7 @@ paths:
       responses:
         200:
           schema:
-            $ref: "#/definitions/StatusResponse"
+            $ref: "#/definitions/SharepointUploadResponse"
           description: "Record successfully uploaded."
         400:
           description: "Invalid request - description in response."
@@ -2411,4 +2411,31 @@ definitions:
     type: object
     properties:
       disposition_date:
+        type: string
+  UploadEmailResponse:
+    type: object
+    properties:
+      email_id: 
+        type: string
+      email_unid: 
+        type: string
+      nuxeo_id: 
+        type: string
+      attachment_ids:
+        type: array
+        items:
+          type: string
+  FileUploadResponse:
+    type: object
+    properties:
+      file_path: 
+        type: string
+      nuxeo_id:
+        type: string
+  SharepointUploadResponse:
+    type: object
+    properties:
+      drive_item_id: 
+        type: string
+      nuxeo_id:
         type: string
