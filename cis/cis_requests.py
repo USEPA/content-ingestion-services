@@ -1471,6 +1471,55 @@ def update_nuxeo_metadata(uid, properties, config, env):
     app.logger.error('Nuxeo metadata update failed.')
     return False
 
+def get_nuxeo_metadata(uid, config, env, property_string="*"):
+  nuxeo_url, nuxeo_username, nuxeo_password = get_nuxeo_creds(config, env)
+  headers = {'Content-Type':'application/json', 'X-NXproperties':'*'}
+  try:
+    r = requests.get(nuxeo_url + f'/nuxeo/api/v1/search/lang/NXQL/execute?query=select {property_string} from epa_record where ecm:uuid="{uid}"', headers=headers, auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))
+    properties = r.json()['entries'][0]['properties']
+    return True, properties
+  except:
+    return False, None
+
+def add_relationship(req: AddParentChildRequest, user_info, config, env):
+  # Validate parent and child ids all belong to the sender
+  metadata_dict = {}
+  success, parent_metadata = get_nuxeo_metadata(req.parent_id, config, env)
+  if not success:
+    return Response(StatusResponse(status='Failed', reason='Failed to get parent metadata for id ' + req.parent_id, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+  metadata_dict[req.parent_id] = parent_metadata
+  
+  record_custodian = parent_metadata.get('arms:epa_contact')
+  if record_custodian != user_info.employee_number:
+    return Response(StatusResponse(status='Failed', reason=f'User {user_info.lan_id} is not authorized to edit {req.parent_id}', request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
+
+  for child_id in req.child_ids:
+    success, child_metadata = get_nuxeo_metadata(child_id, config, env)
+    if not success:
+      return Response(StatusResponse(status='Failed', reason='Failed to get child metadata for id ' + child_id, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+    metadata_dict[child_id] = child_metadata
+    record_custodian = parent_metadata.get('arms:epa_contact')
+    if record_custodian != user_info.employee_number:
+      return Response(StatusResponse(status='Failed', reason=f'User {user_info.lan_id} is not authorized to edit {child_id}', request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
+    
+  # Update parent properties
+  existing_parts = metadata_dict[req.parent_id].get('arms:relation_has_part', [])
+  updated_parts = list(set(existing_parts + req.child_ids))
+  updated_properties = {'arms:relation_has_part': updated_parts}
+  success = update_nuxeo_metadata(req.parent_id, updated_properties, config, env)
+  if not success:
+    return Response(StatusResponse(status='Failed', reason='Failed to update metadata for uid ' + req.parent_id, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+  
+  # Update child properties
+  for child_id in req.child_ids:
+    existing_parts = metadata_dict[child_id].get('arms:relation_is_part_of', [])
+    updated_parts = list(set(existing_parts + [req.parent_id]))
+    updated_properties = {'arms:relation_is_part_of': updated_parts}
+    success = update_nuxeo_metadata(child_id, updated_properties, config, env)
+    if not success:
+      return Response(StatusResponse(status='Failed', reason=f'Failed to update metadata for uid {child_id}', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+
+  return Response(StatusResponse(status='OK', reason='Updated relationships.', request_id=g.get('request_id', None)).to_json(), status=200, mimetype='application/json')
 
 def convert_metadata_for_nuxeo(user_info, metadata, doc_type, parent_id=None):
   data = { "entity-type": "document", "name": metadata.title, "type": "epa_record"}
@@ -1482,7 +1531,6 @@ def convert_metadata_for_nuxeo(user_info, metadata, doc_type, parent_id=None):
     "arms:epa_contact": user_info.employee_number,
     ## TODO: What are valid record types?
     ## TODO: What are valid doc types?
-    # TODO: Need to verify this is a valid way to get org code
     "arms:aa_ship": user_info.parent_org_code[0] + '0000000',
     "arms:document_type": doc_type,
     "arms:record_schedule": schedule,

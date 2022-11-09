@@ -557,7 +557,14 @@ class UploadEmailResponse:
     email_unid: str
     nuxeo_id: str
     attachment_ids: list[str]
-    
+
+@dataclass_json
+@dataclass 
+class AddParentChildRequest:
+    parent_id: str
+    child_ids: list[str]
+    nuxeo_env: Optional[str] = 'dev'
+
 @dataclass_json
 @dataclass 
 class MarkSavedRequest:
