@@ -1741,6 +1741,41 @@ paths:
           description: "Server side error - description in response."
           schema:
             $ref: "#/definitions/StatusResponse"
+  /add_parent_child_relationship:
+    post:
+      tags:
+      - "my_records"
+      summary: "Create parent/child relationships within Nuxeo."
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: "data"
+          description: "Parent and child ids to link."
+          schema:
+            $ref: "#/definitions/AddParentChildRequest"
+        - in: header
+          name: "Authorization"
+          type: string
+          format: "jwt"
+          required: true
+      responses:
+        200:
+          description: "Relationships were added successfully."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        400:
+          description: "Invalid request - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        401:
+          description: "Unauthorized - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
+        500:
+          description: "Server side error - description in response."
+          schema:
+            $ref: "#/definitions/StatusResponse"
 
 definitions:
   Recommendation:
@@ -2439,3 +2474,15 @@ definitions:
         type: string
       nuxeo_id:
         type: string
+  AddParentChildRequest:
+    type: object
+    properties:
+      parent_id: 
+        type: string
+      child_ids:
+        type: array
+        items:
+          type: string
+      nuxeo_env:
+        type: string
+

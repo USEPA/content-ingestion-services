@@ -775,3 +775,15 @@ def update_default_edit_mode():
         return Response(StatusResponse(status="OK", reason="Default edit mode updated.", request_id=g.get('request_id', None)).to_json(), status=200, mimetype="application/json")
     except:
         return Response(StatusResponse(status='Failed', reason="Error committing updates.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype="application/json")
+
+@app.route('/add_parent_child_relationship', methods=['POST'])
+def add_parent_child_relationship():
+    req = request.json
+    try:
+        req = AddParentChildRequest.from_dict(req)
+    except:
+        Response(StatusResponse(status='Failed', reason="Request is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
+    success, message, user_info = get_user_info(c, g.token_data)
+    if not success:
+        return Response(StatusResponse(status='Failed', reason=message, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+    return add_relationship(req, user_info, c, req.nuxeo_env)
