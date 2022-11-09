@@ -2066,7 +2066,9 @@ definitions:
       creation_date: 
         type: string
       close_date: 
-        type: string  
+        type: string 
+      disposition_date:
+        type: string 
       sensitivity:
         type: string
         enum: ["shared", "private"]
