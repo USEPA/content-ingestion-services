@@ -1542,7 +1542,8 @@ def convert_metadata_for_nuxeo(user_info, metadata, doc_type, parent_id=None):
     "arms:spatial_extent": metadata.coverage,
     "arms:close_date": metadata.close_date,
     "dc:description": metadata.description,
-    "dc:creator": metadata.creator,
+    # "dc:creator": metadata.creator, this will be moved to epa_contact
+    # and arms:epa_workforce_id will become metadata.creator
     "dc:title": metadata.title,
     "dc:subjects": [],
     "nxtag:tags": [{"label": tag,"username": metadata.custodian} for tag in metadata.tags],
