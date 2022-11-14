@@ -135,6 +135,7 @@ class ECMSMetadata:
     coverage: Optional[list[str]] = None
     relationships: Optional[list[str]] = None
     tags: Optional[list[str]] = None
+    record_id: Optional[str] = None
 
 ## Example metadata:
 ## {"file_path":"", "custodian":"", "title":"", "record_schedule":{"function_number":"401","schedule_number":"1006","disposition_number":"b"}, "sensitivity":"shared"}
@@ -527,7 +528,7 @@ class DescribeEmailResponse:
 @dataclass_json
 @dataclass 
 class UploadEmailRequest:
-    metadata: ECMSMetadata 
+    metadata: ECMSMetadata
     email_id: str
     email_unid: str
     user_activity: SubmissionAnalyticsMetadata
@@ -554,11 +555,9 @@ class UploadEmailRequestV2:
 
 @dataclass_json
 @dataclass 
-class UploadEmailResponse:
-    email_id: str
-    email_unid: str
-    nuxeo_id: str
-    attachment_ids: list[str]
+class UploadResponse:
+    record_id: str
+    uid: str
 
 @dataclass_json
 @dataclass 
@@ -659,18 +658,6 @@ class SharepointUploadRequestV2:
     metadata: ECMSMetadata
     user_activity: SubmissionAnalyticsMetadata
     nuxeo_env: Optional[str] = 'dev'
-
-@dataclass_json
-@dataclass 
-class SharepointUploadResponse:
-    drive_item_id: str
-    nuxeo_id: str
-
-@dataclass_json
-@dataclass 
-class FileUploadResponse:
-    file_path: str
-    nuxeo_id: str
 
 @dataclass_json
 @dataclass 

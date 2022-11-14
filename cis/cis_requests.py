@@ -1376,7 +1376,7 @@ def upload_sharepoint_record_v2(req: SharepointUploadRequestV2, access_token, us
     return response
   else:
     log_upload_activity(user_info, req.user_activity, req.metadata, c)
-    upload_resp = SharepointUploadResponse(drive_item_id=req.drive_item_id, nuxeo_id=uid)
+    upload_resp = UploadResponse(record_id=req.metadata.record_id, uid=uid)
     return Response(upload_resp.to_json(), status=200, mimetype='application/json')
 
 def batch(iterable, n=1):
@@ -1745,7 +1745,7 @@ def upload_nuxeo_email(config, req, source, user_info):
   if not success:
     return response
   
-  upload_resp = UploadEmailResponse(email_id=req.email_id, email_unid=req.email_unid, nuxeo_id=uid, attachment_ids=attachment_uids)
+  upload_resp = UploadResponse(record_id=req.metadata.record_id, uid=uid)
 
   return Response(upload_resp.to_json(), status=200, mimetype='application/json')
 

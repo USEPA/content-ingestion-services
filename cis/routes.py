@@ -240,7 +240,7 @@ def upload_file_v2():
         return response
     else:
         log_upload_activity(user_info, user_activity, metadata, c)
-        upload_resp = FileUploadResponse(file_path=metadata.file_path, nuxeo_id=uid)
+        upload_resp = UploadResponse(record_id=metadata.record_id, uid=uid)
         return Response(upload_resp.to_json(), status=200, mimetype='application/json')
 
 @app.route('/my_records_download/v2', methods=['GET'])
