@@ -130,6 +130,7 @@ class ECMSMetadata:
     creator: Optional[str] = ''
     creation_date: Optional[str] = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
     close_date: Optional[str] = ''
+    disposition_date: Optional[str] = None
     rights: Optional[list[str]] = None
     coverage: Optional[list[str]] = None
     relationships: Optional[list[str]] = None
@@ -537,7 +538,8 @@ class UploadEmailRequest:
 class AttachmentSchedule:
     name: str
     schedule: RecordSchedule
-    close_date: str
+    close_date: Optional[str] = ''
+    disposition_date: Optional[str] = ''
 
 @dataclass_json
 @dataclass 

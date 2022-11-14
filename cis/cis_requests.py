@@ -807,6 +807,7 @@ def convert_nuxeo_metadata(nuxeo_dict):
   creator: Optional[str] = properties.get('dc:creator', '')
   creation_date: Optional[str] = properties.get('dc:created', '')
   close_date: Optional[str] = properties.get('arms:close_date', '')
+  disposition_date: Optional[str] = properties.get('arms:disposition_date', '')
   rights: Optional[list[str]] = properties.get('arms:rights_holder', [])
   coverage: Optional[list[str]] = properties.get('dc:coverage', [])
   ## TODO: Update this since relationships field is out of date
@@ -823,6 +824,7 @@ def convert_nuxeo_metadata(nuxeo_dict):
     creator=creator,
     creation_date=creation_date,
     close_date=close_date,
+    disposition_date=disposition_date,
     rights=rights,
     coverage=coverage,
     relationships=relationships,
@@ -1678,6 +1680,7 @@ def upload_nuxeo_email(config, req, source, user_info):
   # Create records for each attachment listing the first record as a parent
   schedule_map = {x.name:x.schedule for x in req.attachment_schedules}
   close_date_map = {x.name:x.close_date for x in req.attachment_schedules}
+  disposition_date_map = {x.name:x.disposition_date for x in req.attachment_schedules}
   attachment_uids = []
 
   for attachment in attachments:
@@ -1700,6 +1703,7 @@ def upload_nuxeo_email(config, req, source, user_info):
       creator = req.metadata.creator,
       creation_date = req.metadata.creation_date,
       close_date = close_date_map.get(attachment[0], req.metadata.close_date),
+      disposition_date = disposition_date_map.get(attachment[0], req.metadata.disposition_date),
       rights = req.metadata.rights,
       coverage = req.metadata.coverage,
       relationships = req.metadata.relationships,
