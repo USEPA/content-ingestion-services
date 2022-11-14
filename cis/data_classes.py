@@ -131,11 +131,15 @@ class ECMSMetadata:
     creation_date: Optional[str] = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
     close_date: Optional[str] = ''
     disposition_date: Optional[str] = None
-    rights: Optional[list[str]] = None
-    coverage: Optional[list[str]] = None
-    relationships: Optional[list[str]] = None
-    tags: Optional[list[str]] = None
+    rights: Optional[list[str]] = field(default_factory=list)
+    coverage: Optional[list[str]] = field(default_factory=list)
+    relationships: Optional[list[str]] = field(default_factory=list)
+    tags: Optional[list[str]] = field(default_factory=list)
+    identifiers: Optional[Dict[str, list[str]]] = None
     record_id: Optional[str] = None
+
+    def __hash__(self):
+        return hash((self.custodian, self.file_path))
 
 ## Example metadata:
 ## {"file_path":"", "custodian":"", "title":"", "record_schedule":{"function_number":"401","schedule_number":"1006","disposition_number":"b"}, "sensitivity":"shared"}
