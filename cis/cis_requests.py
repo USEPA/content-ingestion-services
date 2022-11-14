@@ -1551,7 +1551,7 @@ def convert_metadata_for_nuxeo(user_info, metadata, doc_type, parent_id=None):
     "nxtag:tags": [{"label": tag,"username": metadata.custodian} for tag in metadata.tags],
     }
   if metadata.identifiers is not None:
-    properties['arms:identifiers'] = metadata.identifiers
+    properties['arms:identifiers'] = [{"key": k, "value":v} for k,v in metadata.identifiers.items()]
   if parent_id is not None:
     properties['arms:relation_is_part_of'] = [parent_id]
   data['properties'] = properties
