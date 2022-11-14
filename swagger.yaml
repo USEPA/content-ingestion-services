@@ -317,7 +317,7 @@ paths:
         200:
           description: "File was successfully uploaded."
           schema:
-            $ref: "#/definitions/FileUploadResponse"
+            $ref: "#/definitions/UploadResponse"
         400:
           description: "Invalid request - description in response."
           schema:
@@ -519,7 +519,7 @@ paths:
         200:
           description: "Email successfully uploaded."
           schema:
-            $ref: "#/definitions/UploadEmailResponse"
+            $ref: "#/definitions/UploadResponse"
         400:
           description: "Invalid request - description in response."
           schema:
@@ -1362,7 +1362,7 @@ paths:
       responses:
         200:
           schema:
-            $ref: "#/definitions/SharepointUploadResponse"
+            $ref: "#/definitions/UploadResponse"
           description: "Record successfully uploaded."
         400:
           description: "Invalid request - description in response."
@@ -2088,6 +2088,8 @@ definitions:
         type: array
         items:
           type: string
+      record_id:
+        type: string
   RecordSchedule:
     type: object
     properties:
@@ -2449,32 +2451,12 @@ definitions:
     properties:
       disposition_date:
         type: string
-  UploadEmailResponse:
+  UploadResponse:
     type: object
     properties:
-      email_id: 
+      record_id: 
         type: string
-      email_unid: 
-        type: string
-      nuxeo_id: 
-        type: string
-      attachment_ids:
-        type: array
-        items:
-          type: string
-  FileUploadResponse:
-    type: object
-    properties:
-      file_path: 
-        type: string
-      nuxeo_id:
-        type: string
-  SharepointUploadResponse:
-    type: object
-    properties:
-      drive_item_id: 
-        type: string
-      nuxeo_id:
+      uid: 
         type: string
   AddParentChildRequest:
     type: object
