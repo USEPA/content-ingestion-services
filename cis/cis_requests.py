@@ -765,7 +765,7 @@ def validate_by_uid(c, uid, env, employee_number):
   headers = {'Content-Type':'application/json', 'X-NXproperties':'*'}
   try:
     nuxeo_url, nuxeo_username, nuxeo_password = get_nuxeo_creds(c, env)
-    r = requests.get(nuxeo_url + '/nuxeo/api/v1/search/lang/NXQL/execute?query=select * from epa_record where ecm:uuid="' + uid + '"', headers=headers, auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))
+    r = requests.get(f'{nuxeo_url}/nuxeo/api/v1/search/lang/NXQL/execute?query=select * from epa_record where ecm:uuid="{uid}" and ecm:versionLabel <> "0.0" and ecm:path NOT STARTSWITH "/EPA%20Organization/ThirdParty" and ecm:path NOT STARTSWITH "/EPA%20Organization/ThirdParty-Queue" and ecm:path NOT STARTSWITH "/EPA%20Organization/UnPublished"', headers=headers, auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))
     record_custodian = r.json()['entries'][0]['properties']['arms:epa_contact']
     if record_custodian == employee_number:
       return True, None, True
