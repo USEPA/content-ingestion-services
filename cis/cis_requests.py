@@ -1552,7 +1552,7 @@ def convert_metadata_for_nuxeo(user_info, metadata, doc_type, parent_id=None):
   if metadata.close_date is not None:
     properties['arms:close_date'] = metadata.close_date
   if metadata.disposition_date is not None:
-    properties['arms:close_date'] = metadata.disposition_date
+    properties['arms:disposition_date'] = metadata.disposition_date
   if parent_id is not None:
     properties['arms:relation_is_part_of'] = [parent_id]
   data['properties'] = properties
