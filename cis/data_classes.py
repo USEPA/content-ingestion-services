@@ -128,8 +128,8 @@ class ECMSMetadata:
     sensitivity: str
     description: Optional[str] = ''
     creator: Optional[str] = ''
-    creation_date: Optional[str] = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
-    close_date: Optional[str] = ''
+    creation_date: Optional[str] = None
+    close_date: Optional[str] = None
     disposition_date: Optional[str] = None
     rights: Optional[list[str]] = None
     coverage: Optional[list[str]] = None
