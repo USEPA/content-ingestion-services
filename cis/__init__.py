@@ -83,7 +83,7 @@ def create_app(env, region_name, patt_host, patt_api_key, model_path, capstone_p
         app.app_context().push()
         model = HuggingFaceModel(model_path, label_mapping_path, office_info_mapping_path)
         app.logger.info('Model loaded.')
-        swagger_yml['host'] = c.cis_server
+        swagger_yml['servers'] = [{'url':f'https://{c.cis_server}/'}, {'url':f'http://{c.cis_server}/'}]
         blueprint = get_swaggerui_blueprint(SWAGGER_URL, SWAGGER_PATH, config={'spec': swagger_yml})
         app.register_blueprint(blueprint)
     app.config['SQLALCHEMY_DATABASE_URI'] = c.database_uri
