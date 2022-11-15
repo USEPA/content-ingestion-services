@@ -1542,7 +1542,6 @@ def convert_metadata_for_nuxeo(user_info, metadata, doc_type, parent_id=None):
     "arms:sensitivity": sensitivity,
     "arms:rights_holder": metadata.rights,
     "arms:spatial_extent": metadata.coverage,
-    "arms:close_date": metadata.close_date,
     "dc:description": metadata.description,
     # "dc:creator": metadata.creator, this will be moved to epa_contact
     # and arms:epa_workforce_id will become metadata.creator
@@ -1552,6 +1551,10 @@ def convert_metadata_for_nuxeo(user_info, metadata, doc_type, parent_id=None):
     }
   if metadata.identifiers is not None:
     properties['arms:identifiers'] = [{"key": k, "value":v} for k,v in metadata.identifiers.items()]
+  if metadata.close_date is not None:
+    properties['arms:close_date'] = metadata.close_date
+  if metadata.disposition_date is not None:
+    properties['arms:disposition_date'] = metadata.disposition_date
   if parent_id is not None:
     properties['arms:relation_is_part_of'] = [parent_id]
   data['properties'] = properties
