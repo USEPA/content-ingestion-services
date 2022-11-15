@@ -1549,6 +1549,8 @@ def convert_metadata_for_nuxeo(user_info, metadata, doc_type, parent_id=None):
     "dc:subjects": [],
     "nxtag:tags": [{"label": tag,"username": metadata.custodian} for tag in metadata.tags],
     }
+  if metadata.identifiers is not None:
+    properties['arms:identifiers'] = [{"key": k, "value":v} for k,v in metadata.identifiers.items()]
   if metadata.close_date is not None:
     properties['arms:close_date'] = metadata.close_date
   if metadata.disposition_date is not None:
