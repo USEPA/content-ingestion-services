@@ -145,68 +145,6 @@ def email_metadata_prediction_graph(emailsource):
     prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description, default_schedule=default_schedule, subjects=subjects, identifiers=identifiers, is_encrypted=is_encrypted)
     return Response(prediction.to_json(), status=200, mimetype='application/json')
 
-@app.route('/email_metadata_prediction/', methods=['GET'])
-def email_metadata_prediction():
-    if g.access_token is None:
-        return Response(StatusResponse(status='Failed', reason='X-Access-Token is required.', request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
-    req = request.args
-    try:
-        req = EmailPredictionRequest.from_dict(req)
-    except:
-        return Response(StatusResponse(status='Failed', reason='Missing required parameters.', request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
-    eml_file = get_eml_file(req.email_id, "default_file_name", 'archive', None, g.access_token, c)
-    if eml_file is None:
-        return Response(StatusResponse(status='Failed', reason="Could not retrieve eml file.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-    success, text, response = tika(eml_file, c, extraction_type='text')
-    if not success:
-        return response
-    schedules = schedule_cache.get_schedules().schedules
-    valid_schedules = list(filter(lambda x: x.ten_year, schedules))
-    valid_schedules = ["{fn}-{sn}-{dn}".format(fn=x.function_number, sn=x.schedule_number, dn=x.disposition_number) for x in valid_schedules]
-    keyword_weights = keyword_extractor.extract_keywords(text)
-    keywords = [x[0] for x in sorted(keyword_weights.items(), key=lambda y: y[1], reverse=True)][:5]
-    subjects=keyword_extractor.extract_subjects(text, keyword_weights)
-    has_capstone=capstone_detector.detect_capstone_text(text)
-    identifiers=identifier_extractor.extract_identifiers(text)
-    # TODO: Handle case where attachments are present
-    predicted_schedules, default_schedule = model.predict(text, 'email', PredictionMetadata(req.file_name, req.department), has_capstone, keywords, subjects, attachments=[], valid_schedules=valid_schedules)
-    
-    predicted_title = mock_prediction_with_explanation
-    predicted_description = mock_prediction_with_explanation
-    prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description, default_schedule=default_schedule, subjects=subjects, identifiers=identifiers)
-    return Response(prediction.to_json(), status=200, mimetype='application/json')
-
-@app.route('/upload_file', methods=['POST'])
-def upload_file():
-    success, message, user_info = get_user_info(c, g.token_data)
-    if not success:
-        return Response(StatusResponse(status='Failed', reason=message, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-    file = request.files.get('file')
-    try:
-        metadata = ECMSMetadata.from_json(request.form['metadata'])
-    except:
-        return Response(StatusResponse(status='Failed', reason="Metadata is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
-    try:
-        user_activity = SubmissionAnalyticsMetadata.from_json(request.form['user_activity'])
-    except:
-        return Response(StatusResponse(status='Failed', reason="User activity data is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
-    # Default to dev environment
-    env = request.form.get('documentum_env', 'dev')
-    if metadata.custodian != user_info.lan_id:
-        return Response(StatusResponse(status='Failed', reason="Custodian must match authorized user's lan_id.", request_id=g.get('request_id', None)).to_json(), status=401, mimetype='application/json')
-    if file is None:
-        return Response(StatusResponse(status='Failed', reason="No file found.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype="application/json")
-    # This is where we need to upload record to ARMS
-    
-    # Add submission analytics
-    # success, response = add_submission_analytics(user_activity, metadata.record_schedule, user_info.lan_id, r_object_id, None)
-    # if not success:
-    #     return response
-    # else:
-    #     log_upload_activity(user_info, user_activity, metadata, c)
-    #     return Response(StatusResponse(status='OK', reason='File successfully uploaded.', request_id=g.get('request_id', None)).to_json(), status=200, mimetype='application/json')
-    return Response(StatusResponse(status='OK', reason='File successfully uploaded.', request_id=g.get('request_id', None)).to_json(), status=200, mimetype='application/json')   
-
 @app.route('/upload_file/v2', methods=['POST'])
 def upload_file_v2():
     success, message, user_info = get_user_info(c, g.token_data)
@@ -259,20 +197,6 @@ def download_v2():
 def get_mailboxes():
     return mailbox_manager.list_shared_mailboxes(g.token_data['email'])
 
-@app.route('/get_emails', methods=['GET'])
-def get_emails():
-    if g.access_token is None:
-        return Response(StatusResponse(status='Failed', reason="X-Access-Token is required.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
-    req = dict(request.args)
-    if 'items_per_page' not in req:
-        req['items_per_page'] = req.pop('count', 10)
-    if 'page_number' not in req:
-        req['page_number'] = 1
-    req = GetEmailRequest(items_per_page=int(req['items_per_page']), page_number=int(req['page_number']), mailbox=req['mailbox'], emailsource=None)
-    if not mailbox_manager.validate_mailbox(g.token_data['email'], req.mailbox):
-        return Response(StatusResponse(status='Failed', reason="User is not authorized to access selected mailbox.", request_id=g.get('request_id', None)).to_json(), status=401, mimetype='application/json')
-    return list_email_metadata(req, g.token_data['email'], g.access_token, c)
-
 @app.route('/get_emails/<emailsource>', methods=['GET'])
 def get_emails_graph(emailsource):
     if g.access_token is None:
@@ -288,23 +212,6 @@ def get_emails_graph(emailsource):
     if not mailbox_manager.validate_mailbox(g.token_data['email'], req.mailbox):
         return Response(StatusResponse(status='Failed', reason="User is not authorized to access selected mailbox.", request_id=g.get('request_id', None)).to_json(), status=401, mimetype='application/json')
     return list_email_metadata_graph(req, g.token_data['email'], g.access_token, c)
-
-@app.route('/upload_email', methods=['POST'])
-def upload_email():
-    success, message, user_info = get_user_info(c, g.token_data)
-    if not success:
-        return Response(StatusResponse(status='Failed', reason=message, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-    if g.access_token is None:
-        return Response(StatusResponse(status='Failed', reason="X-Access-Token is required.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
-    req = request.json
-    try:
-        req = UploadEmailRequest.from_dict(req)
-    except:
-        return Response(StatusResponse(status='Failed', reason="Request is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
-    # TODO: Improve custodian validation based on role
-    if req.metadata.custodian != user_info.lan_id:
-        return Response(StatusResponse(status='Failed', reason="Custodian must match authorized user's lan_id.", request_id=g.get('request_id', None)).to_json(), status=401, mimetype='application/json')
-    return Response(StatusResponse(status='OK', reason='Email successfully uploaded.', request_id=g.get('request_id', None)).to_json(), status=200, mimetype='application/json')   
 
 @app.route('/upload_email/v2/<emailsource>', methods=['POST'])
 def upload_email_v2(emailsource):
@@ -323,32 +230,6 @@ def upload_email_v2(emailsource):
         return Response(StatusResponse(status='Failed', reason="Custodian must match authorized user's lan_id.", request_id=g.get('request_id', None)).to_json(), status=401, mimetype='application/json')
     
     return upload_nuxeo_email(c, req, emailsource, user_info)
-
-@app.route('/download_email', methods=['GET'])
-def download_email():
-    if g.access_token is None:
-        return Response(StatusResponse(status='Failed', reason="X-Access-Token is required.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
-    req = request.args
-    try:
-        req = DownloadEmailRequest.from_dict(req)
-    except:
-        Response(StatusResponse(status='Failed', reason="Request is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
-    content = get_eml_file(req.email_id, req.file_name, g.access_token, c)
-    if content is None:
-        Response(StatusResponse(status='Failed', reason="File download failed. Ensure that email_id is valid.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-    return send_file(BytesIO(content), attachment_filename=req.file_name, as_attachment=True)
-
-#mark and untag email
-@app.route('/mark_email_saved/', methods=['POST'])
-def mark_email_saved():
-    if g.access_token is None:
-        return Response(StatusResponse(status='Failed', reason="X-Access-Token is required.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
-    req = request.json
-    try:
-        req = MarkSavedRequest.from_dict(req)
-    except:
-        return Response(StatusResponse(status='Failed', reason="Request is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
-    return mark_saved(req, g.access_token, 'archive', c)
 
 #mark and untag email
 @app.route('/mark_email_saved/<emailsource>', methods=['POST'])
@@ -397,17 +278,6 @@ def office_leaderboard():
     except:
         return Response(StatusResponse(status='Failed', reason="Request is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
     return get_office_leaderboard(c, req.parent_org_code)
-
-@app.route('/untag_email', methods=['POST'])
-def untag_email():
-    if g.access_token is None:
-        return Response(StatusResponse(status='Failed', reason="X-Access-Token is required.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
-    req = request.json
-    try:
-        req = UntagRequest.from_dict(req)
-    except:
-        return Response(StatusResponse(status='Failed', reason="Request is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
-    return untag(req, g.access_token, c, 'archive')
 
 @app.route('/untag_email/<emailsource>', methods=['POST'])
 def untag_email_graph(emailsource):
@@ -501,30 +371,6 @@ def get_record_schedules():
     except:
         return Response(StatusResponse(status='Failed', reason="Record schedules unable to be found.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
 
-@app.route('/my_records', methods=['GET'])
-def my_records():
-    success, message, user_info = get_user_info(c, g.token_data)
-    if not success:
-        return Response(StatusResponse(status='Failed', reason=message, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-    req = dict(request.args)
-    if 'items_per_page' not in req:
-        req['items_per_page'] = 10
-    else:
-        req['items_per_page'] = int(req['items_per_page'])
-    if 'page_number' not in req:
-        req['page_number'] = 1
-    else:
-        req['page_number'] = int(req['page_number'])
-    try:
-        req = MyRecordsRequest.from_dict(req)
-    except:
-        return Response(StatusResponse(status='Failed', reason="Request is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
-    if user_info.lan_id != req.lan_id:
-        return Response(StatusResponse(status='Failed', reason='User is not authorized to download records for this lan_id.', request_id=g.get('request_id', None)).to_json(), status=401, mimetype='application/json')
-    if req.documentum_env not in ['dev', 'prod']:
-        return Response(StatusResponse(status='Failed', reason='Invalid documentum_env.', request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
-    return get_documentum_records(c, user_info.lan_id, int(req.items_per_page), int(req.page_number), req.query, req.documentum_env)
-
 @app.route('/my_records/v2', methods=['GET'])
 def my_records_v2():
     success, message, user_info = get_user_info(c, g.token_data)
@@ -553,23 +399,6 @@ def user_info():
         except:
             return Response(StatusResponse(status='Failed', reason="Error creating new user.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype="application/json")
     return Response(user_info.to_json(), status=200, mimetype='application/json')
-
-@app.route('/my_records_download', methods=['GET'])
-def my_records_download():
-    success, message, user_info = get_user_info(c, g.token_data)
-    if not success:
-        return Response(StatusResponse(status='Failed', reason=message, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-    req = dict(request.args)
-    if 'object_ids' not in req:
-        return Response(StatusResponse(status='Failed', reason="object_ids field is required", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
-    req['object_ids'] = req['object_ids'].split(',')
-    try:
-        req = RecordDownloadRequest.from_dict(req)
-    except:
-        return Response(StatusResponse(status='Failed', reason="Request is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
-    if user_info.lan_id != req.lan_id:
-        return Response(StatusResponse(status='Failed', reason='User is not authorized to download records for this lan_id.', request_id=g.get('request_id', None)).to_json(), status=401, mimetype='application/json')
-    return download_documentum_record(c, user_info, req.object_ids, req.documentum_env)
 
 @app.route('/get_sites', methods=['GET'])
 def get_sites():
@@ -611,20 +440,6 @@ def sharepoint_prediction():
     except:
         return Response(StatusResponse(status='Failed', reason="Request is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
     return sharepoint_record_prediction(req, g.access_token, c)
-
-@app.route('/upload_sharepoint_record', methods=['POST'])
-def sharepoint_upload():
-    req = request.json
-    try:
-        req = SharepointUploadRequest.from_dict(req)
-    except:
-        return Response(StatusResponse(status='Failed', reason="Request is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
-    success, message, user_info = get_user_info(c, g.token_data)
-    if req.metadata.custodian != user_info.lan_id:
-        return Response(StatusResponse(status='Failed', reason="Custodian must match authorized user's lan_id.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
-    if not success:
-        return Response(StatusResponse(status='Failed', reason=message, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-    return Response(StatusResponse(status='OK', reason='Sharepoint file successfully uploaded.', request_id=g.get('request_id', None)).to_json(), status=200, mimetype='application/json')   
 
 @app.route('/upload_sharepoint_record/v2', methods=['POST'])
 def sharepoint_upload_v2():
@@ -674,15 +489,6 @@ def get_all_help():
     if req.get('override', False):
         return Response(StatusResponse(status='Failed', reason="Request returned 500 for testing purposes.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
     return get_all_help_items()
-
-@app.route('/submit_sems_email', methods=['POST'])
-def submit_email_sems():
-    req = request.json
-    try:
-        req = SEMSEmailUploadRequest.from_dict(req)
-    except:
-        return Response(StatusResponse(status='Failed', reason="Request is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
-    return submit_sems_email(req, c)
 
 @app.route('/extract_keywords', methods=['POST'])
 def extract():

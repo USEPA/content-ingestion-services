@@ -120,53 +120,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/StatusResponse'
       x-codegen-request-body-name: TextPredictionRequest
-  /email_metadata_prediction/:
-    get:
-      tags:
-      - schedule_predictions
-      - email
-      summary: Gets metadata recommendations for given email.
-      security:
-        - Authorization: [] 
-        - AccessToken: []
-      parameters:
-      - name: email_id
-        in: query
-        schema:
-          type: string
-      - name: file_name
-        in: query
-        schema:
-          type: string
-      - name: department
-        in: query
-        schema:
-          type: string
-      responses:
-        200:
-          description: Recommendations were successfully given.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/MetadataPrediction'
-        400:
-          description: Invalid request - description in response.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-        401:
-          description: Unauthorized - description in response.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-        500:
-          description: Server side error - description in response.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
   /email_metadata_prediction/{emailsource}:
     get:
       tags:
@@ -239,56 +192,6 @@ paths:
             '*/*':
               schema:
                 $ref: '#/components/schemas/UserInfo'
-        400:
-          description: Invalid request - description in response.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-        401:
-          description: Unauthorized - description in response.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-        500:
-          description: Server side error - description in response.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-  /upload_file:
-    post:
-      tags:
-      - desktop
-      summary: Upload a file to ECMS with metadata.
-      security:
-        - Authorization: [] 
-      requestBody:
-        content:
-          multipart/form-data:
-            schema:
-              properties:
-                file:
-                  type: string
-                  description: Binary content of file to upload.
-                  format: binary
-                metadata:
-                  type: string
-                  description: String of serialized JSON with ECMS metadata.
-                user_activity:
-                  type: string
-                  description: String of serialized JSON with user activity data.
-                documentum_env:
-                  type: string
-                  description: Environment - either dev or prod.
-      responses:
-        200:
-          description: File was successfully uploaded.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
         400:
           description: Invalid request - description in response.
           content:
@@ -389,52 +292,6 @@ paths:
             '*/*':
               schema:
                 $ref: '#/components/schemas/StatusResponse'
-  /get_emails:
-    get:
-      tags:
-      - email
-      summary: List the emails in a given mailbox.
-      security:
-        - Authorization: [] 
-        - AccessToken: []
-      parameters:
-      - name: mailbox
-        in: query
-        schema:
-          type: string
-      - name: items_per_page
-        in: query
-        schema:
-          type: integer
-      - name: page_number
-        in: query
-        schema:
-          type: integer
-      responses:
-        200:
-          description: Emails successfully retrieved.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/GetEmailResponse'
-        400:
-          description: Invalid request - description in response.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-        401:
-          description: Unauthorized - description in response.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-        500:
-          description: Server side error - description in response.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
   /get_emails/{emailsource}:
     get:
       tags:
@@ -487,46 +344,6 @@ paths:
             '*/*':
               schema:
                 $ref: '#/components/schemas/StatusResponse'
-  /upload_email:
-    post:
-      tags:
-      - email
-      summary: Upload email to ECMS with metadata.
-      security:
-        - Authorization: [] 
-        - AccessToken: []
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UploadEmailRequest'
-        required: false
-      responses:
-        200:
-          description: Email successfully uploaded.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-        400:
-          description: Invalid request - description in response.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-        401:
-          description: Unauthorized - description in response.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-        500:
-          description: Server side error - description in response.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-      x-codegen-request-body-name: upload_request
   /upload_email/v2/{emailsource}:
     post:
       tags:
@@ -574,89 +391,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/StatusResponse'
       x-codegen-request-body-name: upload_request
-  /download_email:
-    get:
-      tags:
-      - email
-      summary: Download an email as an EML file.
-      security:
-        - Authorization: [] 
-        - AccessToken: []
-      parameters:
-      - name: file_name
-        in: query
-        schema:
-          type: string
-      - name: email_id
-        in: query
-        schema:
-          type: string
-      responses:
-        200:
-          description: EML file downloaded.
-          content:
-            '*/*':
-              schema:
-                type: string
-                format: binary
-        400:
-          description: Invalid request - description in response.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-        401:
-          description: Unauthorized - description in response.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-        500:
-          description: Server side error - description in response.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-  /mark_email_saved/:
-    post:
-      tags:
-      - email
-      summary: Mark an email with the saved tag in Outlook.
-      security:
-        - Authorization: [] 
-        - AccessToken: []
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/MarkSavedRequest'
-        required: false
-      responses:
-        200:
-          description: Email marked as saved.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-        400:
-          description: Invalid request - description in response.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-        401:
-          description: Unauthorized - description in response.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-        500:
-          description: Server side error - description in response.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-      x-codegen-request-body-name: MarkSavedRequest
   /mark_email_saved/{emailsource}:
     post:
       tags:
@@ -704,46 +438,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/StatusResponse'
       x-codegen-request-body-name: MarkSavedRequestGraph
-  /untag_email:
-    post:
-      tags:
-      - email
-      summary: Remove record tag in Outlook.
-      security:
-        - Authorization: [] 
-        - AccessToken: []
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UntagRequest'
-        required: false
-      responses:
-        200:
-          description: Record tag for email has been removed.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-        400:
-          description: Invalid request - description in response.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-        401:
-          description: Unauthorized - description in response.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-        500:
-          description: Server side error - description in response.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-      x-codegen-request-body-name: UntagRequest
   /untag_email/{emailsource}:
     post:
       tags:
@@ -998,64 +692,7 @@ paths:
           content:
             '*/*':
               schema:
-                $ref: '#/components/schemas/StatusResponse'
-        400:
-          description: Invalid request - description in response.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-        401:
-          description: Unauthorized - description in response.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-        500:
-          description: Server side error - description in response.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-  /my_records:
-    get:
-      tags:
-      - my_records
-      summary: Get information for existing records.
-      security:
-        - Authorization: [] 
-      parameters:
-      - name: lan_id
-        in: query
-        required: true
-        schema:
-          type: string
-      - name: query
-        in: query
-        schema:
-          type: string
-      - name: items_per_page
-        in: query
-        required: true
-        schema:
-          type: number
-      - name: page_number
-        in: query
-        required: true
-        schema:
-          type: number
-      - name: documentum_env
-        in: query
-        schema:
-          type: string
-          default: dev
-      responses:
-        200:
-          description: Record information retrieved.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/DocumentumRecordList'
+                $ref: '#/components/schemas/GetRecordSchedulesResponse'
         400:
           description: Invalid request - description in response.
           content:
@@ -1108,59 +745,6 @@ paths:
             '*/*':
               schema:
                 $ref: '#/components/schemas/NuxeoRecordList'
-        400:
-          description: Invalid request - description in response.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-        401:
-          description: Unauthorized - description in response.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-        500:
-          description: Server side error - description in response.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-  /my_records_download:
-    get:
-      tags:
-      - my_records
-      summary: Download existing records.
-      security:
-        - Authorization: [] 
-      parameters:
-      - name: lan_id
-        in: query
-        required: true
-        schema:
-          type: string
-      - name: object_ids
-        in: query
-        required: true
-        style: form
-        explode: false
-        schema:
-          type: array
-          items:
-            type: string
-      - name: documentum_env
-        in: query
-        schema:
-          type: string
-          default: dev
-      responses:
-        200:
-          description: Records zip file downloaded.
-          content:
-            '*/*':
-              schema:
-                type: string
-                format: binary
         400:
           description: Invalid request - description in response.
           content:
@@ -1425,47 +1009,6 @@ paths:
             '*/*':
               schema:
                 $ref: '#/components/schemas/StatusResponse'
-  /upload_sharepoint_record:
-    post:
-      tags:
-      - sharepoint
-      summary: Upload Sharepoint record to ECMS.
-      security:
-        - Authorization: [] 
-        - AccessToken: []
-      requestBody:
-        description: ID fields and metadata needed to upload the record.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SharepointUploadRequest'
-        required: false
-      responses:
-        200:
-          description: Record successfully uploaded.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-        400:
-          description: Invalid request - description in response.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-        401:
-          description: Unauthorized - description in response.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-        500:
-          description: Server side error - description in response.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-      x-codegen-request-body-name: data
   /upload_sharepoint_record/v2:
     post:
       tags:
@@ -1649,46 +1192,6 @@ paths:
             '*/*':
               schema:
                 $ref: '#/components/schemas/StatusResponse'
-  /save_sems_email:
-    post:
-      tags:
-      - sems
-      summary: Save email record to SEMS.
-      security:
-        - Authorization: [] 
-      requestBody:
-        description: Metadata needed for submissions to SEMS.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SEMSEmailUploadRequest'
-        required: false
-      responses:
-        200:
-          description: Record successfully uploaded.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-        400:
-          description: Invalid request - description in response.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-        401:
-          description: Unauthorized - description in response.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-        500:
-          description: Server side error - description in response.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-      x-codegen-request-body-name: metadata
   /disposition_calc:
     get:
       tags:
@@ -2124,23 +1627,6 @@ components:
                   $ref: '#/components/schemas/EmailAttachment'
               mailbox_source:
                 type: string
-    UploadEmailRequest:
-      type: object
-      properties:
-        email_id:
-          type: string
-        email_unid:
-          type: string
-        metadata:
-          $ref: '#/components/schemas/ECMSMetadata'
-        user_activity:
-          $ref: '#/components/schemas/SubmissionAnalyticsMetadata'
-        documentum_env:
-          type: string
-          default: dev
-          enum:
-          - dev
-          - prod
     AttachmentSchedule:
       type: object
       properties:
@@ -2192,16 +1678,6 @@ components:
           type: boolean
         used_favorite_schedule:
           type: boolean
-    MarkSavedRequest:
-      type: object
-      properties:
-        email_id:
-          type: string
-        sensitivity:
-          type: string
-          enum:
-          - shared
-          - private
     MarkSavedRequestGraph:
       type: object
       properties:
@@ -2213,11 +1689,6 @@ components:
           - shared
           - private
         mailbox:
-          type: string
-    UntagRequest:
-      type: object
-      properties:
-        email_id:
           type: string
     UntagRequestGraph:
       type: object
@@ -2419,43 +1890,6 @@ components:
           type: string
         overall_rank:
           type: string
-    DocumentumDocInfo:
-      type: object
-      properties:
-        title:
-          type: string
-        doc_type:
-          type: string
-        date:
-          type: string
-        sensitivity:
-          type: string
-          enum:
-          - shared
-          - private
-        doc_id:
-          type: string
-        object_ids:
-          type: array
-          items:
-            type: string
-        size:
-          type: number
-        custodian:
-          type: string
-        upload_date:
-          type: string
-        metadata:
-          $ref: '#/components/schemas/ECMSMetadata'
-    DocumentumRecordList:
-      type: object
-      properties:
-        total:
-          type: number
-        records:
-          type: array
-          items:
-            $ref: '#/components/schemas/DocumentumDocInfo'
     NuxeoRecordList:
       type: object
       properties:
@@ -2531,17 +1965,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SharepointRecord'
-    SharepointUploadRequest:
-      type: object
-      properties:
-        drive_item_id:
-          type: string
-        metadata:
-          $ref: '#/components/schemas/ECMSMetadata'
-        user_activity:
-          $ref: '#/components/schemas/SubmissionAnalyticsMetadata'
-        documentum_env:
-          type: string
     SharepointUploadRequestV2:
       type: object
       properties:
@@ -2596,35 +2019,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/HelpItemResponse'
-    SEMSEmailUploadRequest:
-      type: object
-      properties:
-        tags:
-          type: array
-          items:
-            type: string
-        title:
-          type: string
-        creation_date:
-          type: string
-        region:
-          type: string
-        program_type:
-          type: string
-        site:
-          type: string
-        access_control:
-          type: string
-        program_area:
-          type: string
-        special_processing:
-          type: string
-        comments:
-          type: string
-        description:
-          type: string
-        email_uid:
-          type: string
     LogActivityRequest:
       type: object
       properties:

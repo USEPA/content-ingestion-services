@@ -143,20 +143,6 @@ class ECMSMetadata:
 
 ## Example metadata:
 ## {"file_path":"", "custodian":"", "title":"", "record_schedule":{"function_number":"401","schedule_number":"1006","disposition_number":"b"}, "sensitivity":"shared"}
-    
-@dataclass_json
-@dataclass 
-class DocumentumDocInfo:
-    title: str
-    doc_type: str
-    date: str
-    sensitivity: str
-    doc_id: str
-    object_ids: list[str]
-    size: float
-    custodian: str
-    upload_date: str
-    metadata: Optional[ECMSMetadata] = None
 
 @dataclass_json
 @dataclass 
@@ -171,25 +157,10 @@ class NuxeoDocInfo:
 
 @dataclass_json
 @dataclass 
-class DocumentumRecordList:
-    records: list[DocumentumDocInfo]
-    total: int
-
-@dataclass_json
-@dataclass 
 class NuxeoRecordList:
     records: list[NuxeoDocInfo]
     total: int
     
-@dataclass_json
-@dataclass 
-class MyRecordsRequest:
-    lan_id: str
-    items_per_page: int = 10
-    page_number: int = 0
-    query: Optional[str] = None
-    documentum_env: Optional[str] = "dev"
-
 @dataclass_json
 @dataclass 
 class MyRecordsRequestV2:
@@ -198,12 +169,6 @@ class MyRecordsRequestV2:
     query: Optional[str] = None
     nuxeo_env: Optional[str] = "dev"
 
-@dataclass_json
-@dataclass 
-class RecordDownloadRequest:
-    lan_id: str
-    object_ids: list[str]
-    documentum_env: Optional[str] = "dev"
 
 @dataclass_json
 @dataclass 
@@ -230,32 +195,6 @@ mock_predicted_schedules = [
     Recommendation(**{"schedule": RecordSchedule(**{"function_number": "401", "schedule_number": "1006", "disposition_number": "b"}), "probability": 0.0495888851583004})]
 mock_metadata_prediction = MetadataPrediction(predicted_schedules=mock_predicted_schedules, title=mock_prediction_with_explanation, description=mock_prediction_with_explanation, default_schedule=mock_predicted_schedules[0].schedule, subjects=[], identifiers={})
 
-# Dates must be formatted as %Y-%m-%dT%H:%M:%S
-@dataclass_json
-@dataclass
-class DocumentumMetadata:
-    r_object_type: str
-    object_name: str
-    a_application_type: str
-    erma_content_title: str
-    erma_content_unid: str
-    erma_content_date: str
-    erma_content_schedule: str
-    erma_content_eventdate: str
-    erma_sensitivity_id: str
-    erma_custodian: str
-    erma_folder_path: str
-    erma_content_description: Optional[str]
-    erma_content_creator: Optional[str]
-    erma_content_creation_date: Optional[str]
-    erma_content_close_date: Optional[str]
-    erma_content_rights: Optional[list[str]]
-    erma_content_coverage: Optional[list[str]]
-    erma_content_relation: Optional[list[str]]
-    erma_content_tags: Optional[list[str]]
-
-
-
 @dataclass_json
 @dataclass 
 class AddFavoritesRequest:
@@ -280,13 +219,6 @@ mock_status_response = StatusResponse("OK", "This is a mock.")
 class TextPredictionRequest:
     text: str
     prediction_metadata: Optional[PredictionMetadata]
-
-@dataclass_json
-@dataclass 
-class EmailPredictionRequest:
-    email_id: str
-    file_name: Optional[str] = None
-    department: Optional[str] = None
 
 @dataclass_json
 @dataclass 
@@ -469,12 +401,6 @@ mock_email_metadata = EmailMetadata(**{
 
 @dataclass_json
 @dataclass 
-class DownloadAttachmentRequest:
-    file_name: str
-    attachment_id: str
-
-@dataclass_json
-@dataclass 
 class GetEmailResponse:
     total_count: int 
     page_number: int
@@ -500,43 +426,6 @@ class GetEmailRequest:
     page_number: int
     mailbox: str
     emailsource: str
-
-@dataclass_json
-@dataclass 
-class GetEmailBodyRequest:
-    email_id: int 
-
-@dataclass_json
-@dataclass 
-class DownloadEmailRequest:
-    file_name: str 
-    email_id: str
-
-@dataclass_json
-@dataclass 
-class DescribeEmailRequest:
-    email_id: str
-
-@dataclass_json
-@dataclass 
-class DescribeEmailResponse:
-    email_id: str
-    _from: str
-    to: str
-    cc: str
-    subject: str
-    date: str
-    body: str 
-    attachments: list[str]
-
-@dataclass_json
-@dataclass 
-class UploadEmailRequest:
-    metadata: ECMSMetadata
-    email_id: str
-    email_unid: str
-    user_activity: SubmissionAnalyticsMetadata
-    documentum_env: Optional[str] = 'dev'
 
 @dataclass_json
 @dataclass 
@@ -572,12 +461,6 @@ class AddParentChildRequest:
 
 @dataclass_json
 @dataclass 
-class MarkSavedRequest:
-    sensitivity: str 
-    email_id: str
-
-@dataclass_json
-@dataclass 
 class MarkSavedRequestGraph:
     sensitivity: str 
     email_id: str
@@ -585,19 +468,9 @@ class MarkSavedRequestGraph:
 
 @dataclass_json
 @dataclass 
-class UntagRequest:
-    email_id: str
-
-@dataclass_json
-@dataclass 
 class UntagRequestGraph:
     email_id: str
     mailbox: str
-
-@dataclass_json
-@dataclass 
-class RecordCountResponse:
-    count: int
 
 @dataclass_json
 @dataclass 
@@ -646,14 +519,6 @@ class SharepointPredictionRequest:
     drive_item_id: str
     file_name: Optional[str] = None
     department: Optional[str] = None
-
-@dataclass_json
-@dataclass 
-class SharepointUploadRequest:
-    drive_item_id: str
-    metadata: ECMSMetadata
-    user_activity: SubmissionAnalyticsMetadata
-    documentum_env: Optional[str] = 'dev'
 
 @dataclass_json
 @dataclass 
