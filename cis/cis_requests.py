@@ -1865,7 +1865,7 @@ def log_upload_activity(user_info, user_activity, metadata, config, count=1):
   safe_user_activity_request(user_info.employee_number, user_info.lan_id, user_info.parent_org_code, '3', config, count)
   if user_activity is not None and not user_activity.used_default_schedule or user_activity.used_schedule_dropdown or user_activity.used_recommended_schedule:
       safe_user_activity_request(user_info.employee_number, user_info.lan_id, user_info.parent_org_code, '4', config)
-  if metadata is not None and len(metadata.description) > 0 or len(metadata.close_date) > 0 or metadata.rights is not None or metadata.coverage is not None or metadata.relationships is not None or metadata.tags is not None:
+  if metadata is not None and len(metadata.description) > 0 or metadata.close_date is not None or metadata.rights is not None or metadata.coverage is not None or metadata.relationships is not None or metadata.tags is not None:
       safe_user_activity_request(user_info.employee_number, user_info.lan_id, user_info.parent_org_code, '6', config)
 
 def safe_user_activity_request(employee_id, lan_id, office_code, event_id, config, count=1):
