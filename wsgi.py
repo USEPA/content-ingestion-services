@@ -41,12 +41,6 @@ if __name__ == "__main__":
                     help='Inverse document frequency values for keywords.')
     parser.add_argument('--priority_categories_path', default='rscategories.txt', 
                     help='EPA enterprise vocabulary.')
-    parser.add_argument('--documentum_prod_url', default=None, 
-                    help='URL for production Documentum instance.')
-    parser.add_argument('--documentum_prod_username', default=None, 
-                    help='Username for production Documentum instance.')
-    parser.add_argument('--documentum_prod_password', default=None, 
-                    help='Password for production Documentum instance.')
     parser.add_argument('--wam_host', default=None, 
                     help='Host for WAM service.')
     parser.add_argument('--wam_username', default=None, 
