@@ -1087,10 +1087,10 @@ def submit_nuxeo_file(config, file, user_info, metadata, env):
     return False, error, None
   
   # Step 3: Attach blob
-  mimetype = mimetypes.guess_type(metadata.title)[0]
+  mimetype = mimetypes.guess_type(metadata.file_path)[0]
   if mimetype is None:
     mimetype = 'application/octet-stream'
-  content_blob = NuxeoBlob(filename=metadata.title, mimetype=mimetype, digest=file_md5, length=len(file))
+  content_blob = NuxeoBlob(filename=metadata.file_path, mimetype=mimetype, digest=file_md5, length=len(file))
   success, error = attach_nuxeo_blob(config, uid, content_blob, [], env)
   if not success:
     return False, error, None
