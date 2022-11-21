@@ -124,10 +124,10 @@ def email_metadata_prediction_graph(emailsource):
     success, text, response = tika(eml_file, c, extraction_type='text')
     if not success:
         return response
+    # TODO: If email is encrypted, return immediately
     if 'Content-Type: application/pkcs7-mime' in str(eml_file):
         is_encrypted = True
     else:
-        print(text)
         is_encrypted = False
     schedules = schedule_cache.get_schedules().schedules
     valid_schedules = list(filter(lambda x: x.ten_year, schedules))

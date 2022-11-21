@@ -7,7 +7,6 @@ info:
     email: yuen.andrew@epa.gov
   version: 0.0.1
 servers:
-- url: https://localhost:8000/
 - url: http://localhost:8000/
 tags:
 - name: record_schedules

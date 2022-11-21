@@ -360,7 +360,7 @@ def validate_by_uid(c, uid, env, employee_number):
   headers = {'Content-Type':'application/json', 'X-NXproperties':'*'}
   try:
     nuxeo_url, nuxeo_username, nuxeo_password = get_nuxeo_creds(c, env)
-    r = requests.get(f'{nuxeo_url}/nuxeo/api/v1/search/lang/NXQL/execute?query=select * from epa_record where ecm:uuid="{uid}" and ecm:versionLabel <> "0.0" and ecm:path NOT STARTSWITH "/EPA%20Organization/ThirdParty" and ecm:path NOT STARTSWITH "/EPA%20Organization/ThirdParty-Queue" and ecm:path NOT STARTSWITH "/EPA%20Organization/UnPublished"', headers=headers, auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))
+    r = requests.get(f'{nuxeo_url}/nuxeo/api/v1/search/lang/NXQL/execute?query=select * from epa_record where ecm:uuid="{uid}"', headers=headers, auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))
     record_custodian = r.json()['entries'][0]['properties']['arms:epa_contact']
     if record_custodian == employee_number:
       return True, None, True
@@ -447,9 +447,9 @@ def get_nuxeo_records(c, req, employee_number):
   nuxeo_url, nuxeo_username, nuxeo_password = get_nuxeo_creds(c, req.nuxeo_env)
   headers = {'Content-Type':'application/json', 'X-NXproperties':'*'}
   if req.query is not None:
-    r = requests.get(nuxeo_url + '/nuxeo/api/v1/search/lang/NXQL/execute?query=select * from epa_record where arms:epa_contact="' + employee_number + '" and dc:title LIKE "%' + req.query + '%" order by dc:created desc&pageSize=' + str(req.items_per_page) + '&currentPageIndex=' + str(req.page_number), headers=headers, auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))
+    r = requests.get(nuxeo_url + '/nuxeo/api/v1/search/lang/NXQL/execute?query=select * from epa_record where arms:epa_contact="' + employee_number + '" and ecm:versionLabel <> "0.0" and NOT ecm:path STARTSWITH "/EPA%20Organization/ThirdParty" and NOT ecm:path STARTSWITH "/EPA%20Organization/ThirdParty-Queue" and NOT ecm:path STARTSWITH "/EPA%20Organization/UnPublished" and dc:title LIKE "%' + req.query + '%" order by dc:created desc&pageSize=' + str(req.items_per_page) + '&currentPageIndex=' + str(req.page_number), headers=headers, auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))
   else:
-    r = requests.get(nuxeo_url + '/nuxeo/api/v1/search/lang/NXQL/execute?query=select * from epa_record where arms:epa_contact="' + employee_number + '" order by dc:created desc&pageSize=' + str(req.items_per_page) + '&currentPageIndex=' + str(req.page_number), headers=headers, auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))
+    r = requests.get(nuxeo_url + '/nuxeo/api/v1/search/lang/NXQL/execute?query=select * from epa_record where arms:epa_contact="' + employee_number + '" and ecm:versionLabel <> "0.0" and NOT ecm:path STARTSWITH "/EPA%20Organization/ThirdParty" and NOT ecm:path STARTSWITH "/EPA%20Organization/ThirdParty-Queue" and NOT ecm:path STARTSWITH "/EPA%20Organization/UnPublished" order by dc:created desc&pageSize=' + str(req.items_per_page) + '&currentPageIndex=' + str(req.page_number), headers=headers, auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))
 
   if r.status_code != 200:
     app.logger.error(r.text)
