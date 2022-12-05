@@ -126,11 +126,11 @@ def dedupe_lower(_set):
 class IdentifierExtractor():
     def __init__(self):
         self.facility_regex = Rebulk().regex(r'\b110\d{9}\b')
-        self.tri_regex = Rebulk().regex(r'\b\d{5}[B-DF-HJ-NP-TV-Z0-9]{10}\b')
+        self.tri_regex = Rebulk().regex(r'\b\d{1,5}[A-Z]{5,10}(\d{1,5})?([A-Z]{1,3})?(\d{1,3})?\b')
         self.docket_regex = Rebulk().regex(r'\bEPA-([a-zA-Z0-9]{2,3})-([a-zA-Z]{2,5})-\d{4}-\d{4}-\d{4}\b')
         self.cas_regex = Rebulk().regex(r'\b\d{2,7}-\d{2}-\d{1}\b')
         self.inchi_regex = Rebulk().regex(r'\b([A-Z0-9]{14})-([A-Z0-9]{10})-([A-Z0-9]{1})\b')
-        self.dsstox_regex = Rebulk().regex(r'\bDTXSIDd{7,9}\b')
+        self.dsstox_regex = Rebulk().regex(r'\bDTXSID\d{7,9}\b')
         self.srs_regex = Rebulk().regex(r'(?i)\b(srs|srs id|internal tracking number)\s?([ ]|[:]|[\-])\s?(\b\d{1,100}\b)\b')
         self.naics_regex = Rebulk().regex(r'(?i)\b(naics|naics code|naics no|naics num|niacs no|naics no\.|naics \#)\s?([ ]|[:]|[\-])\s?(\b\d{2,6}\b)\b')
         self.sic_regex = Rebulk().regex(r'(?i)\b(sic code|sic no|sic num|sic no|sic no\.|sic \#)\s?([ ]|[:]|[\-])\s?(\b\d{4}\b)\b')
@@ -171,6 +171,8 @@ class IdentifierExtractor():
             extracted_val = str(i).replace('<','').split(':(', 1)
             if len(extracted_val) > 0:
                 tri_ids.add(extracted_val[0])
+        tri_ids = dedupe_lower(tri_ids)
+        tri_ids = list(filter(lambda x: len(x) == 15, tri_ids))
         response['TRI Facility ID'] = dedupe_lower(tri_ids)
 
         #Docket ID (e.g. EPA-HQ-OPP-2014-0483-0001)
