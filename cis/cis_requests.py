@@ -152,7 +152,7 @@ def eml_to_pdf(eml):
       final_text += "<strong> Attachments: </strong>" + ', '.join([x[0] for x in attachments]) + "</br>"
 
     # Force body to always be 14px, avoids messed up styling
-    final_text += "<p style='font-size: 14px!important'>" + html + "</p>"
+    final_text += "<p style='font-size: 12px!important'>" + html + "</p>"
 
     #conversion --return as bytes
     result = io.BytesIO()
