@@ -151,8 +151,12 @@ def eml_to_pdf(eml):
     if len(attachments) > 0:
       final_text += "<strong> Attachments: </strong>" + ', '.join([x[0] for x in attachments]) + "</br>"
 
-    # Breaks styling
-    html = html.replace('<','{').replace('>','}')
+    # # Breaks styling
+    # html = html.replace('<','{').replace('>','}')
+
+    # Fix hidden table styling
+    pattern = r'(height|width)=\"\d+([A-Za-z])?\"'
+    html = re.sub(pattern, 'width="100%"', html)
     final_text += html
 
     #conversion --return as bytes
