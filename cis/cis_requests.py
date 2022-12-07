@@ -821,7 +821,7 @@ def upload_sharepoint_record_v2(req: SharepointUploadRequestV2, access_token, us
     app.logger.error('Content request failed: ' + r.text)
     return Response(StatusResponse(status='Failed', reason='Content request failed with status ' + str(content_req.status_code), request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
   content = content_req.content
-  success, error, uid = submit_nuxeo_file(c, content, user_info, req.metadata, req.nuxeo_env)
+  success, error, uid = submit_nuxeo_file_v2(c, content, user_info, req.metadata, req.nuxeo_env)
   if not success:
     return Response(StatusResponse(status='Failed', reason='Nuxeo upload for sharepoint file failed with error ' + error, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
 
@@ -840,6 +840,42 @@ def upload_sharepoint_record_v2(req: SharepointUploadRequestV2, access_token, us
     return response
   else:
     log_upload_activity(user_info, req.user_activity, req.metadata, c)
+    upload_resp = UploadResponse(record_id=req.metadata.record_id, uid=uid)
+    return Response(upload_resp.to_json(), status=200, mimetype='application/json')
+
+def upload_sharepoint_record_v3(req: SharepointUploadRequestV3, access_token, user_info, c):
+  headers = {'Authorization': 'Bearer ' + access_token}
+  url = 'https://graph.microsoft.com/v1.0/me/drive/items/' + req.drive_item_id + '?expand=listItem,sharepointIds'
+  r = requests.get(url, headers=headers, timeout=30)
+  if r.status_code != 200:
+    app.logger.error('Unable to find OneDrive item: ' + r.text)
+    return Response('Unable to find OneDrive item: ' + str(r.text), status=400, mimetype='application/json')
+  drive_item = r.json()
+  download_url = drive_item['@microsoft.graph.downloadUrl']
+  content_req = requests.get(download_url, timeout=30)
+  if content_req.status_code != 200:
+    app.logger.error('Content request failed: ' + r.text)
+    return Response(StatusResponse(status='Failed', reason='Content request failed with status ' + str(content_req.status_code), request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+  content = content_req.content
+  success, error, uid = submit_nuxeo_file(c, content, user_info, req.metadata, req.nuxeo_env)
+  if not success:
+    return Response(StatusResponse(status='Failed', reason='Nuxeo upload for sharepoint file failed with error ' + error, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+
+  ## If successful, update Sharepoint metadata
+  site_id = drive_item['sharepointIds']['siteId']
+  list_id = drive_item['sharepointIds']['listId']
+  list_item_id = drive_item['sharepointIds']['listItemId']
+  status = "Saved to ARMS"
+  success, response = update_sharepoint_record_status(site_id, list_id, list_item_id, status, access_token)
+  if not success:
+    return response 
+  
+  ## Add submission analytics to table
+  success, response = add_submission_analytics(req.user_activity, req.metadata.record_schedule, user_info.lan_id, None, uid)
+  if not success:
+    return response
+  else:
+    log_upload_activity_v2(user_info, req.user_activity, req.metadata, c)
     upload_resp = UploadResponse(record_id=req.metadata.record_id, uid=uid)
     return Response(upload_resp.to_json(), status=200, mimetype='application/json')
 
@@ -1016,10 +1052,60 @@ def convert_metadata_for_nuxeo(user_info, metadata, doc_type, parent_id=None):
   data['properties'] = properties
   return data
 
+def convert_metadata_for_nuxeo_v2(user_info, metadata, doc_type, parent_id=None, source_system="ARMS_UPLOADER"):
+  data = { "entity-type": "document", "name": metadata.title, "type": "epa_record"}
+  schedule = metadata.record_schedule.schedule_number + metadata.record_schedule.disposition_number
+  sensitivity = "1"
+  if metadata.sensitivity.lower() == 'shared':
+    sensitivity = "0"
+  properties = {
+    ## TODO: enable submission of EPA Contacts, non EPA Contacts, CUI/PII categories, Access/Use Restriction fields, Security Classification, Subjects 
+    # "arms:epa_contact": user_info.employee_number,
+    "arms:aa_ship": user_info.parent_org_code[0] + '0000000',
+    "arms:document_type": doc_type,
+    "arms:record_schedule": schedule,
+    "arms:folder_path": [metadata.file_path],
+    "arms:application_id": source_system,
+    "arms:program_office": [user_info.manager_parent_org_code],
+    "arms:sensitivity": sensitivity,
+    "arms:rights_holder": metadata.rights,
+    "arms:spatial_extent": metadata.spatial_extent,
+    "arms:temporal_extent": metadata.temporal_extent,
+    "dc:description": metadata.description,
+    "dc:title": metadata.title,
+    "dc:subjects": [],
+    "nxtag:tags": [{"label": tag,"username": metadata.custodian} for tag in metadata.tags],
+    }
+  if metadata.identifiers is not None:
+    properties['arms:identifiers'] = [{"key": k, "value":v} for k,v in metadata.identifiers.items()]
+  if metadata.close_date is not None:
+    properties['arms:close_date'] = metadata.close_date
+  if metadata.disposition_date is not None:
+    properties['arms:disposition_date'] = metadata.disposition_date
+  if parent_id is not None:
+    properties['arms:relation_is_part_of'] = [parent_id]
+  data['properties'] = properties
+  return data
+
 def create_nuxeo_record(config, user_info, metadata, env, parent_id=None):
   nuxeo_url, nuxeo_username, nuxeo_password = get_nuxeo_creds(config, env)
   headers = {'Content-Type': 'application/json'}
   data = convert_metadata_for_nuxeo(user_info, metadata, 'Other', parent_id=parent_id)
+  try:
+    r = requests.post(nuxeo_url + '/nuxeo/api/v1/path/EPA Organization/ThirdParty', json=data, headers=headers, auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))
+    if r.status_code == 201:
+      uid = r.json()['uid']
+      return True, None, uid
+    else:
+      app.logger.error(r.text)
+      return False, "Record creation request returned " + str(r.status_code) + ' response.', None
+  except:
+    return False, "Failed to complete record creation request.", None
+
+def create_nuxeo_record_v2(config, user_info, metadata, env, parent_id=None):
+  nuxeo_url, nuxeo_username, nuxeo_password = get_nuxeo_creds(config, env)
+  headers = {'Content-Type': 'application/json'}
+  data = convert_metadata_for_nuxeo_v2(user_info, metadata, 'Other', parent_id=parent_id)
   try:
     r = requests.post(nuxeo_url + '/nuxeo/api/v1/path/EPA Organization/ThirdParty', json=data, headers=headers, auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))
     if r.status_code == 201:
@@ -1073,6 +1159,22 @@ def create_nuxeo_email_record(config, user_info, metadata, env):
     app.logger.error(r.text)
     return False, "Failed to complete record creation request.", None
 
+def create_nuxeo_email_record_v2(config, user_info, metadata, env):
+  nuxeo_url, nuxeo_username, nuxeo_password = get_nuxeo_creds(config, env)
+  headers = {'Content-Type': 'application/json'}
+  data = convert_metadata_for_nuxeo_v2(user_info, metadata, 'Email')
+  try:
+    r = requests.post(nuxeo_url + '/nuxeo/api/v1/path/EPA Organization/ThirdParty', json=data, headers=headers, auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))
+    if r.status_code == 201:
+      uid = r.json()['uid']
+      return True, None, uid
+    else:
+      app.logger.error(r.text)
+      return False, "Record creation request returned " + str(r.status_code) + ' response.', None
+  except:
+    app.logger.error(r.text)
+    return False, "Failed to complete record creation request.", None
+
 def submit_nuxeo_file(config, file, user_info, metadata, env):
   # Step 1: Upload files
   file_md5 = hashlib.md5(file).hexdigest()
@@ -1097,6 +1199,29 @@ def submit_nuxeo_file(config, file, user_info, metadata, env):
 
   return True, None, uid
 
+def submit_nuxeo_file_v2(config, file, user_info, metadata, env):
+  # Step 1: Upload files
+  file_md5 = hashlib.md5(file).hexdigest()
+  success = upload_nuxeo_file(config, file, file_md5)
+
+  if not success:
+    return False, "Failed to upload file."
+  
+  # Step 2: Create Nuxeo record
+  success, error, uid = create_nuxeo_record_v2(config, user_info, metadata, env)
+  if not success:
+    return False, error, None
+  
+  # Step 3: Attach blob
+  mimetype = mimetypes.guess_type(metadata.file_path)[0]
+  if mimetype is None:
+    mimetype = 'application/octet-stream'
+  content_blob = NuxeoBlob(filename=metadata.file_path, mimetype=mimetype, digest=file_md5, length=len(file))
+  success, error = attach_nuxeo_blob(config, uid, content_blob, [], env)
+  if not success:
+    return False, error, None
+
+  return True, None, uid
 def upload_nuxeo_email(config, req, source, user_info):
 
   # Step 0: Get EML file from graph
@@ -1205,6 +1330,129 @@ def upload_nuxeo_email(config, req, source, user_info):
   success, response = add_submission_analytics(req.user_activity, req.metadata.record_schedule, user_info.lan_id, None, uid)
   if not success:
     return response
+  
+  upload_resp = UploadResponse(record_id=req.metadata.record_id, uid=uid)
+
+  return Response(upload_resp.to_json(), status=200, mimetype='application/json')
+
+def upload_nuxeo_email_v2(config, req, source, user_info):
+
+  # Step 0: Get EML file from graph
+  content = get_eml_file(req.email_id, req.metadata.title, source, req.mailbox, g.access_token, config)
+  if content is None:
+    return Response(StatusResponse(status='Failed', reason='Unable to retrieve email.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+
+  # Step 1: Upload all files - PDF rendition, EML, and attachments
+  success, pdf_render, attachments = eml_to_pdf(content)
+
+  # Upload PDF
+  pdf_bytes = pdf_render.getvalue()
+  pdf_md5 = hashlib.md5(pdf_bytes).hexdigest()
+  success = upload_nuxeo_file(config, pdf_bytes, pdf_md5)
+
+  if not success:
+    return Response(StatusResponse(status='Failed', reason='Unable to upload PDF rendition.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+  
+  # Upload original
+  content_md5 = hashlib.md5(content).hexdigest() 
+  success = upload_nuxeo_file(config, content, content_md5)
+  if not success:
+    return Response(StatusResponse(status='Failed', reason='Unable to upload EML.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+        
+  # Step 3: Create Nuxeo record
+  
+  # Create record for PDF rendition with EML as Nuxeo attachment
+  success, error, uid = create_nuxeo_email_record_v2(config, user_info, req.metadata, req.nuxeo_env)
+
+  if not success:
+    app.logger.error(error)
+    return Response(StatusResponse(status='Failed', reason='Unable to create email record.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+
+  # Step 4: Attach blobs
+  content_blob = NuxeoBlob(filename=req.metadata.title + '.pdf', mimetype='application/pdf', digest=pdf_md5, length=len(pdf_bytes))
+  attachment_blob = NuxeoBlob(filename=req.metadata.title + '.eml', mimetype='application/octet-stream', digest=content_md5, length=len(content))
+  success, error = attach_nuxeo_blob(config, uid, content_blob, [attachment_blob], req.nuxeo_env)
+  if not success:
+    app.logger.error(error)
+    return Response(StatusResponse(status='Failed', reason='Unable to link email S3 blobs.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+
+  # Create records for each attachment listing the first record as a parent
+  schedule_map = {x.name:x.schedule for x in req.attachment_schedules}
+  close_date_map = {x.name:x.close_date for x in req.attachment_schedules}
+  disposition_date_map = {x.name:x.disposition_date for x in req.attachment_schedules}
+  attachment_uids = []
+
+  for attachment in attachments:
+    # Upload attachments
+    attachment_name = attachment[0]
+    attachment_content = base64.b64decode(attachment[1].encode('ascii'))
+    attachment_md5 = hashlib.md5(attachment_content).hexdigest() 
+    success = upload_nuxeo_file(config, attachment_content, attachment_md5)
+    if not success:
+      return Response(StatusResponse(status='Failed', reason='Unable to upload attachment ' + attachment[0] + '.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+
+    # Create Nuxeo records for each
+    metadata = ECMSMetadataV2(
+      file_path = req.metadata.file_path,
+      custodian = req.metadata.custodian,
+      title = attachment[0],
+      record_schedule = schedule_map.get(attachment[0], req.metadata.record_schedule),
+      sensitivity = req.metadata.sensitivity,
+      access_restriction_status = req.metadata.access_restriction_status,
+      use_restriction_status = req.metadata.use_restriction_status,
+      access_restriction_note = req.metadata.access_restriction_note,
+      use_restriction_note = req.metadata.use_restriction_note,
+      security_classification = req.metadata.security_classification,
+      specific_access_restriction = req.metadata.specific_access_restriction,
+      specific_use_restriction = req.metadata.specific_use_restriction,
+      description = req.metadata.description,
+      cui_pii_categories = req.metadata.cui_pii_categories,
+      epa_contact = req.metadata.epa_contact,
+      non_epa_contact = req.metadata.non_epa_contact,
+      subjects = req.metadata.subjects,
+      spatial_extent = req.metadata.spatial_extent,
+      temporal_extent = req.metadata.temporal_extent,
+      close_date = close_date_map.get(attachment[0], req.metadata.close_date),
+      disposition_date = disposition_date_map.get(attachment[0], req.metadata.disposition_date),
+      tags = req.metadata.tags
+    )
+
+    success, error, attachment_uid = create_nuxeo_record_v2(config, user_info, metadata, req.nuxeo_env, parent_id=uid)
+    if not success:
+      app.logger.error('Failed to create attachment record for attachment ' + str(attachment[0] + '. ' + error))
+      return Response(StatusResponse(status='Failed', reason='Unable to create attachment record.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+    
+    # Link attachment blob
+    mimetype_guess = mimetypes.guess_type(attachment_name)[0]
+    if mimetype_guess is None:
+      mimetype_guess = 'application/octet-stream'
+    attachment_blob = NuxeoBlob(filename=attachment_name, mimetype=mimetype_guess, digest=attachment_md5, length=len(attachment_content))
+    success, error = attach_nuxeo_blob(config, attachment_uid, attachment_blob, [], req.nuxeo_env)
+    if not success:
+      app.logger.error('Failed to link attachment blob for attachment ' + str(attachment[0] + '. ' + error))
+      return Response(StatusResponse(status='Failed', reason='Unable to create attachment record.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+    
+    attachment_uids.append(attachment_uid)
+
+  # Step 5: Update parent record to contain attachment links as children
+  if len(attachment_uids) > 0:
+    properties = {'arms:relation_has_part': attachment_uids}
+    success = update_nuxeo_metadata(uid, properties, config, req.nuxeo_env)
+    if not success:
+      return Response(StatusResponse(status='Failed', reason='Failed to update document relationships.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+
+  # Step 6: Mark record saved in Outlook
+  save_req = MarkSavedRequestGraph(email_id = req.email_id, sensitivity=req.metadata.sensitivity, mailbox=req.mailbox)
+  save_resp = mark_saved(save_req, g.access_token, source, config)
+  if save_resp.status != '200 OK':
+    return save_resp
+  
+  # Step 7: Store submission analytics
+  success, response = add_submission_analytics(req.user_activity, req.metadata.record_schedule, user_info.lan_id, None, uid)
+  if not success:
+    return response
+  else:
+    log_upload_activity_v2(user_info, req.user_activity, req.metadata, config)
   
   upload_resp = UploadResponse(record_id=req.metadata.record_id, uid=uid)
 
@@ -1322,6 +1570,13 @@ def log_upload_activity(user_info, user_activity, metadata, config, count=1):
   if user_activity is not None and not user_activity.used_default_schedule or user_activity.used_schedule_dropdown or user_activity.used_recommended_schedule:
       safe_user_activity_request(user_info.employee_number, user_info.lan_id, user_info.parent_org_code, '4', config)
   if metadata is not None and len(metadata.description) > 0 or metadata.close_date is not None or metadata.rights is not None or metadata.coverage is not None or metadata.relationships is not None or metadata.tags is not None:
+      safe_user_activity_request(user_info.employee_number, user_info.lan_id, user_info.parent_org_code, '6', config)
+
+def log_upload_activity_v2(user_info, user_activity, metadata, config, count=1):
+  safe_user_activity_request(user_info.employee_number, user_info.lan_id, user_info.parent_org_code, '3', config, count)
+  if user_activity is not None and not user_activity.used_default_schedule or user_activity.used_schedule_dropdown or user_activity.used_recommended_schedule:
+      safe_user_activity_request(user_info.employee_number, user_info.lan_id, user_info.parent_org_code, '4', config)
+  if metadata is not None and len(metadata.description) > 0 or metadata.close_date is not None or len(metadata.spatial_extent) > 0 or len(metadata.temporal_extent) > 0 or len(metadata.subjects) > 0 or len(metadata.tags) > 0 or metadata.identifiers is not None:
       safe_user_activity_request(user_info.employee_number, user_info.lan_id, user_info.parent_org_code, '6', config)
 
 def safe_user_activity_request(employee_id, lan_id, office_code, event_id, config, count=1):

@@ -141,6 +141,37 @@ class ECMSMetadata:
     def __hash__(self):
         return hash((self.custodian, self.file_path))
 
+@dataclass_json
+@dataclass
+class ECMSMetadataV2:
+    file_path: str
+    custodian: str
+    title: str
+    record_schedule: RecordSchedule
+    sensitivity: str
+    access_restriction_status: str
+    use_restriction_status: str
+    access_restriction_note: Optional[str] = None
+    use_restriction_note: Optional[str] = None
+    security_classification: Optional[str] = None
+    specific_access_restriction: Optional[list[str]] = field(default_factory=list)
+    specific_use_restriction: Optional[list[str]] = field(default_factory=list)
+    description: Optional[str] = ''
+    close_date: Optional[str] = None
+    disposition_date: Optional[str] = None
+    cui_pii_categories: Optional[list[str]] = field(default_factory=list)
+    epa_contact: Optional[list[str]] = field(default_factory=list)
+    non_epa_contact: Optional[list[str]] = field(default_factory=list)
+    subjects: Optional[list[str]] = field(default_factory=list)
+    spatial_extent: Optional[list[str]] = field(default_factory=list)
+    temporal_extent: Optional[list[str]] = field(default_factory=list)
+    tags: Optional[list[str]] = field(default_factory=list)
+    identifiers: Optional[Dict[str, list[str]]] = None
+    record_id: Optional[str] = None
+
+    def __hash__(self):
+        return hash((self.custodian, self.file_path))
+
 ## Example metadata:
 ## {"file_path":"", "custodian":"", "title":"", "record_schedule":{"function_number":"401","schedule_number":"1006","disposition_number":"b"}, "sensitivity":"shared"}
 
@@ -432,13 +463,24 @@ class GetEmailRequest:
 class AttachmentSchedule:
     name: str
     schedule: RecordSchedule
-    close_date: Optional[str] = ''
-    disposition_date: Optional[str] = ''
+    close_date: Optional[str] = None
+    disposition_date: Optional[str] = None
 
 @dataclass_json
 @dataclass 
 class UploadEmailRequestV2:
     metadata: ECMSMetadata
+    mailbox: str
+    email_id: str
+    email_unid: str
+    user_activity: SubmissionAnalyticsMetadata
+    nuxeo_env: Optional[str] = 'dev'
+    attachment_schedules: Optional[list[AttachmentSchedule]] = field(default_factory=list)
+
+@dataclass_json
+@dataclass 
+class UploadEmailRequestV3:
+    metadata: ECMSMetadataV2
     mailbox: str
     email_id: str
     email_unid: str
@@ -525,6 +567,14 @@ class SharepointPredictionRequest:
 class SharepointUploadRequestV2:
     drive_item_id: str
     metadata: ECMSMetadata
+    user_activity: SubmissionAnalyticsMetadata
+    nuxeo_env: Optional[str] = 'dev'
+
+@dataclass_json
+@dataclass 
+class SharepointUploadRequestV3:
+    drive_item_id: str
+    metadata: ECMSMetadataV2
     user_activity: SubmissionAnalyticsMetadata
     nuxeo_env: Optional[str] = 'dev'
 
