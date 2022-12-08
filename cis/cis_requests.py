@@ -152,11 +152,15 @@ def eml_to_pdf(eml):
       final_text += "<strong> Attachments: </strong>" + ', '.join([x[0] for x in attachments]) + "</br>"
 
     # Breaks styling
-    html = html.replace('<','{').replace('>','}')
+    # html = html.replace('<','{').replace('>','}')
 
     # # Fix hidden table styling
-    # pattern = r'(height|width)=\"\d+([A-Za-z])?\"'
-    # html = re.sub(pattern, 'width="100%"', html)
+    pattern = r'<tr style=\".*:\d+([.%])*(\d+)*([A-Za-z])*\">'
+    if re.findall(pattern, html):
+        match = re.findall(pattern, html)
+
+        for i in match:
+            html = re.sub(pattern, '<tr>', html)
 
     final_text += html
 
