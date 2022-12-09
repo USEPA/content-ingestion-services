@@ -155,9 +155,8 @@ def eml_to_pdf(eml):
     # html = html.replace('<','{').replace('>','}')
 
     # Fix hidden table styling
-    html = html.replace('\n', ' ').replace('\r', ' ').replace(r'\s', ' ').replace('\t', ' ').replace('\r\n', ' ')
-    pattern = r"<tr style=(\"|').*?(\"|')>"
-    if re.findall(pattern, html):
+    pattern = r"<tr style=(\"|').*\r*\n*\s*\t*.*(\"|')>"
+    if re.findall(pattern, html, re.MULTILINE):
         match = re.findall(pattern, html)
 
         for i in match:
