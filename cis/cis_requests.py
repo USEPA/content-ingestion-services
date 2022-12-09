@@ -156,11 +156,11 @@ def eml_to_pdf(eml):
 
     # Fix hidden table styling
     tr_pattern = r"<tr style=(\"|').*\r*\n*\s*\t*.*(\"|')>"
-    if re.findall(tr_pattern, html, re.MULTILINE):
+    if re.findall(tr_pattern, html):
       html = re.sub(tr_pattern, '<tr>', html)
 
     td_pattern = r"<td.*style=(\"|').*\r*\n*\s*\t*.*(\"|')>"
-    if re.findall(td_pattern, html, re.MULTILINE):
+    if re.findall(td_pattern, html):
       html = re.sub(td_pattern, '<td>', html)
 
     final_text += html
