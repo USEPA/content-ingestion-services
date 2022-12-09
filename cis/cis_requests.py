@@ -154,14 +154,18 @@ def eml_to_pdf(eml):
     # Breaks styling
     # html = html.replace('<','{').replace('>','}')
 
-    # Fix hidden table styling
-    tr_pattern = r"<tr style=(\"|').*\r*\n*\s*\t*.*(\"|')>"
+    # Fix hidden template table styling
+    tr_pattern = r"<tr style=\".*\r*\n*\s*\t*.*\">|<tr style='.*\r*\n*\s*\t*.*'>"
     if re.findall(tr_pattern, html):
-      html = re.sub(tr_pattern, '<tr>', html)
+      match = re.findall(td_pattern, html)
+      for i in match:
+        html = re.sub(tr_pattern, '<tr>', html)
 
-    td_pattern = r"<td.*style=(\"|').*\r*\n*\s*\t*.*(\"|')>"
+    td_pattern = r"<td.*style=\".*\r*\n*\s*\t*.*\">|<td.*style='.*\r*\n*\s*\t*.*'>"
     if re.findall(td_pattern, html):
-      html = re.sub(td_pattern, '<td>', html)
+      match = re.findall(td_pattern, html)
+      for i in match:
+        html = re.sub(td_pattern, '<td>', html)
 
     final_text += html
 
