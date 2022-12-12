@@ -1061,11 +1061,14 @@ def convert_metadata_for_nuxeo_v2(user_info, metadata, doc_type, parent_id=None,
   properties = {
     ## TODO: enable submission of EPA Contacts, non EPA Contacts, CUI/PII categories, Access/Use Restriction fields, Security Classification, Subjects 
     # "arms:epa_contact": user_info.employee_number,
+    "arms:custodian": user_info.employee_number,
     "arms:aa_ship": user_info.parent_org_code[0] + '0000000',
     "arms:document_type": doc_type,
     "arms:record_schedule": schedule,
     "arms:folder_path": [metadata.file_path],
     "arms:application_id": source_system,
+    ## TODO: Look up whether the current user is capstone and populate this correctly. 
+    "arms:has_capstone": False,
     "arms:program_office": [user_info.manager_parent_org_code],
     "arms:sensitivity": sensitivity,
     "arms:rights_holder": metadata.rights,

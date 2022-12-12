@@ -145,6 +145,7 @@ class ECMSMetadata:
 @dataclass
 class ECMSMetadataV2:
     file_path: str
+    ## TODO: We are not using this field for now - we will use it when the FE implements the ability to change the custodian
     custodian: str
     title: str
     record_schedule: RecordSchedule
