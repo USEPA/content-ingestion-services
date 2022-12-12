@@ -159,11 +159,11 @@ def eml_to_pdf(eml):
     html = BeautifulSoup(html, 'html.parser')
     for td in html.find_all('td'):
       if 'style' in td.attrs:
-          del td.attrs['style']
+        del td.attrs['style']
 
     for tr in html.find_all('tr'):
       if 'style' in tr.attrs:
-          del tr.attrs['style']
+        del tr.attrs['style']
 
     final_text += html
 
