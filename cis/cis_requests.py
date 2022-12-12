@@ -20,6 +20,7 @@ from datetime import timedelta
 from dateutil.relativedelta import relativedelta
 import boto3
 import mimetypes
+from bs4 import BeautifulSoup
 
 TIKA_CUTOFF = 20
 TIKA_TEXT_UPPER_LIMIT = 10000
@@ -155,17 +156,14 @@ def eml_to_pdf(eml):
     # html = html.replace('<','{').replace('>','}')
 
     # Fix hidden template table styling
-    tr_pattern = r"<tr style=\".*\r*\n*\s*\t*.*\">|<tr style='.*\r*\n*\s*\t*.*'>"
-    if re.findall(tr_pattern, html):
-      match = re.findall(tr_pattern, html)
-      for i in match:
-        html = re.sub(tr_pattern, '<tr>', html)
+    html = BeautifulSoup(html, 'html.parser')
+    for td in html.find_all('td'):
+      if 'style' in td.attrs:
+          del td.attrs['style']
 
-    td_pattern = r"<td.*style=\".*\r*\n*\s*\t*.*\">|<td.*style='.*\r*\n*\s*\t*.*'>"
-    if re.findall(td_pattern, html):
-      match = re.findall(td_pattern, html)
-      for i in match:
-        html = re.sub(td_pattern, '<td>', html)
+    for tr in html.find_all('tr'):
+      if 'style' in tr.attrs:
+          del tr.attrs['style']
 
     final_text += html
 
