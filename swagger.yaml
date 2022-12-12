@@ -1,4 +1,4 @@
-openapi: 3.0.1
+openapi: 3.0.3
 info:
   title: EPA Content Ingestion Services
   description: The content ingestion services (CIS) are used by EPA to power records
@@ -47,6 +47,7 @@ paths:
         content:
           multipart/form-data:
             schema:
+              type: object
               properties:
                 file:
                   type: string
@@ -220,6 +221,7 @@ paths:
         content:
           multipart/form-data:
             schema:
+              type: object
               properties:
                 file:
                   type: string
@@ -269,6 +271,7 @@ paths:
       requestBody:
         content:
           multipart/form-data:
+            type: object
             schema:
               properties:
                 file:
