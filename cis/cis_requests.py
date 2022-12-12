@@ -164,6 +164,8 @@ def eml_to_pdf(eml):
     for tr in html.find_all('tr'):
       if 'style' in tr.attrs:
         del tr.attrs['style']
+    
+    html = html.prettify()
 
     final_text += html
 
