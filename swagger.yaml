@@ -259,6 +259,56 @@ paths:
             '*/*':
               schema:
                 $ref: '#/components/schemas/StatusResponse'
+  /upload_file/v3:
+    post:
+      tags:
+      - desktop
+      summary: Upload a file to ECMS with metadata.
+      security:
+        - Authorization: [] 
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              properties:
+                file:
+                  type: string
+                  description: Binary content of file to upload.
+                  format: binary
+                metadata:
+                  type: string
+                  description: String of serialized JSON with ECMSMetadataV2.
+                user_activity:
+                  type: string
+                  description: String of serialized JSON with user activity data.
+                nuxeo_env:
+                  type: string
+                  description: Environment - either dev or prod.
+      responses:
+        200:
+          description: File was successfully uploaded.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/UploadResponse'
+        400:
+          description: Invalid request - description in response.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        401:
+          description: Unauthorized - description in response.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        500:
+          description: Server side error - description in response.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
   /get_mailboxes:
     get:
       tags:
@@ -363,6 +413,53 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UploadEmailRequestV2'
+        required: false
+      responses:
+        200:
+          description: Email successfully uploaded.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/UploadResponse'
+        400:
+          description: Invalid request - description in response.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        401:
+          description: Unauthorized - description in response.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        500:
+          description: Server side error - description in response.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+      x-codegen-request-body-name: upload_request
+  /upload_email/v3/{emailsource}:
+    post:
+      tags:
+      - email
+      summary: Upload email to ARMS with metadata.
+      security:
+        - Authorization: [] 
+        - AccessToken: []
+      parameters:
+      - name: emailsource
+        in: path
+        description: Options are regular and archive.
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UploadEmailRequestV3'
         required: false
       responses:
         200:
@@ -1049,6 +1146,47 @@ paths:
               schema:
                 $ref: '#/components/schemas/StatusResponse'
       x-codegen-request-body-name: data
+  /upload_sharepoint_record/v3:
+    post:
+      tags:
+      - sharepoint
+      summary: Upload Sharepoint record to ECMS.
+      security:
+        - Authorization: [] 
+        - AccessToken: []
+      requestBody:
+        description: ID fields and metadata needed to upload the record.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SharepointUploadRequestV3'
+        required: false
+      responses:
+        200:
+          description: Record successfully uploaded.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/UploadResponse'
+        400:
+          description: Invalid request - description in response.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        401:
+          description: Unauthorized - description in response.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        500:
+          description: Server side error - description in response.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+      x-codegen-request-body-name: data
   /upload_sharepoint_batch:
     post:
       tags:
@@ -1658,6 +1796,29 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/AttachmentSchedule'
+    UploadEmailRequestV3:
+      type: object
+      properties:
+        email_id:
+          type: string
+        email_unid:
+          type: string
+        mailbox:
+          type: string
+        metadata:
+          $ref: '#/components/schemas/ECMSMetadataV2'
+        user_activity:
+          $ref: '#/components/schemas/SubmissionAnalyticsMetadata'
+        nuxeo_env:
+          type: string
+          default: dev
+          enum:
+          - dev
+          - prod
+        attachment_schedules:
+          type: array
+          items:
+            $ref: '#/components/schemas/AttachmentSchedule'
     SubmissionAnalyticsMetadata:
       type: object
       properties:
@@ -1735,6 +1896,82 @@ components:
           items:
             type: string
         relationships:
+          type: array
+          items:
+            type: string
+        identifiers:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+        record_id:
+          type: string
+    ECMSMetadataV2:
+      type: object
+      properties:
+        file_path:
+          type: string
+        custodian:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        access_restriction_status:
+          type: string
+        use_restriction_status:
+          type: string
+        record_schedule:
+          $ref: '#/components/schemas/RecordSchedule'
+        close_date:
+          type: string
+        disposition_date:
+          type: string
+        sensitivity:
+          type: string
+          enum:
+          - shared
+          - private
+        access_restriction_note:
+          type: string
+        use_restriction_note:
+          type: string
+        security_classification:
+          type: string
+        specific_access_restriction:
+          type: array
+          items:
+            type: string
+        specific_use_restriction:
+          type: array
+          items:
+            type: string
+        spatial_extent:
+          type: array
+          items:
+            type: string
+        temporal_extent:
+          type: array
+          items:
+            type: string
+        subjects:
+          type: array
+          items:
+            type: string
+        epa_contact:
+          type: array
+          items:
+            type: string
+        cui_pii_categories:
+          type: array
+          items:
+            type: string
+        non_epa_contact:
+          type: array
+          items:
+            type: string
+        tags:
           type: array
           items:
             type: string
@@ -1971,6 +2208,17 @@ components:
           type: string
         metadata:
           $ref: '#/components/schemas/ECMSMetadata'
+        user_activity:
+          $ref: '#/components/schemas/SubmissionAnalyticsMetadata'
+        nuxeo_env:
+          type: string
+    SharepointUploadRequestV3:
+      type: object
+      properties:
+        drive_item_id:
+          type: string
+        metadata:
+          $ref: '#/components/schemas/ECMSMetadataV2'
         user_activity:
           $ref: '#/components/schemas/SubmissionAnalyticsMetadata'
         nuxeo_env:
