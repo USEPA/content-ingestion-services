@@ -1089,9 +1089,11 @@ def convert_metadata_for_nuxeo_v2(user_info, metadata, doc_type, parent_id=None,
     "arms:sensitivity": sensitivity,
     "arms:spatial_extent": metadata.spatial_extent,
     "arms:temporal_extent": metadata.temporal_extent,
+    "arms:subjects": metadata.subjects,
+    "arms:specific_access_restrictions": metadata.specific_access_restriction,
+    "arms:specific_use_restrictions": metadata.specific_use_restriction,
     "dc:description": metadata.description,
     "dc:title": metadata.title,
-    "dc:subjects": [],
     "nxtag:tags": [{"label": tag,"username": metadata.custodian} for tag in metadata.tags],
     }
   if metadata.identifiers is not None:
