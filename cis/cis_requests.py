@@ -1073,6 +1073,9 @@ def convert_metadata_for_nuxeo_v2(user_info, metadata, doc_type, parent_id=None,
   sensitivity = "1"
   if metadata.sensitivity.lower() == 'shared':
     sensitivity = "0"
+  essential_records = 0
+  if metadata.essential_records.lower() == 'yes':
+    essential_records = 1
   properties = {
     ## TODO: enable submission of EPA Contacts, non EPA Contacts, CUI/PII categories, Access/Use Restriction fields, Security Classification, Subjects 
     ## TODO: epa_contact will become a multi valued field
@@ -1092,7 +1095,7 @@ def convert_metadata_for_nuxeo_v2(user_info, metadata, doc_type, parent_id=None,
     "arms:subjects": metadata.subjects,
     "arms:specific_access_restrictions": metadata.specific_access_restriction,
     "arms:specific_use_restrictions": metadata.specific_use_restriction,
-    "arms:essential_records": metadata.essential_records,
+    "arms:essential_records": essential_records,
     "dc:description": metadata.description,
     "dc:title": metadata.title,
     "nxtag:tags": [{"label": tag,"username": metadata.custodian} for tag in metadata.tags],
