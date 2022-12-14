@@ -271,8 +271,8 @@ paths:
       requestBody:
         content:
           multipart/form-data:
-            type: object
             schema:
+              type: object
               properties:
                 file:
                   type: string
@@ -1925,6 +1925,11 @@ components:
           type: string
         use_restriction_status:
           type: string
+        essential_records:
+          type: string
+          enum:
+          - Yes
+          - No
         record_schedule:
           $ref: '#/components/schemas/RecordSchedule'
         close_date:

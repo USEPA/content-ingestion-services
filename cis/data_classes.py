@@ -152,6 +152,7 @@ class ECMSMetadataV2:
     sensitivity: str
     access_restriction_status: str
     use_restriction_status: str
+    essential_records: str
     access_restriction_note: Optional[str] = None
     use_restriction_note: Optional[str] = None
     security_classification: Optional[str] = None
