@@ -1928,8 +1928,8 @@ components:
         essential_records:
           type: string
           enum:
-          - Yes
-          - No
+          - "Yes"
+          - "No"
         record_schedule:
           $ref: '#/components/schemas/RecordSchedule'
         close_date:
