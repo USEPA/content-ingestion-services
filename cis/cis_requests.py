@@ -176,6 +176,22 @@ def eml_to_pdf(eml):
 
     return success, result, attachments
 
+def parse_email_metadata(graph_email_value, mailbox, access_token, emailsource):
+  categories = set(graph_email_value.get('categories', []))
+  categories.remove('Record')
+  return EmailMetadata(
+      unid=graph_email_value['internetMessageId'], #internetMessageId contains '.prod.outlook.com'
+      subject=graph_email_value['subject'], 
+      email_id=graph_email_value['id'], 
+      received=graph_email_value['receivedDateTime'], 
+      _from=graph_email_value['from']['emailAddress']['address'],
+      to=';'.join([(y['emailAddress']['address']) for y in graph_email_value['toRecipients']]),
+      sent=graph_email_value['sentDateTime'],
+      attachments= extract_attachments_from_response_graph(graph_email_value['id'], graph_email_value['hasAttachments'], mailbox, access_token),
+      mailbox_source= emailsource,
+      categories = list(categories)
+    )
+    
 def list_email_metadata_graph(req: GetEmailRequest, user_email, access_token, config):
 
   #get records from archive
@@ -216,12 +232,7 @@ def list_email_metadata_graph(req: GetEmailRequest, user_email, access_token, co
       ) for x in resp['email_items']]
 
   else:
-    mailbox = 'me'
-
-    if req.mailbox != user_email:
-      mailbox= 'users/' + req.mailbox
-      #maybe https://graph.microsoft.com/v1.0/users/sharedmailbox-emailaddress/mailfolders/inbox/messages?$top=4
-
+    mailbox = 'users/' + req.mailbox
     headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}
     url = "https://graph.microsoft.com/v1.0/" + mailbox + "/messages?$filter=categories/any(a:a+eq+'Record')&$top="+ str(req.items_per_page) + "&$skip=" + str((req.page_number -1)*req.items_per_page) + "&$count=true" 
     p = requests.get(url, headers=headers, timeout=60)
@@ -231,17 +242,7 @@ def list_email_metadata_graph(req: GetEmailRequest, user_email, access_token, co
       return Response(StatusResponse(status='Failed', reason="Unable to retrieve records for regular " + req.mailbox, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
     
     resp = p.json() 
-    emails = [EmailMetadata(
-      unid=x['internetMessageId'], #internetMessageId contains '.prod.outlook.com'
-      subject=x['subject'], 
-      email_id=x['id'], 
-      received=x['receivedDateTime'], 
-      _from=x['from']['emailAddress']['address'],
-      to=';'.join([(y['emailAddress']['address']) for y in x['toRecipients']]),
-      sent=x['sentDateTime'],
-      attachments= extract_attachments_from_response_graph(x['id'],x['hasAttachments'], mailbox, access_token),
-      mailbox_source= req.emailsource
-    ) for x in resp['value']]
+    emails = [parse_email_metadata(graph_email_value, mailbox, access_token, req.emailsource) for graph_email_value in resp['value']]
 
     total_count=resp['@odata.count'] 
     

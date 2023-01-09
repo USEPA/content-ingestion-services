@@ -286,6 +286,7 @@ class EmailMetadata:
     received: str
     attachments: list[EmailAttachment]
     mailbox_source: str
+    categories: list[str] = field(default_factory=list)
 
 @dataclass_json
 @dataclass 
