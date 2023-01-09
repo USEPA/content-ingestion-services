@@ -1815,6 +1815,11 @@ components:
                   $ref: '#/components/schemas/EmailAttachment'
               mailbox_source:
                 type: string
+              categories:
+                type: array
+                items:
+                  type: string
+                  
     AttachmentSchedule:
       type: object
       properties:
