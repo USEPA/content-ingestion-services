@@ -492,6 +492,43 @@ class UploadEmailRequestV3:
 
 @dataclass_json
 @dataclass 
+class SEMSAttachmentInfo:
+    sems_uid: str
+    name: str
+    attachment_id: str
+    record_schedule: RecordSchedule
+
+@dataclass_json
+@dataclass 
+class SEMSMetadata:
+    sems_uid: str
+    region: str
+    program_types: list[str]
+    sites: list[str]
+    ous: list[str]
+    ssids: list[str]
+    record_schedule: RecordSchedule
+    access_control: list[str]
+    program_areas: list[str]
+    special_processing: list[str]
+    processing_comments: str
+    description: str
+    tags: list[str]
+    file_name: str
+    attachment_info: list[SEMSAttachmentInfo]
+
+@dataclass_json
+@dataclass 
+class UploadSEMSEmail:
+    metadata: SEMSMetadata
+    mailbox: str
+    email_id: str
+    record_id: str
+    email_unid: str
+    nuxeo_env: Optional[str] = 'dev'
+
+@dataclass_json
+@dataclass 
 class UploadResponse:
     record_id: str
     uid: str

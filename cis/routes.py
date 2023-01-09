@@ -285,6 +285,21 @@ def upload_email_v3(emailsource):
     
     return upload_nuxeo_email_v2(c, req, emailsource, user_info)
 
+@app.route('/upload_sems_email/<emailsource>', methods=['POST'])
+def upload_sems_email(emailsource):
+    success, message, user_info = get_user_info(c, g.token_data)
+    if not success:
+        return Response(StatusResponse(status='Failed', reason=message, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+    if g.access_token is None:
+        return Response(StatusResponse(status='Failed', reason="X-Access-Token is required.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
+    req = request.json
+    try:
+        req = UploadSEMSEmail.from_dict(req)
+    except:
+        return Response(StatusResponse(status='Failed', reason="Request is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
+
+    return upload_sems_email(c, req, emailsource, user_info)
+
 #mark and untag email
 @app.route('/mark_email_saved/<emailsource>', methods=['POST'])
 def mark_email_saved_graph(emailsource):

@@ -1182,8 +1182,26 @@ def create_nuxeo_email_record(config, user_info, metadata, env):
   except:
     app.logger.error(r.text)
     return False, "Failed to complete record creation request.", None
+  
+def convert_sems_metadata(user_info, sems_metadata: SEMSMetadata):
+  # TODO: Should SEMS records be private or shared?
+  # TODO: How to fill use and access restrictions
+  # TODO: How to incorporate other SEMS metadata
+  # TODO: Should there be an identifier for SEMS UID?
+  return ECMSMetadataV2(
+    file_path=sems_metadata.file_name,
+    custodian=user_info.employee_number,
+    title=sems_metadata.file_name,
+    record_schedule=sems_metadata.record_schedule,
+    sensitivity="1",
+    access_restriction_status="",
+    use_restriction_status="",
+    essential_records="",
+    description=sems_metadata.description,
+    tags=sems_metadata.tags
+  )
 
-def create_nuxeo_email_record_v2(config, user_info, metadata, env):
+def create_nuxeo_email_record_v2(config, user_info, metadata, env, source_system="ARMS"):
   nuxeo_url, nuxeo_username, nuxeo_password = get_nuxeo_creds(config, env)
   headers = {'Content-Type': 'application/json'}
   data = convert_metadata_for_nuxeo_v2(user_info, metadata, 'Email')
@@ -1479,6 +1497,110 @@ def upload_nuxeo_email_v2(config, req, source, user_info):
     log_upload_activity_v2(user_info, req.user_activity, req.metadata, config)
   
   upload_resp = UploadResponse(record_id=req.metadata.record_id, uid=uid)
+
+  return Response(upload_resp.to_json(), status=200, mimetype='application/json')
+
+def upload_sems_email(config, req: UploadSEMSEmail, source, user_info):
+   # Step 0: Get EML file from graph
+  content = get_eml_file(req.email_id, req.metadata.file_name, source, req.mailbox, g.access_token, config)
+  if content is None:
+    return Response(StatusResponse(status='Failed', reason='Unable to retrieve email.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+
+  # Step 1: Upload all files - PDF rendition, EML, and attachments
+  success, pdf_render, attachments = eml_to_pdf(content)
+
+  # Upload PDF
+  pdf_bytes = pdf_render.getvalue()
+  pdf_md5 = hashlib.md5(pdf_bytes).hexdigest()
+  success = upload_nuxeo_file(config, pdf_bytes, pdf_md5)
+
+  if not success:
+    return Response(StatusResponse(status='Failed', reason='Unable to upload PDF rendition.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+  
+  # Upload original
+  content_md5 = hashlib.md5(content).hexdigest() 
+  success = upload_nuxeo_file(config, content, content_md5)
+  if not success:
+    return Response(StatusResponse(status='Failed', reason='Unable to upload EML.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+        
+  # Step 3: Create Nuxeo record
+  
+  # Create record for PDF rendition with EML as Nuxeo attachment
+  arms_metadata = convert_sems_metadata(metadata)
+  success, error, uid = create_nuxeo_email_record_v2(config, user_info, arms_metadata, req.nuxeo_env, source_system="SEMS")
+
+  if not success:
+    app.logger.error(error)
+    return Response(StatusResponse(status='Failed', reason='Unable to create email record.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+
+  # Step 4: Attach blobs
+  content_blob = NuxeoBlob(filename=req.metadata.title + '.pdf', mimetype='application/pdf', digest=pdf_md5, length=len(pdf_bytes))
+  attachment_blob = NuxeoBlob(filename=req.metadata.title + '.eml', mimetype='application/octet-stream', digest=content_md5, length=len(content))
+  success, error = attach_nuxeo_blob(config, uid, content_blob, [attachment_blob], req.nuxeo_env)
+  if not success:
+    app.logger.error(error)
+    return Response(StatusResponse(status='Failed', reason='Unable to link email S3 blobs.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+
+  # Create records for each attachment listing the first record as a parent
+  schedule_map = {x.name:x.schedule for x in req.attachment_info}
+  attachment_uids = []
+
+  for attachment in attachments:
+    # Upload attachments
+    attachment_name = attachment[0]
+    attachment_content = base64.b64decode(attachment[1].encode('ascii'))
+    attachment_md5 = hashlib.md5(attachment_content).hexdigest() 
+    success = upload_nuxeo_file(config, attachment_content, attachment_md5)
+    if not success:
+      return Response(StatusResponse(status='Failed', reason='Unable to upload attachment ' + attachment[0] + '.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+
+    # Create Nuxeo records for each
+    metadata = ECMSMetadataV2(
+      file_path=attachment_name,
+      custodian=user_info.employee_number,
+      title=attachment_name,
+      record_schedule=req.metadata.record_schedule,
+      sensitivity="1",
+      access_restriction_status="",
+      use_restriction_status="",
+      essential_records="",
+      description=req.metadata.description,
+      tags=req.metadata.tags
+    )
+
+    success, error, attachment_uid = create_nuxeo_record_v2(config, user_info, metadata, req.nuxeo_env, parent_id=uid)
+    if not success:
+      app.logger.error('Failed to create attachment record for attachment ' + str(attachment[0] + '. ' + error))
+      return Response(StatusResponse(status='Failed', reason='Unable to create attachment record.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+    
+    # Link attachment blob
+    mimetype_guess = mimetypes.guess_type(attachment_name)[0]
+    if mimetype_guess is None:
+      mimetype_guess = 'application/octet-stream'
+    attachment_blob = NuxeoBlob(filename=attachment_name, mimetype=mimetype_guess, digest=attachment_md5, length=len(attachment_content))
+    success, error = attach_nuxeo_blob(config, attachment_uid, attachment_blob, [], req.nuxeo_env)
+    if not success:
+      app.logger.error('Failed to link attachment blob for attachment ' + str(attachment[0] + '. ' + error))
+      return Response(StatusResponse(status='Failed', reason='Unable to create attachment record.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+    
+    attachment_uids.append(attachment_uid)
+
+  # Step 5: Update parent record to contain attachment links as children
+  if len(attachment_uids) > 0:
+    properties = {'arms:relation_has_part': attachment_uids}
+    success = update_nuxeo_metadata(uid, properties, config, req.nuxeo_env)
+    if not success:
+      return Response(StatusResponse(status='Failed', reason='Failed to update document relationships.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+
+  # Step 6: TODO Submit record to SEMS
+
+  # Step 7: Mark record saved in Outlook
+  save_req = MarkSavedRequestGraph(email_id = req.email_id, sensitivity=req.metadata.sensitivity, mailbox=req.mailbox)
+  save_resp = mark_saved(save_req, g.access_token, source, config)
+  if save_resp.status != '200 OK':
+    return save_resp
+  
+  upload_resp = UploadResponse(record_id=req.record_id, uid=uid)
 
   return Response(upload_resp.to_json(), status=200, mimetype='application/json')
 
