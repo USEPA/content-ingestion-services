@@ -191,7 +191,7 @@ def parse_email_metadata(graph_email_value, mailbox, access_token, emailsource):
       mailbox_source= emailsource,
       categories = list(categories)
     )
-    
+
 def list_email_metadata_graph(req: GetEmailRequest, user_email, access_token, config):
 
   #get records from archive
@@ -361,7 +361,7 @@ def get_overall_leaderboard(config):
 def get_office_leaderboard(config, parent_org_code):
   url = 'https://' + config.patt_host + '/app/mu-plugins/pattracking/includes/admin/pages/games/office_leader_board.php'
   params={'api_key':config.patt_api_key, 'office_code' : parent_org_code}
-  r = requests.post(url, params=params, verify=False)
+  r = requests.post(url, params=params)
   if r.status_code != 200:
     return Response(StatusResponse(status='Failed', reason= 'Leaderboard request returned status ' + str(r.status_code) + ' and error ' + str(r.text), request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
   return Response(json.dumps(r.json()), status=200, mimetype='application/json')
@@ -1560,7 +1560,7 @@ def upload_sems_email(config, req: UploadSEMSEmail, source, user_info):
       file_path=attachment_name,
       custodian=user_info.employee_number,
       title=attachment_name,
-      record_schedule=req.metadata.record_schedule,
+      record_schedule=schedule_map.get(attachment_name, req.metadata.record_schedule),
       sensitivity="1",
       access_restriction_status="",
       use_restriction_status="",
