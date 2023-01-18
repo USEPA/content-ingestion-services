@@ -1803,6 +1803,8 @@ components:
                 type: string
               to:
                 type: string
+              cc:
+                type: string
               subject:
                 type: string
               sent:
@@ -2427,13 +2429,32 @@ components:
           items:
             type: object
             $ref: '#/components/schemas/SEMSAttachmentInfo'
-        
+    EmailInfo:
+      type: object
+      properties:
+        to:
+          type: array
+          items:
+            type: string
+        cc:
+          type: array
+          items:
+            type: string
+        _from:
+          type: string
+        date:
+          type: string
+        subject:
+          type: string
     UploadSEMSEmail:
       type: object
       properties:
         metadata:
           type: object
           $ref: '#/components/schemas/SEMSMetadata'
+        email_info:
+          type: object
+          $ref: '#/components/schemas/EmailInfo'
         mailbox:
           type: string
         email_id:

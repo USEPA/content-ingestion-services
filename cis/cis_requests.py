@@ -186,12 +186,13 @@ def parse_email_metadata(graph_email_value, mailbox, access_token, emailsource):
       received=graph_email_value['receivedDateTime'], 
       _from=graph_email_value['from']['emailAddress']['address'],
       to=';'.join([(y['emailAddress']['address']) for y in graph_email_value['toRecipients']]),
+      cc=';'.join([(y['emailAddress']['address']) for y in graph_email_value['ccRecipients']]),
       sent=graph_email_value['sentDateTime'],
       attachments= extract_attachments_from_response_graph(graph_email_value['id'], graph_email_value['hasAttachments'], mailbox, access_token),
       mailbox_source= emailsource,
       categories = list(categories)
     )
-    
+
 def list_email_metadata_graph(req: GetEmailRequest, user_email, access_token, config):
 
   #get records from archive
@@ -274,7 +275,7 @@ def extract_attachments_from_response(ezemail_response):
     return [EmailAttachment(name=attachment['name'], attachment_id=attachment['attachment_id']) for attachment in ezemail_response['attachments']]
 
 #combined untag and mark_saved
-def mark_saved(req: MarkSavedRequestGraph, access_token, emailsource, config):
+def mark_saved(req: MarkSavedRequestGraph, access_token, emailsource, config, saved_cat="Saved to ARMS"):
   if emailsource.lower() == 'archive':
     headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}
     body = {"emailid": req.email_id}
@@ -300,7 +301,7 @@ def mark_saved(req: MarkSavedRequestGraph, access_token, emailsource, config):
     cats = p.json()['categories']
     if 'Record' in cats: 
       cats.remove('Record')
-    cats.append('Saved to ARMS')
+    cats.append(saved_cat)
     #update categories
     url = "https://graph.microsoft.com/v1.0/users/" + req.mailbox + "/messages/" + req.email_id
     body = json.dumps({'categories':cats})
@@ -361,7 +362,7 @@ def get_overall_leaderboard(config):
 def get_office_leaderboard(config, parent_org_code):
   url = 'https://' + config.patt_host + '/app/mu-plugins/pattracking/includes/admin/pages/games/office_leader_board.php'
   params={'api_key':config.patt_api_key, 'office_code' : parent_org_code}
-  r = requests.post(url, params=params, verify=False)
+  r = requests.post(url, params=params)
   if r.status_code != 200:
     return Response(StatusResponse(status='Failed', reason= 'Leaderboard request returned status ' + str(r.status_code) + ' and error ' + str(r.text), request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
   return Response(json.dumps(r.json()), status=200, mimetype='application/json')
@@ -1501,6 +1502,53 @@ def upload_nuxeo_email_v2(config, req, source, user_info):
 
   return Response(upload_resp.to_json(), status=200, mimetype='application/json')
 
+def create_sems_record(config, req: UploadSEMSEmail, user_info: UserInfo, nuxeo_uid, sems_children):
+  sems_request = {
+    "metadata": {
+      "region": req.metadata.region,
+      "programType": req.metadata.program_type,
+      "sites": req.metadata.sites,
+      "ous": req.metadata.ous,
+      "ssids": req.metadata.ssids,
+      "recordSchedule": req.metadata.record_schedule.schedule_number + req.metadata.record_schedule.disposition_number,
+      "accessControl": req.metadata.access_control,
+      "programAreas": req.metadata.program_areas,
+      "specialProcessing": req.metadata.special_processing,
+      "processingComments": req.metadata.processing_comments,
+      "description": req.metadata.description,
+      "tags": req.metadata.tags
+    },
+    "document": {
+      "semsUid": req.metadata.sems_uid,
+      "fileName": req.metadata.file_name,
+      "nuxeoUid": nuxeo_uid,
+      "children": sems_children
+    },
+    "submitter": {
+      "email": user_info.email,
+      "lanId": user_info.lan_id
+    },
+    "emailMetadata": {
+      "to": req.email_info.to,
+      "cc": req.email_info.cc,
+      "from": req.email_info._from,
+      "date": req.email_info.date,
+      "subject": req.email_info.subject,
+      "messageId": req.email_id,
+      "mailbox": req.mailbox
+    }
+  }
+
+  try:
+    r = requests.post("http://" + config.sems_host + '/sems-ws/outlook/submissions/email', json=sems_request, timeout=30)
+    if r.status_code == 200:
+      return True, None
+    else:
+      app.logger.error(r.text)
+      return False, "SEMS record creation request returned " + str(r.status_code) + ' response.'
+  except:
+    return False, "Failed to complete record creation request."
+
 def upload_sems_email(config, req: UploadSEMSEmail, source, user_info):
    # Step 0: Get EML file from graph
   content = get_eml_file(req.email_id, req.metadata.file_name, source, req.mailbox, g.access_token, config)
@@ -1545,7 +1593,7 @@ def upload_sems_email(config, req: UploadSEMSEmail, source, user_info):
   # Create records for each attachment listing the first record as a parent
   schedule_map = {x.name:x.schedule for x in req.attachment_info}
   attachment_uids = []
-
+  sems_children = []
   for attachment in attachments:
     # Upload attachments
     attachment_name = attachment[0]
@@ -1560,7 +1608,7 @@ def upload_sems_email(config, req: UploadSEMSEmail, source, user_info):
       file_path=attachment_name,
       custodian=user_info.employee_number,
       title=attachment_name,
-      record_schedule=req.metadata.record_schedule,
+      record_schedule=schedule_map.get(attachment_name, req.metadata.record_schedule),
       sensitivity="1",
       access_restriction_status="",
       use_restriction_status="",
@@ -1581,10 +1629,14 @@ def upload_sems_email(config, req: UploadSEMSEmail, source, user_info):
     attachment_blob = NuxeoBlob(filename=attachment_name, mimetype=mimetype_guess, digest=attachment_md5, length=len(attachment_content))
     success, error = attach_nuxeo_blob(config, attachment_uid, attachment_blob, [], req.nuxeo_env)
     if not success:
-      app.logger.error('Failed to link attachment blob for attachment ' + str(attachment[0] + '. ' + error))
+      app.logger.error('Failed to link attachment blob for attachment ' + str(attachment[0]) + '. ' + error)
       return Response(StatusResponse(status='Failed', reason='Unable to create attachment record.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
     
     attachment_uids.append(attachment_uid)
+
+    for sems_attachment in req.attachment_info:
+      if sems_attachment.name == attachment_name:
+        sems_children.append({"semsUid": sems_attachment.sems_uid, "fileName": attachment_name, "nuxeoUid": attachment_uid})
 
   # Step 5: Update parent record to contain attachment links as children
   if len(attachment_uids) > 0:
@@ -1593,11 +1645,15 @@ def upload_sems_email(config, req: UploadSEMSEmail, source, user_info):
     if not success:
       return Response(StatusResponse(status='Failed', reason='Failed to update document relationships.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
 
-  # Step 6: TODO Submit record to SEMS
-
+  # Step 6: Submit record to SEMS
+  success, error = create_sems_record(config, req, user_info, uid, sems_children)
+  if not success:
+      app.logger.error('Failed to create SEMS record for Nuxeo UID ' + str(uid) + '. ' + error)
+      return Response(StatusResponse(status='Failed', reason='Unable to create SEMS record.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+    
   # Step 7: Mark record saved in Outlook
   save_req = MarkSavedRequestGraph(email_id = req.email_id, sensitivity=req.metadata.sensitivity, mailbox=req.mailbox)
-  save_resp = mark_saved(save_req, g.access_token, source, config)
+  save_resp = mark_saved(save_req, g.access_token, source, config, saved_cat="Saved to SEMS")
   if save_resp.status != '200 OK':
     return save_resp
   
