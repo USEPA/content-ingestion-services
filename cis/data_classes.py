@@ -281,6 +281,7 @@ class EmailMetadata:
     email_id: str
     _from: str
     to: str
+    cc: str
     subject: str
     sent: str
     received: str
@@ -428,6 +429,7 @@ mock_email_metadata = EmailMetadata(**{
     'received': 'Wed Feb 10 17:13:32 UTC 2021',
     '_from': 'ECMS3 Test <ECMS3Test@testusepa.onmicrosoft.com>',
     'to': 'ECMS3Test@testusepa.onmicrosoft.com',
+    'cc': '',
     'sent': 'Wed Feb 10 17:13:31 UTC 2021',
     'attachments': [],
     'mailbox_source': 'regular'
@@ -520,8 +522,18 @@ class SEMSMetadata:
 
 @dataclass_json
 @dataclass 
+class EmailInfo:
+    to: list[str]
+    cc: list[str]
+    _from: str
+    date: str
+    subject: str
+
+@dataclass_json
+@dataclass 
 class UploadSEMSEmail:
     metadata: SEMSMetadata
+    email_info: EmailInfo
     mailbox: str
     email_id: str
     record_id: str
