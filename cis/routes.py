@@ -286,7 +286,7 @@ def upload_email_v3(emailsource):
     return upload_nuxeo_email_v2(c, req, emailsource, user_info)
 
 @app.route('/upload_sems_email/<emailsource>', methods=['POST'])
-def upload_sems_email(emailsource):
+def upload_sems_email_(emailsource):
     success, message, user_info = get_user_info(c, g.token_data)
     if not success:
         return Response(StatusResponse(status='Failed', reason=message, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
