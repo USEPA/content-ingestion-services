@@ -1575,7 +1575,7 @@ def upload_sems_email(config, req: UploadSEMSEmail, source, user_info):
   # Step 3: Create Nuxeo record
   
   # Create record for PDF rendition with EML as Nuxeo attachment
-  arms_metadata = convert_sems_metadata(req.metadata)
+  arms_metadata = convert_sems_metadata(user_info, req.metadata)
   success, error, uid = create_nuxeo_email_record_v2(config, user_info, arms_metadata, req.nuxeo_env, source_system="SEMS")
 
   if not success:
