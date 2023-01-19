@@ -506,7 +506,7 @@ class SEMSAttachmentInfo:
 class SEMSMetadata:
     sems_uid: str
     region: str
-    program_types: list[str]
+    program_type: str
     sites: list[str]
     ous: list[str]
     ssids: list[str]

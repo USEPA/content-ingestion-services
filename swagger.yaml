@@ -2383,10 +2383,8 @@ components:
           type: string
         region:
           type: string
-        program_types:
-          type: array
-          items:
-            type: string
+        program_type:
+          type: string
         sites:
           type: array
           items:
