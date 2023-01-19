@@ -1583,8 +1583,8 @@ def upload_sems_email(config, req: UploadSEMSEmail, source, user_info):
     return Response(StatusResponse(status='Failed', reason='Unable to create email record.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
 
   # Step 4: Attach blobs
-  content_blob = NuxeoBlob(filename=req.metadata.title + '.pdf', mimetype='application/pdf', digest=pdf_md5, length=len(pdf_bytes))
-  attachment_blob = NuxeoBlob(filename=req.metadata.title + '.eml', mimetype='application/octet-stream', digest=content_md5, length=len(content))
+  content_blob = NuxeoBlob(filename=req.metadata.file_name + '.pdf', mimetype='application/pdf', digest=pdf_md5, length=len(pdf_bytes))
+  attachment_blob = NuxeoBlob(filename=req.metadata.file_name + '.eml', mimetype='application/octet-stream', digest=content_md5, length=len(content))
   success, error = attach_nuxeo_blob(config, uid, content_blob, [attachment_blob], req.nuxeo_env)
   if not success:
     app.logger.error(error)
