@@ -1591,7 +1591,7 @@ def upload_sems_email(config, req: UploadSEMSEmail, source, user_info):
     return Response(StatusResponse(status='Failed', reason='Unable to link email S3 blobs.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
 
   # Create records for each attachment listing the first record as a parent
-  schedule_map = {x.name:x.schedule for x in req.attachment_info}
+  schedule_map = {x.name:x.record_schedule for x in req.metadata.attachment_info}
   attachment_uids = []
   sems_children = []
   for attachment in attachments:
