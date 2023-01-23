@@ -682,16 +682,24 @@ def get_sems_sites(req: SemsSiteRequest, config):
   else:
     return Response(StatusResponse(status='Failed', reason=sites.text, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
 
+def detect_schedule_from_string(text, schedule_mapping):
+  if text is None:
+    return None
+  m = re.search('([0-1]{1}[0-7]{1}[0-9]{2}|\d{3})\s?[a-z]\s?(\(([a-z]|[0-9])\)\s?)*', text)
+  if m is not None:
+    match = m[0].replace(' ', '').replace('%20', '').replace('-','')
+    if match in schedule_mapping:
+      return schedule_mapping[match]
+  return None
+
 def simplify_sharepoint_record(raw_rec, sensitivity):
-  detected_sched = None
+  default_schedule = None
   mapping = schedule_cache.get_schedule_mapping()
   for item in raw_rec['webUrl'].split('/'):
-    m = re.search('([0-1]{1}[0-7]{1}[0-9]{2}|\d{3})\s?[a-z]\s?(\(([a-z]|[0-9])\)\s?)*', item.replace('%20', ' '))
-    if m is not None:
-      match = m[0].replace(' ', '').replace('%20', '').replace('-','')
-      if match in mapping:
-        detected_sched = mapping[match]
-        break
+    detected_schedule = detect_schedule_from_string(item.replace('%20', ' '), mapping)
+    if detected_schedule is not None:
+      default_schedule = detected_schedule
+      break
         
   return SharepointRecord(
     web_url = raw_rec['webUrl'],
@@ -701,7 +709,7 @@ def simplify_sharepoint_record(raw_rec, sensitivity):
     drive_item_id = raw_rec['id'],
     created_date = raw_rec['createdDateTime'],
     last_modified_date = raw_rec['lastModifiedDateTime'],
-    detected_schedule = detected_sched,
+    detected_schedule = default_schedule,
     list_item_id = raw_rec['listItem']['id'],
     size = raw_rec["size"]
   )
@@ -1807,3 +1815,47 @@ def log_user_activity(req: LogActivityRequest, config):
     return Response(StatusResponse(status='OK', reason='Failed to log activity with status ' + str(error_status), request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
   else:
     return Response(StatusResponse(status='OK', reason='Successfully logged user activity.', request_id=g.get('request_id', None)).to_json(), status=200, mimetype='application/json')
+
+def get_file_metadata_prediction(config, file, prediction_metadata: PredictionMetadata):
+  file_obj = file.read()
+  success, text, response = tika(file_obj, config)
+  if not success:
+      return response
+  keyword_weights = keyword_extractor.extract_keywords(text)
+  keywords = [x[0] for x in sorted(keyword_weights.items(), key=lambda y: y[1], reverse=True)][:5]
+  subjects=keyword_extractor.extract_subjects(text, keyword_weights)
+  has_capstone=capstone_detector.detect_capstone_text(text)
+  identifiers=identifier_extractor.extract_identifiers(text)
+
+  # Auto detect schedule from path
+  mapping = schedule_cache.get_schedule_mapping()
+  default_schedule = None
+  predicted_schedules = []
+  for item in prediction_metadata.file_path.split('\\'):
+    detected_schedule = detect_schedule_from_string(item, mapping)
+    if detected_schedule is not None:
+      default_schedule = detected_schedule
+      predicted_schedules.append(Recommendation(schedule=default_schedule, probability=1))
+      break
+
+  # If not found then make prediction
+  if default_schedule is None:
+    predicted_schedules, default_schedule = model.predict(text, 'document', prediction_metadata, has_capstone, keywords, subjects, attachments=[])
+  predicted_title = mock_prediction_with_explanation
+  predicted_description = mock_prediction_with_explanation
+
+  # Detect CUI categories from CUI marking tool
+  if prediction_metadata.file_name.split('.')[-1] in set(['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'pdf']):
+      cui_categories = get_cui_categories(file_obj, config)
+  else:
+      cui_categories = []
+  prediction = MetadataPrediction(
+      predicted_schedules=predicted_schedules, 
+      title=predicted_title, 
+      description=predicted_description, 
+      default_schedule=default_schedule, 
+      subjects=subjects, 
+      identifiers=identifiers,
+      cui_categories=cui_categories
+      )
+  return Response(prediction.to_json(), status=200, mimetype='application/json')

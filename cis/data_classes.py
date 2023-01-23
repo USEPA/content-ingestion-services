@@ -98,6 +98,7 @@ class Recommendation:
 class PredictionMetadata:
     file_name: Optional[str]
     department: Optional[str]
+    file_path: Optional[str] = None
 
 @dataclass_json
 @dataclass 

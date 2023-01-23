@@ -1718,6 +1718,8 @@ components:
           type: string
         department:
           type: string
+        file_path:
+          type: string
     TextPredictionRequest:
       type: object
       properties:

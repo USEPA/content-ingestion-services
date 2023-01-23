@@ -53,39 +53,12 @@ def internal_service_error(_):
 def file_metadata_prediction():
     file = request.files.get('file')
     prediction_metadata = request.form.get('prediction_metadata')
-    if prediction_metadata != None:
-        try:
-            prediction_metadata = PredictionMetadata.from_json(prediction_metadata)
-        except:
-            return Response(StatusResponse(status='Failed', reason='Prediction metadata not formatted correctly.', request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
+    try:
+        prediction_metadata = PredictionMetadata.from_json(prediction_metadata)
+    except:
+        return Response(StatusResponse(status='Failed', reason='Prediction metadata not formatted correctly.', request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
     if file:
-        file_obj = file.read()
-        success, text, response = tika(file_obj, c)
-        if not success:
-            return response
-        keyword_weights = keyword_extractor.extract_keywords(text)
-        keywords = [x[0] for x in sorted(keyword_weights.items(), key=lambda y: y[1], reverse=True)][:5]
-        subjects=keyword_extractor.extract_subjects(text, keyword_weights)
-        has_capstone=capstone_detector.detect_capstone_text(text)
-        identifiers=identifier_extractor.extract_identifiers(text)
-        # TODO: Handle case where attachments are present
-        predicted_schedules, default_schedule = model.predict(text, 'document', prediction_metadata, has_capstone, keywords, subjects, attachments=[])
-        predicted_title = mock_prediction_with_explanation
-        predicted_description = mock_prediction_with_explanation
-        if prediction_metadata.file_name.split('.')[-1] in set(['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'pdf']):
-            cui_categories = get_cui_categories(file_obj, c)
-        else:
-            cui_categories = []
-        prediction = MetadataPrediction(
-            predicted_schedules=predicted_schedules, 
-            title=predicted_title, 
-            description=predicted_description, 
-            default_schedule=default_schedule, 
-            subjects=subjects, 
-            identifiers=identifiers,
-            cui_categories=cui_categories
-            )
-        return Response(prediction.to_json(), status=200, mimetype='application/json')
+        return get_file_metadata_prediction(c, file, prediction_metadata)
     else:
         return Response(StatusResponse(status='Failed', reason="No file found.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
 
