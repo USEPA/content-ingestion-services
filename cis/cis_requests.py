@@ -702,7 +702,8 @@ def simplify_sharepoint_record(raw_rec, sensitivity):
     created_date = raw_rec['createdDateTime'],
     last_modified_date = raw_rec['lastModifiedDateTime'],
     detected_schedule = detected_sched,
-    list_item_id = raw_rec['listItem']['id']
+    list_item_id = raw_rec['listItem']['id'],
+    size = raw_rec["size"]
   )
 
 def check_or_create_records_folder(access_token):

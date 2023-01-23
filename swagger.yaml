@@ -2257,6 +2257,8 @@ components:
           type: string
         detected_schedule:
           $ref: '#/components/schemas/RecordSchedule'
+        size:
+          type: number
     SharepointListResponse:
       type: object
       properties:
