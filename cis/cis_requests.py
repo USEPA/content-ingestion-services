@@ -1643,7 +1643,7 @@ def upload_sems_email(config, req: UploadSEMSEmail, source, user_info):
     
     attachment_uids.append(attachment_uid)
 
-    for sems_attachment in req.attachment_info:
+    for sems_attachment in req.metadata.attachment_info:
       if sems_attachment.name == attachment_name:
         sems_children.append({"semsUid": sems_attachment.sems_uid, "fileName": attachment_name, "nuxeoUid": attachment_uid})
 
