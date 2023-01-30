@@ -3,6 +3,7 @@ from .data_classes import RecordScheduleInformation, RecordScheduleList, RecordS
 from datetime import datetime
 import threading
 import requests
+import traceback
 
 class RecordScheduleCache:
     def __init__(self, config, logger):
@@ -86,6 +87,7 @@ def get_record_schedules(config, logger):
     request_success = True
   except:
     logger.info('Failed to fetch record schedule data. Defaulting to local data.')
+    logger.info(traceback.format_exc())
     with open('record_schedule_data.json', 'r') as f:
       result = json.loads(f.read())
     request_success = False
