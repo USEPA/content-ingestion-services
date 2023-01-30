@@ -178,7 +178,7 @@ def eml_to_pdf(eml):
 
 def parse_email_metadata(graph_email_value, mailbox, access_token, emailsource):
   categories = set(graph_email_value.get('categories', []))
-  categories.remove('Record')
+  filtered_cats = [x for x in categories if x.lower() != 'record']
   return EmailMetadata(
       unid=graph_email_value['internetMessageId'], #internetMessageId contains '.prod.outlook.com'
       subject=graph_email_value['subject'], 
@@ -190,7 +190,7 @@ def parse_email_metadata(graph_email_value, mailbox, access_token, emailsource):
       sent=graph_email_value['sentDateTime'],
       attachments= extract_attachments_from_response_graph(graph_email_value['id'], graph_email_value['hasAttachments'], mailbox, access_token),
       mailbox_source= emailsource,
-      categories = list(categories)
+      categories = filtered_cats
     )
 
 def list_email_metadata_graph(req: GetEmailRequest, user_email, access_token, config):
