@@ -94,24 +94,26 @@ def email_metadata_prediction_graph(emailsource):
     eml_file = get_eml_file(req.email_id, "default_file_name", emailsource, req.mailbox, g.access_token, c)
     if eml_file is None:
         return Response(StatusResponse(status='Failed', reason="Could not retrieve eml file.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-    success, text, response = tika(eml_file, c, extraction_type='text')
+    success, tika_result, response = tika(eml_file, c)
     if not success:
         return response
-    # TODO: If email is encrypted, return immediately
     if 'Content-Type: application/pkcs7-mime' in str(eml_file):
         is_encrypted = True
     else:
         is_encrypted = False
+    if is_encrypted:
+        prediction = MetadataPrediction(predicted_schedules=[], title=mock_prediction_with_explanation, is_encrypted=True, description=mock_prediction_with_explanation, default_schedule=None, subjects=[], identifiers={}, cui_categories=[])
+        return Response(prediction.to_json(), status=200, mimetype='application/json')
     schedules = schedule_cache.get_schedules().schedules
     valid_schedules = list(filter(lambda x: x.ten_year, schedules))
     valid_schedules = ["{fn}-{sn}-{dn}".format(fn=x.function_number, sn=x.schedule_number, dn=x.disposition_number) for x in valid_schedules]
-    keyword_weights = keyword_extractor.extract_keywords(text)
+    keyword_weights = keyword_extractor.extract_keywords(tika_result.text)
     keywords = [x[0] for x in sorted(keyword_weights.items(), key=lambda y: y[1], reverse=True)][:5]
-    subjects=keyword_extractor.extract_subjects(text, keyword_weights)
-    has_capstone=capstone_detector.detect_capstone_text(text)
-    identifiers=identifier_extractor.extract_identifiers(text)
+    subjects=keyword_extractor.extract_subjects(tika_result.text, keyword_weights)
+    has_capstone=capstone_detector.detect_capstone_text(tika_result.text)
+    identifiers=identifier_extractor.extract_identifiers(tika_result.text)
     # TODO: Handle case where attachments are present
-    predicted_schedules, default_schedule = model.predict(text, 'email', PredictionMetadata(req.file_name, req.department), has_capstone, keywords, subjects, attachments=[], valid_schedules=valid_schedules)
+    predicted_schedules, default_schedule = model.predict(tika_result.text, 'email', PredictionMetadata(req.file_name, req.department), has_capstone, keywords, subjects, attachments=[], valid_schedules=valid_schedules)
     
     predicted_title = mock_prediction_with_explanation
     predicted_description = mock_prediction_with_explanation

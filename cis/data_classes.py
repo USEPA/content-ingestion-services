@@ -453,6 +453,13 @@ class GetSitesRequest:
 
 @dataclass_json
 @dataclass 
+class TikaResult:
+    text: str
+    is_encrypted: bool
+    cui_categories: list[str]
+
+@dataclass_json
+@dataclass 
 class GetSpecialProcessingRequest:
     region: str
 

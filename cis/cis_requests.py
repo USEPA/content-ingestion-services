@@ -25,66 +25,44 @@ from bs4 import BeautifulSoup
 TIKA_CUTOFF = 20
 TIKA_TEXT_UPPER_LIMIT = 10000
 
-def tika(file, config, extraction_type='text'):
-  if extraction_type == 'html':
-    accept = "text/html"
-  else:
-    accept = "text/plain"
+def tika(file, config):
   headers = {
             "X-Tika-PDFOcrStrategy": "auto",
             "X-Tika-PDFextractInlineImages": "false",
             "Cache-Control": "no-cache",
-            "accept": accept
+            "accept": 'application/json'
           }
-  server = "http://" + config.tika_server + "/tika"
+  server = "http://" + config.tika_server + "/rmeta/text"
   try:
-    r = requests.put(server, data=file, headers=headers, stream=True, timeout=30)
+    r = requests.put(server, data=file, headers=headers, timeout=30)
   except:
     return False, None, Response(StatusResponse(status='Failed', reason='Could not connect to Tika server', request_id=g.get('request_id', None)).to_json(), 500, mimetype='application/json')
 
-  if r.status_code != 200 or len(r.text) < TIKA_CUTOFF:
+  print(r.status_code)
+  if r.status_code != 200 or len(r.json()[0].get('X-TIKA:content','')) < TIKA_CUTOFF:
       headers = {
           "X-Tika-PDFOcrStrategy": "ocr_only",
           "X-Tika-PDFextractInlineImages": "true",
           "Cache-Control": "no-cache",
-          "accept": accept
+          "accept": 'application/json'
         }
       r = requests.put(server, data=file, headers=headers, stream=True)
       if r.status_code != 200:
           return False, None, Response(StatusResponse(status='Failed', reason='Tika failed with status ' + str(r.status_code), request_id=g.get('request_id', None)).to_json(), 500, mimetype='application/json')
   
   try:
-    result = ""
-    for x in r.iter_content(chunk_size=100, decode_unicode=True):
-      result += x
-      if len(result) > TIKA_TEXT_UPPER_LIMIT:
-          break
+    result = r.json()[0]
+    text = result.get('X-TIKA:content','')
+    is_encrypted = result.get('pdf:encrypted', 'false') == 'true'
+    cui_categories = []
+    for k, v in result.items():
+      if 'MSIP_Label_' in k and '_Name' in k:
+        cui_categories.append(v)
+    tika_result = TikaResult(text=text, is_encrypted=is_encrypted, cui_categories=cui_categories)
   except:
-    return False, None, Response(StatusResponse(status='Failed', reason='Could not stream Tika response.', request_id=g.get('request_id', None)).to_json(), 500, mimetype='application/json')
+    return False, None, Response(StatusResponse(status='Failed', reason='Failed to parse Tika result.', request_id=g.get('request_id', None)).to_json(), 500, mimetype='application/json')
 
-  return True, result, None
-
-def get_cui_categories(file, config):
-  try:
-    server = "http://" + config.tika_server + "/meta"
-    response_meta = requests.request("PUT", server, headers={'Accept': 'application/json'}, data=file)
-  except:
-    app.logger.error("Tika metadata request failed for request ID " + str(g.get('request_id', None)))
-    return []
-  
-  if response_meta.status_code == 200:
-    try:
-      meta_info = json.loads(response_meta.text)
-      for k, v in meta_info.items():
-        if 'MSIP_Label_' in k and '_Name' in k:
-          return [v]
-      return []
-    except:
-      app.logger.error("Failed to parse tika metadata response for request ID " + str(g.get('request_id', None)))
-      return []
-  else:
-    app.logger.error("Tika metadata request completed with status " + str(response_meta.status_code) + " for request ID " + str(g.get('request_id', None)))
-    return []
+  return True, tika_result, None
 
 def get_eml_file(email_id, file_name, emailsource, mailbox, access_token, config):
 
@@ -814,23 +792,22 @@ def sharepoint_record_prediction(req: SharepointPredictionRequest, access_token,
   if content_req.status_code != 200:
     return Response('Content request failed with status ' + str(content_req.status_code), status=500, mimetype='application/json')
   content = content_req.content
-  success, text, response = tika(content, c, extraction_type='text')
+  success, tika_result, response = tika(content, c)
   if not success:
       return response
-  keyword_weights = keyword_extractor.extract_keywords(text)
+  if tika_result.is_encrypted:
+    prediction = MetadataPrediction(predicted_schedules=[], title=mock_prediction_with_explanation, is_encrypted=True, description=mock_prediction_with_explanation, default_schedule=None, subjects=[], identifiers={}, cui_categories=tika_result.cui_categories)
+    return Response(prediction.to_json(), status=200, mimetype='application/json')
+  keyword_weights = keyword_extractor.extract_keywords(tika_result.text)
   keywords = [x[0] for x in sorted(keyword_weights.items(), key=lambda y: y[1], reverse=True)][:5]
-  subjects=keyword_extractor.extract_subjects(text, keyword_weights)
-  identifiers=identifier_extractor.extract_identifiers(text)
-  has_capstone=capstone_detector.detect_capstone_text(text)
+  subjects=keyword_extractor.extract_subjects(tika_result.text, keyword_weights)
+  identifiers=identifier_extractor.extract_identifiers(tika_result.text)
+  has_capstone=capstone_detector.detect_capstone_text(tika_result.text)
   # TODO: Handle case where attachments are present
-  predicted_schedules, default_schedule = model.predict(text, 'document', PredictionMetadata(req.file_name, req.department), has_capstone, keywords, subjects, attachments=[])
+  predicted_schedules, default_schedule = model.predict(tika_result.text, 'document', PredictionMetadata(req.file_name, req.department), has_capstone, keywords, subjects, attachments=[])
   predicted_title = mock_prediction_with_explanation
   predicted_description = mock_prediction_with_explanation
-  if req.file_name.split('.')[-1] in set(['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'pdf']):
-    cui_categories = get_cui_categories(content, c)
-  else:
-    cui_categories = []
-  prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description, default_schedule=default_schedule, subjects=subjects, identifiers=identifiers, cui_categories=cui_categories)
+  prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, is_encrypted=tika_result.is_encrypted, description=predicted_description, default_schedule=default_schedule, subjects=subjects, identifiers=identifiers, cui_categories=tika_result.cui_categories)
   return Response(prediction.to_json(), status=200, mimetype='application/json')
 
 def upload_sharepoint_record_v2(req: SharepointUploadRequestV2, access_token, user_info, c):
@@ -1818,37 +1795,36 @@ def log_user_activity(req: LogActivityRequest, config):
 
 def get_file_metadata_prediction(config, file, prediction_metadata: PredictionMetadata):
   file_obj = file.read()
-  success, text, response = tika(file_obj, config)
+  success, tika_result, response = tika(file_obj, config)
   if not success:
       return response
-  keyword_weights = keyword_extractor.extract_keywords(text)
+  if tika_result.is_encrypted:
+    prediction = MetadataPrediction(predicted_schedules=[], title=mock_prediction_with_explanation, is_encrypted=True, description=mock_prediction_with_explanation, default_schedule=None, subjects=[], identifiers={}, cui_categories=tika_result.cui_categories)
+    return Response(prediction.to_json(), status=200, mimetype='application/json')
+  keyword_weights = keyword_extractor.extract_keywords(tika_result.text)
   keywords = [x[0] for x in sorted(keyword_weights.items(), key=lambda y: y[1], reverse=True)][:5]
-  subjects=keyword_extractor.extract_subjects(text, keyword_weights)
-  has_capstone=capstone_detector.detect_capstone_text(text)
-  identifiers=identifier_extractor.extract_identifiers(text)
+  subjects=keyword_extractor.extract_subjects(tika_result.text, keyword_weights)
+  has_capstone=capstone_detector.detect_capstone_text(tika_result.text)
+  identifiers=identifier_extractor.extract_identifiers(tika_result.text)
 
   # Auto detect schedule from path
   mapping = schedule_cache.get_schedule_mapping()
   default_schedule = None
   predicted_schedules = []
-  for item in prediction_metadata.file_path.split('\\'):
-    detected_schedule = detect_schedule_from_string(item, mapping)
-    if detected_schedule is not None:
-      default_schedule = detected_schedule
-      predicted_schedules.append(Recommendation(schedule=default_schedule, probability=1))
-      break
+  if prediction_metadata.file_path is not None:
+    for item in prediction_metadata.file_path.split('\\'):
+      detected_schedule = detect_schedule_from_string(item, mapping)
+      if detected_schedule is not None:
+        default_schedule = detected_schedule
+        predicted_schedules.append(Recommendation(schedule=default_schedule, probability=1))
+        break
 
   # If not found then make prediction
   if default_schedule is None:
-    predicted_schedules, default_schedule = model.predict(text, 'document', prediction_metadata, has_capstone, keywords, subjects, attachments=[])
+    predicted_schedules, default_schedule = model.predict(tika_result.text, 'document', prediction_metadata, has_capstone, keywords, subjects, attachments=[])
   predicted_title = mock_prediction_with_explanation
   predicted_description = mock_prediction_with_explanation
 
-  # Detect CUI categories from CUI marking tool
-  if prediction_metadata.file_name.split('.')[-1] in set(['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'pdf']):
-      cui_categories = get_cui_categories(file_obj, config)
-  else:
-      cui_categories = []
   prediction = MetadataPrediction(
       predicted_schedules=predicted_schedules, 
       title=predicted_title, 
@@ -1856,6 +1832,7 @@ def get_file_metadata_prediction(config, file, prediction_metadata: PredictionMe
       default_schedule=default_schedule, 
       subjects=subjects, 
       identifiers=identifiers,
-      cui_categories=cui_categories
+      cui_categories=tika_result.cui_categories,
+      is_encrypted=tika_result.is_encrypted
       )
   return Response(prediction.to_json(), status=200, mimetype='application/json')
