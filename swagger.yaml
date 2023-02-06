@@ -1998,12 +1998,10 @@ components:
           enum:
           - shared
           - private
-        access_restriction_note:
-          type: string
-        use_restriction_note:
-          type: string
-        security_classification:
-          type: string
+        rights_holder:
+          type: array
+          items:
+            type: string
         specific_access_restriction:
           type: array
           items:
