@@ -39,6 +39,10 @@ if __name__ == "__main__":
                     help='EPA enterprise vocabulary.')
     parser.add_argument('--keyword_idf_path', default='keyword_idf.json', 
                     help='Inverse document frequency values for keywords.')
+    parser.add_argument('--water_bodies_path', default='/home/water_bodies.csv', 
+                    help='Path to list of water bodies.')
+    parser.add_argument('--cities_path', default='/home/uscities.csv', 
+                    help='Path to list of cities.')
     parser.add_argument('--priority_categories_path', default='rscategories.txt', 
                     help='EPA enterprise vocabulary.')
     parser.add_argument('--wam_host', default=None, 

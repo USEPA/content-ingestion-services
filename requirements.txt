@@ -19,3 +19,6 @@ rebulk==3.0.1
 pyahocorasick==1.4.4
 xhtml2pdf==0.2.8
 beautifulsoup4==4.11.1
+nltk==3.6.2
+spacy==3.3.0
+en-core-web-lg==3.3.0

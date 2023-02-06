@@ -3,6 +3,15 @@ import json
 from rebulk import Rebulk
 import csv
 import ahocorasick
+import difflib
+import random
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+import spacy
+import pandas as pd
+import pytz
+from datetime import datetime
+import calendar
 
 def search_keywords(automaton, content):
     keywords = []
@@ -124,7 +133,7 @@ def dedupe_lower(_set):
     return result
 
 class IdentifierExtractor():
-    def __init__(self):
+    def __init__(self, cities_path, water_bodies_path):
         self.facility_regex = Rebulk().regex(r'\b110\d{9}\b')
         self.tri_regex = Rebulk().regex(r'\b\d{1,5}[A-Z]{5,10}(\d{1,5})?([A-Z]{1,3})?(\d{1,3})?\b')
         self.docket_regex = Rebulk().regex(r'\bEPA-([a-zA-Z0-9]{2,3})-([a-zA-Z]{2,5})-\d{4}-\d{4}-\d{4}\b')
@@ -152,6 +161,13 @@ class IdentifierExtractor():
         self.epa_pub_regex = Rebulk().regex(r'(?i)\b(epa|epa publication|epa publication number|epa publication num|epa publication no|epa publication no\.|epa publication \#)\s?([ ]|[:]|[\-])\s?((\b\d{3}[a-zA-z]\d{5}\b)|(\b\d{3}-[a-zA-z]-\d{2}-\d{3}\b))\b')
         self.mrid_regex = Rebulk().regex(r'(?i)\b(mrid|mrids|master record identification|mird no|mrid no\.|mrid \#)\s?([ ]|[:]|[\-])\s?(\b\d{6}00\b)\b')
         self.epa_sln_regex = Rebulk().regex(r'(?i)\b(epa sln\. no\.|epa sln\.)\s?([ ]|[:]|[\-])\s?(\b[A-Za-z]{2}\d{6}\b)\b')
+        self.nara_transfer_number_regex = Rebulk().regex(r'PT-412-[0-9]{4}-[0-9]{4}')
+        self.nara_disposal_authority_regex = Rebulk().regex(r'DAA-(0412|GRS)-[0-9]{4}-[0-9]{4}-[0-9]{4}')
+
+        self.water_bodies_df = pd.read_csv(water_bodies_path)   #keywords for types of bodies of water
+        self.uscities_df = pd.read_csv(cities_path)           #city,state and counties
+
+        self.nlp = spacy.load('en_core_web_lg')
       
     def extract_identifiers(self, content):
         response = {}
@@ -442,6 +458,208 @@ class IdentifierExtractor():
                 sln_numbers.add(extracted_val[0])
         response['EPA SLN Number'] = dedupe_lower(sln_numbers)
 
+        # NARA Transfer Number e.g. PT-412-2022-0123
+        transfer_numbers = set([x.value for x in self.nara_transfer_number_regex.matches(content)])
+        response['NARA Transfer Number'] = list(transfer_numbers)
+
+        # NARA Disposal Authority e.g. DAA-0412-2013-0008-0001 or DAA-GRS-2013-0008-0006 
+        disposal_authorities = set([x.value for x in self.nara_disposal_authority_regex.matches(content)])
+        response['NARA Disposal Authority'] = list(disposal_authorities)
+
         # Limit all identifier lists to a max of 5 items
         response = {k:v[:5] for k,v in response.items()}
         return response
+    
+    def extract_spatial_extent(self, text):
+        doc = self.nlp(text.replace("\r"," ").replace("\n"," ").replace("\r\n"," ").replace("\t"," ").replace("\s"," ").replace("  ", " "))
+
+        #create series
+        water_series = self.water_bodies_df['body']
+        uscities_series = self.uscities_df['loc']
+
+        #water list extracts from series
+        water_list = []
+        for index, value in water_series.items():
+            water_list.append(value.lower())
+
+        #uscities to list
+        uscities_list = uscities_series.tolist()
+
+        #invalid chars
+        invalid_chars = ['/', '\\','-','–','—','<','>','@','\'','[',']',';',':','(',')',',','”','“','"','=','±','1','2','3','4','5','6','7','8','9','0','tmdl','‘','ï‚·']
+        invalidLocSuffix = ['st.','st','street','rd.','rd','road','ave.','ave','blvd','dr.','dr', 'county', 'city', 'state']
+                        
+        #list of valid locations
+        valid_locations = []
+
+        # TODO: Define this method outside the function, accept the cities lis etc as parameters
+        #Method for checking if the word/location is valid
+        def isValid(word):
+            splitWord = word.split()    # splits to check the last word
+            lastWord = splitWord[-1]    # if it's a street
+            if not any(ext in word.lower() for ext in invalid_chars) and not lastWord.lower() in invalidLocSuffix:    # pass if no invalid chars/terms/suffix
+                if len(difflib.get_close_matches(word, uscities_list, n=1, cutoff=0.72)) == 1:                  # compare loc to uscities
+                    return True
+                elif len(word.split()) > 1:                                             #only take location if not one word
+                    if [each for each in water_list if each.lower() in value.lower()]:  #compare to water list
+                        return True        
+            else:
+                return False
+
+        gpe = [] # countries, cities, states
+        loc = [] # non gpe locations, mountain ranges, bodies of water
+        final_loc = []
+
+        for ent in doc.ents:
+            if (ent.label_ == 'GPE'):
+                gpe.append(ent.text.strip())
+            elif (ent.label_ == 'LOC'):
+                loc.append(ent.text.strip())
+
+        gpe = list(set(gpe))
+        loc = list(set(loc))
+
+        joinedloc = gpe + loc
+
+        # add valid locations from the joined spacy lists
+        for i in joinedloc:
+            if isValid(i.lower()):
+                final_loc.append(i)
+
+        # Filtered Loctions after stop words removal
+        stop_words = set(stopwords.words('english'))
+        for location in final_loc:
+            word_tokens = word_tokenize(str(location))
+            temploc = ""
+            for w in word_tokens:   # turns current location segments into a string
+                if w not in stop_words:
+                    temploc += w + " "
+            location_clean = temploc.strip() # temp location is cleaned by stripping
+            if location_clean.lower() not in (loc.lower() for loc in valid_locations):  # adds location
+                if isValid(location_clean.lower()):
+                    valid_locations.append(location_clean)
+
+        random.shuffle(valid_locations)
+        return sorted(valid_locations[0:10])  # Filtered w/o Stop Words
+
+    def extract_temporal_extent(self, text):
+        # list of valid dates
+        validDates = []
+
+        # opening file data
+        doc = self.nlp(text.replace("\r"," ").replace("\n"," ").replace("\r\n"," ").replace("\t"," ").replace("\s"," ").replace("  ", " "))
+
+        # NLP date extraction
+        extracted_dates = []
+        for ent in doc.ents:
+            if (ent.label_ == 'DATE'):
+                temp_date = ent.text.strip()             # set a temp date
+                if(temp_date not in extracted_dates):    # to check for dupliactes
+                    extracted_dates.append(ent.text.strip())
+
+        extracted_dates = list(set(extracted_dates))
+
+        def localize_time(date):
+            utc=pytz.utc
+            eastern=pytz.timezone('US/Eastern')
+            fmt='%Y-%m-%dT%H:%M:%S'
+
+            new_date=datetime.strptime(date,"%Y-%m-%d")
+            date_eastern=eastern.localize(new_date,is_dst=None)
+            date_utc=date_eastern.astimezone(utc)
+            return date_utc.strftime(fmt)+date_utc.strftime('.%f')[:4] + 'Z'
+        
+        def formatMeta(month, day, year):
+        # YYYY-MM-DDTHH:mm:ss (Example: 2021-01-01T14:09:53)T00:00:00.000Z
+            try:
+                # If value = 0,0,0 then don't add to validDates
+                if int(month) > 0 and int(day) > 0 and int(year) > 0:
+                    # If month > 12 switch month and day
+                    date_checker = True
+                    if(int(month) > 12):
+                        date_str = str(year) + '-' + str(day) + '-' + str(month)
+                        try:
+                            date_checker = bool(datetime.strptime(date_str, '%Y-%d-%m'))
+                        except ValueError:
+                            date_checker = False
+                        formattedDate = localize_time(date_str)
+                    else:
+                        date_str = str(year) + '-' + str(month) + '-' + str(day)
+                        try:
+                            date_checker = bool(datetime.strptime(date_str, '%Y-%m-%d'))
+                        except ValueError:
+                            date_checker = False
+                        formattedDate = localize_time(date_str)
+                    
+                    # Check to make sure date is not already in list and date is valid
+                    if not formattedDate in validDates and date_checker:
+                        validDates.append(formattedDate)
+            except:
+                pass
+
+        # parses the date in the parameter depending on format
+        def parseDate(date):
+            # Search for number format
+            date_search = re.findall(r'[.,/-]', date)
+            # Search for english format
+            range_search = re.findall(r'\w+\s+\d{1,2}\s+\w+.+?(?=\d{1,2})\d{1,2}', date)
+
+            #  Check to make sure all delimiters are the same
+            if date_search and len(date_search) == 2 and len(set(date_search)) == 1:
+                if re.findall(r'\d{4}[.,/-]\d{1,2}[.,/-]\d{1,2}',date):
+                    whole = re.split(r'[.,/-]', date)
+                    formatMeta(whole[1], whole[2], whole[0])
+                else:
+                    whole = re.split(r'[.,/-]', date)
+                    formatMeta(whole[0], whole[1], whole[2])
+            # Split Month day, year and remove ranges
+            elif not range_search:
+                try:
+                    # Removes periods/commas from date
+                    date = date.replace('.', '').replace(',', '').lower()
+                    months_list = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december', 'jan', 'feb', 'mar', 'apr', 'aug', 'sept', 'oct', 'nov', 'dec']
+                    
+                    # Remove suffixes from number e.g. 1st, 2nd, 3rd, 4th
+                    suffix_search = re.findall(r'\d{1,2}th|\d{1,2}st|\d{1,2}nd|\d{1,2}rd', date)
+                    if suffix_search:
+                        date = re.sub(r'st|nd|rd|th', '', date)
+
+                    # Split words if 1 word in the months_list
+                    for x in months_list:
+                        if not date.startswith(x):
+                            if x in date.lower():
+                                date = re.split("(" + x + ")", date)
+                                date = date[1] + date[2]
+
+                    # Remove commas from date
+                    date = date.title()
+                    whole = date.split()
+                    month = list(calendar.month_abbr).index(str(whole[0][0:3]))
+                    formatMeta(month,int(whole[1]),int(whole[2]))
+                except:
+                    formatMeta(0,0,0)
+            else:
+                formatMeta(0,0,0)
+
+        # takes date and retuns it if format is valid
+        def cleanDate(text):
+            # match regex day/month/year or month/day/year
+            for date in re.findall(r'^\d{1,2}[.,/-]\d{1,2}[.,/-]\d{4}$',text):
+                return date
+
+            # match regex Year/month/day
+            for date in re.findall(r'^\d{4}[.,/-]\d{1,2}[.,/-]\d{1,2}$',text):
+                return date
+                
+            # match regex Text-Month/day/year
+            for date in re.findall(r'\w+[.]?\s+\d{1,2}\w*\s*[,]?\s+\d{4}',text):
+                return date 
+
+        # date extraction clean
+        for date in extracted_dates:
+            clean_date = cleanDate(date)
+            if clean_date != None:
+                parseDate(clean_date)
+        
+        random.shuffle(validDates)
+        return sorted(validDates[0:10])
