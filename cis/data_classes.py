@@ -154,9 +154,7 @@ class ECMSMetadataV2:
     access_restriction_status: str
     use_restriction_status: str
     essential_records: str
-    access_restriction_note: Optional[str] = None
-    use_restriction_note: Optional[str] = None
-    security_classification: Optional[str] = None
+    rights_holder: Optional[list[str]] = field(default_factory=list)
     specific_access_restriction: Optional[list[str]] = field(default_factory=list)
     specific_use_restriction: Optional[list[str]] = field(default_factory=list)
     description: Optional[str] = ''
