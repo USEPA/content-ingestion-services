@@ -5,8 +5,6 @@ import csv
 import ahocorasick
 import difflib
 import random
-from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize
 import spacy
 import pytz
 from datetime import datetime
@@ -522,20 +520,20 @@ class IdentifierExtractor():
                 final_loc.append(i)
 
         # Filtered Loctions after stop words removal
-        stop_words = set(stopwords.words('english'))
-        for location in final_loc:
-            word_tokens = word_tokenize(str(location))
-            temploc = ""
-            for w in word_tokens:   # turns current location segments into a string
-                if w not in stop_words:
-                    temploc += w + " "
-            location_clean = temploc.strip() # temp location is cleaned by stripping
-            if location_clean.lower() not in (loc.lower() for loc in valid_locations):  # adds location
-                if self.isValid(location_clean.lower()):
-                    valid_locations.append(location_clean)
+        # stop_words = set(stopwords.words('english'))
+        # for location in final_loc:
+        #     word_tokens = word_tokenize(str(location))
+        #     temploc = ""
+        #     for w in word_tokens:   # turns current location segments into a string
+        #         if w not in stop_words:
+        #             temploc += w + " "
+        #     location_clean = temploc.strip() # temp location is cleaned by stripping
+        #     if location_clean.lower() not in (loc.lower() for loc in valid_locations):  # adds location
+        #         if self.isValid(location_clean.lower()):
+        #             valid_locations.append(location_clean)
 
-        random.shuffle(valid_locations)
-        return sorted(valid_locations[0:10])  # Filtered w/o Stop Words
+        random.shuffle(final_loc)
+        return sorted(final_loc[0:10])  # Filtered w/o Stop Words
 
     # takes date and retuns it if format is valid
     def cleanDate(self, text):
