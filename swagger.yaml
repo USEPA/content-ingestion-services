@@ -1683,6 +1683,14 @@ components:
           type: array
           items:
             type: string
+        spatial_extent:
+          type: array
+          items:
+            type: string
+        temporal_extent:
+          type: array
+          items:
+            type: string
     AddFavoritesRequest:
       type: object
       properties:

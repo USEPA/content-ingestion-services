@@ -30,7 +30,7 @@ SWAGGER_PATH = 'swagger.yaml'
 swagger_yml = load(open(SWAGGER_PATH, 'r'), Loader=Loader)
 
 
-def create_app(env, region_name, patt_host, patt_api_key, model_path, capstone_path, label_mapping_path, office_info_mapping_path, config_path, mailbox_data_path, vocab_path, keyword_idf_path, database_uri, wam_username, wam_password, bucket_name, priority_categories_path, db_schema_change=False, tika_server=None, cis_server=None, ezemail_server=None, upgrade_db=False, wam_host=None):
+def create_app(env, region_name, patt_host, patt_api_key, model_path, capstone_path, label_mapping_path, office_info_mapping_path, config_path, mailbox_data_path, vocab_path, keyword_idf_path, database_uri, wam_username, wam_password, bucket_name, priority_categories_path, cities_path, water_bodies_path, db_schema_change=False, tika_server=None, cis_server=None, ezemail_server=None, upgrade_db=False, wam_host=None):
     """Construct the core application."""
     app = Flask(__name__, instance_relative_config=False)
     app.config.from_object("flask_config.Config")
@@ -43,7 +43,7 @@ def create_app(env, region_name, patt_host, patt_api_key, model_path, capstone_p
         app.logger.info('Secrets loaded.')
     if not db_schema_change:
         keyword_extractor = KeywordExtractor(vocab_path, priority_categories_path, keyword_idf_path)
-        identifier_extractor = IdentifierExtractor()
+        identifier_extractor = IdentifierExtractor(cities_path, water_bodies_path)
         capstone_detector = CapstoneDetector(capstone_path)
         app.logger.info('Keyword extractor initialized.')
         mailbox_manager = SharedMailboxManager(mailbox_data_path)
