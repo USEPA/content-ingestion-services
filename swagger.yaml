@@ -2432,11 +2432,6 @@ components:
             type: string
         file_name:
           type: string
-        attachment_info:
-          type: array
-          items:
-            type: object
-            $ref: '#/components/schemas/SEMSAttachmentInfo'
     EmailInfo:
       type: object
       properties:
@@ -2471,6 +2466,11 @@ components:
           type: string
         email_unid:
           type: string
+        attachment_info:
+          type: array
+          items:
+            type: object
+            $ref: '#/components/schemas/SEMSAttachmentInfo'
         nuxeo_env:
           type: string
 

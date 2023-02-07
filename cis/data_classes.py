@@ -526,7 +526,7 @@ class SEMSMetadata:
     description: str
     tags: list[str]
     file_name: str
-    attachment_info: list[SEMSAttachmentInfo]
+    
 
 @dataclass_json
 @dataclass 
@@ -546,6 +546,7 @@ class UploadSEMSEmail:
     email_id: str
     record_id: str
     email_unid: str
+    attachment_info: list[SEMSAttachmentInfo]
     nuxeo_env: Optional[str] = 'dev'
 
 @dataclass_json
