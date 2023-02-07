@@ -803,11 +803,12 @@ def sharepoint_record_prediction(req: SharepointPredictionRequest, access_token,
   subjects=keyword_extractor.extract_subjects(tika_result.text, keyword_weights)
   identifiers=identifier_extractor.extract_identifiers(tika_result.text)
   has_capstone=capstone_detector.detect_capstone_text(tika_result.text)
+  spatial_extent, temporal_extent = identifier_extractor.extract_spatial_temporal(tika_result.text)
   # TODO: Handle case where attachments are present
   predicted_schedules, default_schedule = model.predict(tika_result.text, 'document', PredictionMetadata(req.file_name, req.department), has_capstone, keywords, subjects, attachments=[])
   predicted_title = mock_prediction_with_explanation
   predicted_description = mock_prediction_with_explanation
-  prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, is_encrypted=tika_result.is_encrypted, description=predicted_description, default_schedule=default_schedule, subjects=subjects, identifiers=identifiers, cui_categories=tika_result.cui_categories)
+  prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, is_encrypted=tika_result.is_encrypted, description=predicted_description, default_schedule=default_schedule, subjects=subjects, identifiers=identifiers, cui_categories=tika_result.cui_categories, spatial_extent=spatial_extent, temporal_extent=temporal_extent)
   return Response(prediction.to_json(), status=200, mimetype='application/json')
 
 def upload_sharepoint_record_v2(req: SharepointUploadRequestV2, access_token, user_info, c):
@@ -1805,6 +1806,7 @@ def get_file_metadata_prediction(config, file, prediction_metadata: PredictionMe
   subjects=keyword_extractor.extract_subjects(tika_result.text, keyword_weights)
   has_capstone=capstone_detector.detect_capstone_text(tika_result.text)
   identifiers=identifier_extractor.extract_identifiers(tika_result.text)
+  spatial_extent, temporal_extent = identifier_extractor.extract_spatial_temporal(tika_result.text)
 
   # Auto detect schedule from path
   mapping = schedule_cache.get_schedule_mapping()
@@ -1832,6 +1834,8 @@ def get_file_metadata_prediction(config, file, prediction_metadata: PredictionMe
       subjects=subjects, 
       identifiers=identifiers,
       cui_categories=tika_result.cui_categories,
-      is_encrypted=tika_result.is_encrypted
+      is_encrypted=tika_result.is_encrypted,
+      spatial_extent=spatial_extent,
+      temporal_extent=temporal_extent
       )
   return Response(prediction.to_json(), status=200, mimetype='application/json')

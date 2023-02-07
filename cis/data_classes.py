@@ -220,6 +220,8 @@ class MetadataPrediction:
     identifiers: Dict[str, str]
     cui_categories: Optional[list[str]] = None
     is_encrypted: bool = False
+    spatial_extent: Optional[list[str]] = None
+    temporal_extent: Optional[list[str]] = None
 
 mock_predicted_schedules = [
     Recommendation(**{"schedule": RecordSchedule(**{"function_number": "404", "schedule_number": "1012", "disposition_number": "e"}), "probability": 0.6403017640113831}), 

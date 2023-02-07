@@ -76,10 +76,9 @@ def text_metadata_prediction():
     subjects=keyword_extractor.extract_subjects(req.text, keyword_weights)
     has_capstone=capstone_detector.detect_capstone_text(req.text)
     identifiers=identifier_extractor.extract_identifiers(req.text)
-    # TODO: Handle case where attachments are present
+    spatial_extent, temporal_extent = identifier_extractor.extract_spatial_temporal(req.text)
     predicted_schedules, default_schedule = model.predict(req.text, 'document', req.prediction_metadata, has_capstone, keywords, subjects, attachments=[])
-    
-    prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description, default_schedule=default_schedule, subjects=subjects, identifiers=identifiers)
+    prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description, default_schedule=default_schedule, subjects=subjects, identifiers=identifiers, spatial_extent=spatial_extent, temporal_extent=temporal_extent)
     return Response(prediction.to_json(), status=200, mimetype='application/json')
 
 @app.route('/email_metadata_prediction/<emailsource>', methods=['GET'])
@@ -112,12 +111,14 @@ def email_metadata_prediction_graph(emailsource):
     subjects=keyword_extractor.extract_subjects(tika_result.text, keyword_weights)
     has_capstone=capstone_detector.detect_capstone_text(tika_result.text)
     identifiers=identifier_extractor.extract_identifiers(tika_result.text)
+    spatial_extent, temporal_extent = identifier_extractor.extract_spatial_temporal(tika_result.text)
+    
     # TODO: Handle case where attachments are present
     predicted_schedules, default_schedule = model.predict(tika_result.text, 'email', PredictionMetadata(req.file_name, req.department), has_capstone, keywords, subjects, attachments=[], valid_schedules=valid_schedules)
     
     predicted_title = mock_prediction_with_explanation
     predicted_description = mock_prediction_with_explanation
-    prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description, default_schedule=default_schedule, subjects=subjects, identifiers=identifiers, is_encrypted=is_encrypted)
+    prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description, default_schedule=default_schedule, subjects=subjects, identifiers=identifiers, is_encrypted=is_encrypted, spatial_extent=spatial_extent, temporal_extent=temporal_extent)
     return Response(prediction.to_json(), status=200, mimetype='application/json')
 
 @app.route('/upload_file/v2', methods=['POST'])
