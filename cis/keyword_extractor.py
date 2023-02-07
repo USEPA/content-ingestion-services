@@ -8,7 +8,6 @@ import random
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 import spacy
-import pandas as pd
 import pytz
 from datetime import datetime
 import calendar
@@ -164,9 +163,14 @@ class IdentifierExtractor():
         self.nara_transfer_number_regex = Rebulk().regex(r'PT-412-[0-9]{4}-[0-9]{4}')
         self.nara_disposal_authority_regex = Rebulk().regex(r'DAA-(0412|GRS)-[0-9]{4}-[0-9]{4}-[0-9]{4}')
 
-        ## TODO: Remove pandas dependency
-        self.water_list = [x.lower() for x in pd.read_csv(water_bodies_path)['body']]
-        self.uscities_list = list(pd.read_csv(cities_path)['loc'])
+        with open(water_bodies_path, 'r') as water_file:
+            self.water_list = water_file.read().splitlines()[1:]
+            self.water_list = [x.lower() for x in self.water_list]
+
+        with open(cities_path, 'r') as cities_file:
+            self.uscities_list = cities_file.read().splitlines()[1:]
+            self.uscities_list = [x.replace('"','') for x in self.uscities_list]
+
         self.nlp = spacy.load('en_core_web_lg')
       
     def extract_identifiers(self, content):
@@ -487,7 +491,7 @@ class IdentifierExtractor():
                 return True
             elif len(word.split()) > 1: #only take location if not one word
                 for x in self.water_list: #compare to water list
-                    if x.lower() in word.lower():
+                    if x in word.lower():
                         return True
         else:
             return False
