@@ -485,7 +485,7 @@ class IdentifierExtractor():
         splitWord = word.split()    # splits to check the last word
         lastWord = splitWord[-1]    # if it's a street
         if not any(ext in word.lower() for ext in invalid_chars) and not lastWord.lower() in invalidLocSuffix:    # pass if no invalid chars/terms/suffix
-            if len(difflib.get_close_matches(word, self.uscities_list, n=1, cutoff=0.72)) == 1:                  # compare loc to uscities
+            if len(difflib.get_close_matches(word, self.uscities_list, n=1, cutoff=0.75)) == 1:                  # compare loc to uscities
                 return True
             elif len(word.split()) > 1: #only take location if not one word
                 for x in self.water_list: #compare to water list
