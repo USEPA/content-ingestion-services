@@ -38,6 +38,9 @@ class HuggingFaceModel():
                 title = 'title: ' + prediction_metadata.file_name
             else:
                 title = ''
+        else:
+            title = ''
+            group_name = ''
         keywords = 'keywords: ' + ', '.join(keywords)
         topics = 'topics: ' + ', '.join(subjects)
         attachments = 'attachments: ' + ', '.join(attachments[:3])
