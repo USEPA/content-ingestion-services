@@ -21,3 +21,5 @@ xhtml2pdf==0.2.8
 beautifulsoup4==4.11.1
 spacy==3.3.0
 en-core-web-lg @ https://github.com/explosion/spacy-models/releases/download/en_core_web_lg-3.3.0/en_core_web_lg-3.3.0-py3-none-any.whl
+pytest==6.2.5
+pytest-cov==4.0.0

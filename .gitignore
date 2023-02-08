@@ -17,3 +17,4 @@ migrations/
 sample_command.txt
 swagger_app_scan.yaml
 swagger_app_scan_updated.yaml
+.coverage
