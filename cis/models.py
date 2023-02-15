@@ -1,4 +1,15 @@
 from . import db
+import enum
+from sqlalchemy.dialects.mysql import JSON
+
+class BatchUploadStatus(enum.Enum):
+    COMPLETE = 1
+    PENDING = 2
+    ERROR = 3
+
+class BatchUploadSource(enum.Enum):
+    ONEDRIVE = 1
+    OUTLOOK = 2
 
 class User(db.Model):
     __tablename__ = 'user'
@@ -7,6 +18,7 @@ class User(db.Model):
     favorites = db.relationship("Favorite", backref="user")
     submissions = db.relationship("RecordSubmission", backref="user")
     user_settings = db.relationship("AppSettings", backref="user")
+    batch_uploads = db.relationship("BatchUpload", backref="user")
 
 class Favorite(db.Model):
     __tablename__ = 'favorite'
@@ -16,6 +28,17 @@ class Favorite(db.Model):
     disposition_number = db.Column(db.String(10))
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), index=True)
     __table_args__ = (db.UniqueConstraint('user_id', 'function_number', 'disposition_number', 'schedule_number', name='_user_favorites_uc'),)
+
+class BatchUpload(db.Model):
+    __tablename__ = 'batch_upload'
+    id = db.Column(db.Integer, primary_key=True)
+    status = db.Column(db.Enum(BatchUploadStatus))
+    source = db.Column(db.Enum(BatchUploadSource))
+    email = db.Column(db.String(200))
+    mailbox = db.Column(db.String(200))
+    completion_date = db.Column(db.DateTime(), nullable=True)
+    upload_metadata = db.Column(JSON)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), index=True)
 
 class RecordSubmission(db.Model):
     __tablename__ = 'record_submission'

@@ -7,7 +7,7 @@ import urllib
 import io
 import re
 import uuid
-from .models import User, RecordSubmission, db
+from .models import User, RecordSubmission, BatchUpload, BatchUploadStatus, BatchUploadSource, db
 from sqlalchemy import null
 from . import model, help_item_cache, schedule_cache, keyword_extractor, identifier_extractor, capstone_detector
 from xhtml2pdf import pisa
@@ -1839,3 +1839,17 @@ def get_file_metadata_prediction(config, file, prediction_metadata: PredictionMe
       temporal_extent=temporal_extent
       )
   return Response(prediction.to_json(), status=200, mimetype='application/json')
+
+def create_batch(req: BatchUploadRequest, user_info, config):
+  user = User.query.filter_by(lan_id = user_info.lan_id).all()
+  if len(user) == 0:
+      return Response(StatusResponse(status='Failed', reason='User not found.', request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
+  else:
+      user = user[0]
+  batch = BatchUpload(status=BatchUploadStatus.PENDING, source=BatchUploadSource[req.source], email=user_info.email, mailbox=req.mailbox, upload_metadata=req.metadata.to_dict(), user_id=user.id)
+  db.session.add(batch)
+  try:
+    db.session.commit()
+    return Response(StatusResponse(status='OK', reason='Successfully added batch.', request_id=g.get('request_id', None)).to_json(), status=200, mimetype='application/json')
+  except:
+    return Response(StatusResponse(status='Failed', reason='Failed to add batch.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
