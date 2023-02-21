@@ -419,6 +419,23 @@ class GamificationDataRequest:
 
 @dataclass_json
 @dataclass 
+class BatchUploadData:
+    id: str
+    status: str
+    source: str
+    email: str
+    upload_metadata: ECMSMetadataV2
+    user_id: str
+    mailbox: Optional[str] = None
+    completion_date: Optional[str] = None
+
+@dataclass_json
+@dataclass 
+class BatchUploadResponse:
+    batches: list[BatchUploadData]
+    
+@dataclass_json
+@dataclass 
 class GamificationDataResponse:
     badges: list[BadgeInfo]
     profile: Optional[ProfileInfo]
@@ -661,6 +678,14 @@ class SharepointBatchUploadData:
     site_id: str
     list_id: str
     user: UserInfo
+
+@dataclass_json
+@dataclass 
+class BatchUploadRequest:
+    source: str
+    metadata: ECMSMetadataV2
+    email_source: Optional[str] = None
+    mailbox: Optional[str] = None
 
 @dataclass_json
 @dataclass 

@@ -529,6 +529,40 @@ def sharepoint_batch_upload():
         return Response(StatusResponse(status='Failed', reason=message, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
     return upload_sharepoint_batch(req, user_info, c, g.access_token)
 
+@app.route('/upload_batch', methods=['POST'])
+def upload_batch():
+    req = request.json
+    try:
+        req = BatchUploadRequest.from_dict(req)
+    except:
+        return Response(StatusResponse(status='Failed', reason="Request is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
+    success, message, user_info = get_user_info(c, g.token_data)
+    if not success:
+        return Response(StatusResponse(status='Failed', reason=message, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+    if req.metadata.custodian != user_info.lan_id:
+        return Response(StatusResponse(status='Failed', reason="Custodian must match authorized user's lan_id.", request_id=g.get('request_id', None)).to_json(), status=401, mimetype='application/json')
+    return create_batch(req, user_info)
+
+def format_batch(batch: BatchUpload):
+    completion_date = batch.completion_date
+    if completion_date is not None:
+        completion_date = completion_date.strftime('%Y-%m-%d')
+    return BatchUploadData(id=batch.id, status=batch.status.name, source=batch.source.name, email=batch.email, upload_metadata=batch.upload_metadata, user_id=batch.user_id, mailbox=batch.mailbox, completion_date=completion_date)
+
+@app.route('/get_batch_uploads', methods=['GET'])
+def get_batch_uploads():
+    success, message, user_info = get_user_info(c, g.token_data)
+    if not success:
+        return Response(StatusResponse(status='Failed', reason=message, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+    user = User.query.filter_by(lan_id = user_info.lan_id).all()
+    if len(user) > 0:
+        user = user[0]
+    else:
+        return Response(StatusResponse(status='Failed', reason="Could not find user.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
+    batches = BatchUpload.query.filter_by(user_id=user.id).all()
+    response = BatchUploadResponse(batches=[format_batch(b) for b in batches])
+    return Response(response.to_json(), status=200, mimetype='application/json')
+
 @app.route('/get_help_item', methods=['GET'])
 def get_help_by_id():
     req = request.args
