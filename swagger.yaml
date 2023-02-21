@@ -872,7 +872,7 @@ paths:
       tags:
       - email
       - sharepoint
-      summary: Stage batch upload.
+      summary: Get batch upload information.
       security:
         - Authorization: [] 
       responses:

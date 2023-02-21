@@ -550,7 +550,7 @@ def format_batch(batch: BatchUpload):
     return BatchUploadData(id=batch.id, status=batch.status.name, source=batch.source.name, email=batch.email, upload_metadata=batch.upload_metadata, user_id=batch.user_id, mailbox=batch.mailbox, completion_date=completion_date)
 
 @app.route('/get_batch_uploads', methods=['GET'])
-def upload_batch():
+def get_batch_uploads():
     success, message, user_info = get_user_info(c, g.token_data)
     if not success:
         return Response(StatusResponse(status='Failed', reason=message, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
