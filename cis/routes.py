@@ -541,15 +541,19 @@ def upload_batch():
         return Response(StatusResponse(status='Failed', reason=message, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
     if req.metadata.custodian != user_info.lan_id:
         return Response(StatusResponse(status='Failed', reason="Custodian must match authorized user's lan_id.", request_id=g.get('request_id', None)).to_json(), status=401, mimetype='application/json')
-    return create_batch(req, user_info, c)
+    return create_batch(req, user_info)
 
-# TODO: Implement this
-def format_batch(batch):
-    pass
+def format_batch(batch: BatchUpload):
+    completion_date = batch.completion_date
+    if completion_date is not None:
+        completion_date = completion_date.strftime('%Y-%m-%d')
+    return BatchUploadData(id=batch.id, status=batch.status.name, source=batch.source.name, email=batch.email, upload_metadata=batch.upload_metadata, user_id=batch.user_id, mailbox=batch.mailbox, completion_date=completion_date)
 
-@app.route('/get_batch_uploads', methods=['POST'])
+@app.route('/get_batch_uploads', methods=['GET'])
 def upload_batch():
     success, message, user_info = get_user_info(c, g.token_data)
+    if not success:
+        return Response(StatusResponse(status='Failed', reason=message, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
     user = User.query.filter_by(lan_id = user_info.lan_id).all()
     if len(user) > 0:
         user = user[0]

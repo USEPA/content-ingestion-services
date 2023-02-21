@@ -826,6 +826,81 @@ paths:
               schema:
                 $ref: '#/components/schemas/StatusResponse'
       x-codegen-request-body-name: edit_mode
+  /upload_batch:
+    post:
+      tags:
+      - email
+      - sharepoint
+      summary: Stage batch upload.
+      security:
+        - Authorization: [] 
+      requestBody:
+        description: Upload request information including metadata which will apply to all objects.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchUploadRequest'
+        required: false
+      responses:
+        200:
+          description: Batch created.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        400:
+          description: Invalid request - description in response.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        401:
+          description: Unauthorized - description in response.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        500:
+          description: Server side error - description in response.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+      x-codegen-request-body-name: edit_mode
+  /get_batch_uploads:
+    get:
+      tags:
+      - email
+      - sharepoint
+      summary: Stage batch upload.
+      security:
+        - Authorization: [] 
+      responses:
+        200:
+          description: Batch information.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/BatchUploadResponse'
+        400:
+          description: Invalid request - description in response.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        401:
+          description: Unauthorized - description in response.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        500:
+          description: Server side error - description in response.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+      x-codegen-request-body-name: edit_mode
   /get_record_schedules:
     get:
       tags:
@@ -2473,5 +2548,54 @@ components:
             $ref: '#/components/schemas/SEMSAttachmentInfo'
         nuxeo_env:
           type: string
+    BatchUploadRequest:
+      type: object
+      properties:
+        metadata:
+          type: object
+          $ref: '#/components/schemas/ECMSMetadataV2'
+        source:
+          type: string
+          enum:
+          - ONEDRIVE
+          - OUTLOOK
+        mailbox:
+          type: string
+        email_source:
+          type: string
+    BatchUploadData:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          enum:
+          - COMPLETE
+          - PENDING
+          - ERROR
+        source:
+          type: string
+          enum:
+          - OUTLOOK
+          - ONEDRIVE
+        email:
+          type: string
+        upload_metadata:
+          type: object
+          $ref: '#/components/schemas/ECMSMetadataV2'
+        user_id: 
+          type: string
+        mailbox:
+          type: string
+        completion_date:
+          type: string
+    BatchUploadResponse:
+      type: object
+      properties:
+        batches:
+          type: array
+          items:
+            $ref: '#/components/schemas/BatchUploadData'
 
 

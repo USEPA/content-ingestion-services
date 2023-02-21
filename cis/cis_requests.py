@@ -1840,7 +1840,7 @@ def get_file_metadata_prediction(config, file, prediction_metadata: PredictionMe
       )
   return Response(prediction.to_json(), status=200, mimetype='application/json')
 
-def create_batch(req: BatchUploadRequest, user_info, config):
+def create_batch(req: BatchUploadRequest, user_info):
   user = User.query.filter_by(lan_id = user_info.lan_id).all()
   if len(user) == 0:
       return Response(StatusResponse(status='Failed', reason='User not found.', request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
