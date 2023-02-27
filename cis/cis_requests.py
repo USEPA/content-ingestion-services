@@ -639,7 +639,7 @@ def get_gamification_data(config, employee_number):
     app.logger.info('Profile requests failed for ' + employee_number)
 
 def get_sems_special_processing(config, region):
-  special_processing = requests.get('http://' + config.sems_host + '/sems-ws/outlook/getSpecialProcessing/' + region, timeout=10)
+  special_processing = requests.get('https://' + config.sems_host + '/sems-ws/outlook/getSpecialProcessing/' + region, timeout=10)
   if special_processing.status_code == 200:
     response_object = GetSpecialProcessingResponse([SemsSpecialProcessing(**obj) for obj in special_processing.json()])
     return Response(response_object.to_json(), status=200, mimetype='application/json')
@@ -650,7 +650,7 @@ def get_sems_sites(req: SemsSiteRequest, config):
   params = req.to_dict()
   params = {k:v for k,v in params.items() if v is not None}
   try:
-    sites = requests.get('http://' + config.sems_host + '/sems-ws/outlook/getSites', params=params, timeout=120)
+    sites = requests.get('https://' + config.sems_host + '/sems-ws/outlook/getSites', params=params, timeout=120)
   except:
     return Response(StatusResponse(status='Failed', reason="Request to SEMS server failed.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
   if sites.status_code == 200:
@@ -1526,7 +1526,7 @@ def create_sems_record(config, req: UploadSEMSEmail, user_info: UserInfo, nuxeo_
   }
 
   try:
-    r = requests.post("http://" + config.sems_host + '/sems-ws/outlook/submissions/email', json=sems_request, timeout=30)
+    r = requests.post("https://" + config.sems_host + '/sems-ws/outlook/submissions/email', json=sems_request, timeout=30)
     if r.status_code == 200:
       return True, None
     else:
@@ -1749,7 +1749,7 @@ def update_help_items():
 
 def submit_sems_email(req: SEMSEmailUploadRequest, config):
   data = req.to_json()
-  r = requests.post('http://' + config.sems_host + '/sems-ws/outlook/saveMails', data=data, timeout=10)
+  r = requests.post('https://' + config.sems_host + '/sems-ws/outlook/saveMails', data=data, timeout=10)
   if r.status_code != 200:
     return Response(StatusResponse(status='Failed', reason='Failed to send email to SEMS.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
   return Response(r.json(), status=200, mimetype='application/json')
