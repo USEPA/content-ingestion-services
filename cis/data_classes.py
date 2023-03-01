@@ -161,8 +161,7 @@ class ECMSMetadataV2:
     close_date: Optional[str] = None
     disposition_date: Optional[str] = None
     cui_pii_categories: Optional[list[str]] = field(default_factory=list)
-    epa_contact: Optional[list[str]] = field(default_factory=list)
-    non_epa_contact: Optional[list[str]] = field(default_factory=list)
+    creators: Optional[list[str]] = field(default_factory=list)
     subjects: Optional[list[str]] = field(default_factory=list)
     spatial_extent: Optional[list[str]] = field(default_factory=list)
     temporal_extent: Optional[list[str]] = field(default_factory=list)

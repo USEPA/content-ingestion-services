@@ -234,7 +234,6 @@ def list_email_metadata_graph(req: GetEmailRequest, user_email, access_token, co
 
   return Response(GetEmailResponse(total_count=total_count, items_per_page=req.items_per_page, page_number=req.page_number, emails=emails).to_json(), status=200, mimetype="application/json")
 
-
 def extract_attachments_from_response_graph(messageId, hasAttachments, mailbox, access_token):
   if hasAttachments:
     url = "https://graph.microsoft.com/v1.0/" + mailbox + "/messages/" + str(messageId) + "/attachments?$select=name,id"
@@ -811,42 +810,6 @@ def sharepoint_record_prediction(req: SharepointPredictionRequest, access_token,
   prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, is_encrypted=tika_result.is_encrypted, description=predicted_description, default_schedule=default_schedule, subjects=subjects, identifiers=identifiers, cui_categories=tika_result.cui_categories, spatial_extent=spatial_extent, temporal_extent=temporal_extent)
   return Response(prediction.to_json(), status=200, mimetype='application/json')
 
-def upload_sharepoint_record_v2(req: SharepointUploadRequestV2, access_token, user_info, c):
-  headers = {'Authorization': 'Bearer ' + access_token}
-  url = 'https://graph.microsoft.com/v1.0/me/drive/items/' + req.drive_item_id + '?expand=listItem,sharepointIds'
-  r = requests.get(url, headers=headers, timeout=30)
-  if r.status_code != 200:
-    app.logger.error('Unable to find OneDrive item: ' + r.text)
-    return Response('Unable to find OneDrive item: ' + str(r.text), status=400, mimetype='application/json')
-  drive_item = r.json()
-  download_url = drive_item['@microsoft.graph.downloadUrl']
-  content_req = requests.get(download_url, timeout=30)
-  if content_req.status_code != 200:
-    app.logger.error('Content request failed: ' + r.text)
-    return Response(StatusResponse(status='Failed', reason='Content request failed with status ' + str(content_req.status_code), request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-  content = content_req.content
-  success, error, uid = submit_nuxeo_file(c, content, user_info, req.metadata, req.nuxeo_env)
-  if not success:
-    return Response(StatusResponse(status='Failed', reason='Nuxeo upload for sharepoint file failed with error ' + error, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-
-  ## If successful, update Sharepoint metadata
-  site_id = drive_item['sharepointIds']['siteId']
-  list_id = drive_item['sharepointIds']['listId']
-  list_item_id = drive_item['sharepointIds']['listItemId']
-  status = "Saved to ARMS"
-  success, response = update_sharepoint_record_status(site_id, list_id, list_item_id, status, access_token)
-  if not success:
-    return response 
-  
-  ## Add submission analytics to table
-  success, response = add_submission_analytics(req.user_activity, req.metadata.record_schedule, user_info.lan_id, None, uid)
-  if not success:
-    return response
-  else:
-    log_upload_activity(user_info, req.user_activity, req.metadata, c)
-    upload_resp = UploadResponse(record_id=req.metadata.record_id, uid=uid)
-    return Response(upload_resp.to_json(), status=200, mimetype='application/json')
-
 def upload_sharepoint_record_v3(req: SharepointUploadRequestV3, access_token, user_info, c):
   headers = {'Authorization': 'Bearer ' + access_token}
   url = 'https://graph.microsoft.com/v1.0/me/drive/items/' + req.drive_item_id + '?expand=listItem,sharepointIds'
@@ -906,43 +869,6 @@ def batch_update_status(req: SharepointBatchUploadRequest, site_id, list_id, acc
     for x in batch_req.json()['responses']:
       if x['status'] != 200:
         raise Exception('Batch metadata update failed.')
-
-def upload_sharepoint_batch(req: SharepointBatchUploadRequest, user_info, c, access_token):
-  ## Save submission to S3
-  if len(req.sharepoint_items) == 0:
-    return Response(StatusResponse(status='OK', reason='Batch is empty. No action taken.', request_id=g.get('request_id', None)).to_json(), status=200, mimetype='application/json')
-  else:
-    headers = {'Authorization': 'Bearer ' + access_token}
-    url = 'https://graph.microsoft.com/v1.0/me/drive/items/' + req.sharepoint_items[0].drive_item_id + '?expand=listItem,sharepointIds'
-    r = requests.get(url, headers=headers, timeout=30)
-    if r.status_code != 200:
-      app.logger.error('Unable to find OneDrive item: ' + r.text)
-      return Response('Unable to find OneDrive item: ' + str(r.text), status=400, mimetype='application/json')
-    drive_item = r.json()
-    site_id = drive_item['sharepointIds']['siteId']
-    list_id = drive_item['sharepointIds']['listId']
-    drive_id = drive_item['parentReference']['driveId']
-    batch_data = SharepointBatchUploadData(request=req, drive_id=drive_id, site_id=site_id, list_id=list_id, user=user_info)
-  try:
-    s3 = boto3.resource('s3')
-    current_time = datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
-    file_path = user_info.lan_id + '_' + current_time + '.json'
-    object = s3.Object(c.bucket_name, 'pending_uploads/' + file_path)
-    object.put(Body=batch_data.to_json())
-  except:
-    return Response(StatusResponse(status='Failed', reason='Failed to upload batch to S3.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-  # Mark files as pending on Sharepoint
-  # TODO: Batch these requests
-  try:
-    batch_update_status(req, site_id, list_id, access_token)
-  except:
-    Response(StatusResponse(status='Failed', reason='Unable to update Sharepoint status.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-  try:
-    log_upload_activity(user_info, None, None, c, count=len(req.sharepoint_items))
-  except:
-    Response(StatusResponse(status='OK', reason='Unable to reward points for sharepoint batch.', request_id=g.get('request_id', None)).to_json(), status=200, mimetype='application/json')
-    app.logger.error('Unable to reward points for sharepoint batch for user ' + user_info.lan_id)
-  return Response(StatusResponse(status='OK', reason='Uploaded batch to S3.', request_id=g.get('request_id', None)).to_json(), status=200, mimetype='application/json')
 
 def sched_to_string(sched):
   return '-'.join([sched.function_number, sched.schedule_number, sched.disposition_number])
@@ -1019,43 +945,6 @@ def add_relationship(req: AddParentChildRequest, user_info, config, env):
 
   return Response(StatusResponse(status='OK', reason='Updated relationships.', request_id=g.get('request_id', None)).to_json(), status=200, mimetype='application/json')
 
-def convert_metadata_for_nuxeo(user_info, metadata, doc_type, parent_id=None):
-  data = { "entity-type": "document", "name": metadata.title, "type": "epa_record"}
-  schedule = metadata.record_schedule.schedule_number + metadata.record_schedule.disposition_number
-  sensitivity = "1"
-  if metadata.sensitivity.lower() == 'shared':
-    sensitivity = "0"
-  properties = {
-    "arms:epa_contact": user_info.employee_number,
-    ## TODO: What are valid record types?
-    ## TODO: What are valid doc types?
-    "arms:aa_ship": user_info.parent_org_code[0] + '0000000',
-    "arms:document_type": doc_type,
-    "arms:record_schedule": schedule,
-    "arms:folder_path": [metadata.file_path],
-    "arms:application_id": "ARMS_UPLOADER",
-    "arms:program_office": [user_info.manager_parent_org_code],
-    "arms:sensitivity": sensitivity,
-    "arms:rights_holder": metadata.rights,
-    "arms:spatial_extent": metadata.coverage,
-    "dc:description": metadata.description,
-    # "dc:creator": metadata.creator, this will be moved to epa_contact
-    # and arms:epa_workforce_id will become metadata.creator
-    "dc:title": metadata.title,
-    "dc:subjects": [],
-    "nxtag:tags": [{"label": tag,"username": metadata.custodian} for tag in metadata.tags],
-    }
-  if metadata.identifiers is not None:
-    properties['arms:identifiers'] = [{"key": k, "value":v} for k,v in metadata.identifiers.items()]
-  if metadata.close_date is not None:
-    properties['arms:close_date'] = metadata.close_date
-  if metadata.disposition_date is not None:
-    properties['arms:disposition_date'] = metadata.disposition_date
-  if parent_id is not None:
-    properties['arms:relation_is_part_of'] = [parent_id]
-  data['properties'] = properties
-  return data
-
 def convert_metadata_for_nuxeo_v2(user_info, metadata, doc_type, parent_id=None, source_system="ARMS_UPLOADER"):
   data = { "entity-type": "document", "name": metadata.title, "type": "epa_record"}
   schedule = metadata.record_schedule.schedule_number + metadata.record_schedule.disposition_number
@@ -1068,8 +957,11 @@ def convert_metadata_for_nuxeo_v2(user_info, metadata, doc_type, parent_id=None,
   properties = {
     ## TODO: enable submission of EPA Contacts, non EPA Contacts, CUI/PII categories, Access/Use Restriction fields, Security Classification, Subjects 
     ## TODO: epa_contact will become a multi valued field
-    "arms:epa_contact": user_info.employee_number,
+    ## TODO: Add this once creators are enabled in Nuxeo
+    ## TODO: Remove epa_contact and all usages
+    ## "arms:creators": metadata.creators,
     "arms:custodian": user_info.employee_number,
+    "arms:epa_contact": user_info.employee_number,
     "arms:aa_ship": user_info.parent_org_code[0] + '0000000',
     "arms:document_type": doc_type,
     "arms:record_schedule": schedule,
@@ -1100,21 +992,6 @@ def convert_metadata_for_nuxeo_v2(user_info, metadata, doc_type, parent_id=None,
     properties['arms:relation_is_part_of'] = [parent_id]
   data['properties'] = properties
   return data
-
-def create_nuxeo_record(config, user_info, metadata, env, parent_id=None):
-  nuxeo_url, nuxeo_username, nuxeo_password = get_nuxeo_creds(config, env)
-  headers = {'Content-Type': 'application/json'}
-  data = convert_metadata_for_nuxeo(user_info, metadata, 'Other', parent_id=parent_id)
-  try:
-    r = requests.post(nuxeo_url + '/nuxeo/api/v1/path/EPA Organization/ThirdParty', json=data, headers=headers, auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))
-    if r.status_code == 201:
-      uid = r.json()['uid']
-      return True, None, uid
-    else:
-      app.logger.error(r.text)
-      return False, "Record creation request returned " + str(r.status_code) + ' response.', None
-  except:
-    return False, "Failed to complete record creation request.", None
 
 def create_nuxeo_record_v2(config, user_info, metadata, env, parent_id=None):
   nuxeo_url, nuxeo_username, nuxeo_password = get_nuxeo_creds(config, env)
@@ -1156,45 +1033,32 @@ def attach_nuxeo_blob(config, uid, content_blob: NuxeoBlob, attachment_blobs: li
   except:
     app.logger.error(r.text)
     return False, "Failed to link S3 blobs."
-
-def create_nuxeo_email_record(config, user_info, metadata, env):
-  nuxeo_url, nuxeo_username, nuxeo_password = get_nuxeo_creds(config, env)
-  headers = {'Content-Type': 'application/json'}
-  data = convert_metadata_for_nuxeo(user_info, metadata, 'Email')
-  try:
-    r = requests.post(nuxeo_url + '/nuxeo/api/v1/path/EPA Organization/ThirdParty', json=data, headers=headers, auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))
-    if r.status_code == 201:
-      uid = r.json()['uid']
-      return True, None, uid
-    else:
-      app.logger.error(r.text)
-      return False, "Record creation request returned " + str(r.status_code) + ' response.', None
-  except:
-    app.logger.error(r.text)
-    return False, "Failed to complete record creation request.", None
   
 def convert_sems_metadata(user_info, sems_metadata: SEMSMetadata):
-  # TODO: Should SEMS records be private or shared?
   # TODO: How to fill use and access restrictions
   # TODO: How to incorporate other SEMS metadata
-  # TODO: Should there be an identifier for SEMS UID?
+  if len(sems_metadata.access_control) == 1 and 'UCTL' in sems_metadata.access_control:
+    sensitivity = "Shared"
+  else:
+    sensitivity = "Private"
   return ECMSMetadataV2(
     file_path=sems_metadata.file_name,
     custodian=user_info.employee_number,
     title=sems_metadata.file_name,
     record_schedule=sems_metadata.record_schedule,
-    sensitivity="1",
+    sensitivity=sensitivity,
     access_restriction_status="",
     use_restriction_status="",
     essential_records="",
     description=sems_metadata.description,
-    tags=sems_metadata.tags
+    tags=sems_metadata.tags,
+    identifiers={'SEMS EPA ID': sems_metadata.sems_uid}
   )
 
-def create_nuxeo_email_record_v2(config, user_info, metadata, env, source_system="ARMS"):
+def create_nuxeo_email_record_v2(config, user_info, metadata, env, source_system="ARMS_UPLOADER"):
   nuxeo_url, nuxeo_username, nuxeo_password = get_nuxeo_creds(config, env)
   headers = {'Content-Type': 'application/json'}
-  data = convert_metadata_for_nuxeo_v2(user_info, metadata, 'Email')
+  data = convert_metadata_for_nuxeo_v2(user_info, metadata, 'Email', source_system=source_system)
   try:
     r = requests.post(nuxeo_url + '/nuxeo/api/v1/path/EPA Organization/ThirdParty', json=data, headers=headers, auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))
     if r.status_code == 201:
@@ -1206,30 +1070,6 @@ def create_nuxeo_email_record_v2(config, user_info, metadata, env, source_system
   except:
     app.logger.error(r.text)
     return False, "Failed to complete record creation request.", None
-
-def submit_nuxeo_file(config, file, user_info, metadata, env):
-  # Step 1: Upload files
-  file_md5 = hashlib.md5(file).hexdigest()
-  success = upload_nuxeo_file(config, file, file_md5)
-
-  if not success:
-    return False, "Failed to upload file."
-  
-  # Step 2: Create Nuxeo record
-  success, error, uid = create_nuxeo_record(config, user_info, metadata, env)
-  if not success:
-    return False, error, None
-  
-  # Step 3: Attach blob
-  mimetype = mimetypes.guess_type(metadata.file_path)[0]
-  if mimetype is None:
-    mimetype = 'application/octet-stream'
-  content_blob = NuxeoBlob(filename=metadata.file_path, mimetype=mimetype, digest=file_md5, length=len(file))
-  success, error = attach_nuxeo_blob(config, uid, content_blob, [], env)
-  if not success:
-    return False, error, None
-
-  return True, None, uid
 
 def submit_nuxeo_file_v2(config, file, user_info, metadata, env):
   # Step 1: Upload files
@@ -1254,118 +1094,6 @@ def submit_nuxeo_file_v2(config, file, user_info, metadata, env):
     return False, error, None
 
   return True, None, uid
-def upload_nuxeo_email(config, req, source, user_info):
-
-  # Step 0: Get EML file from graph
-  content = get_eml_file(req.email_id, req.metadata.title, source, req.mailbox, g.access_token, config)
-  if content is None:
-    return Response(StatusResponse(status='Failed', reason='Unable to retrieve email.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-
-  # Step 1: Upload all files - PDF rendition, EML, and attachments
-  success, pdf_render, attachments = eml_to_pdf(content)
-
-  # Upload PDF
-  pdf_bytes = pdf_render.getvalue()
-  pdf_md5 = hashlib.md5(pdf_bytes).hexdigest()
-  success = upload_nuxeo_file(config, pdf_bytes, pdf_md5)
-
-  if not success:
-    return Response(StatusResponse(status='Failed', reason='Unable to upload PDF rendition.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-  
-  # Upload original
-  content_md5 = hashlib.md5(content).hexdigest() 
-  success = upload_nuxeo_file(config, content, content_md5)
-  if not success:
-    return Response(StatusResponse(status='Failed', reason='Unable to upload EML.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-        
-  # Step 3: Create Nuxeo record
-  
-  # Create record for PDF rendition with EML as Nuxeo attachment
-  success, error, uid = create_nuxeo_email_record(config, user_info, req.metadata, req.nuxeo_env)
-
-  if not success:
-    app.logger.error(error)
-    return Response(StatusResponse(status='Failed', reason='Unable to create email record.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-
-  # Step 4: Attach blobs
-  content_blob = NuxeoBlob(filename=req.metadata.title + '.pdf', mimetype='application/pdf', digest=pdf_md5, length=len(pdf_bytes))
-  attachment_blob = NuxeoBlob(filename=req.metadata.title + '.eml', mimetype='application/octet-stream', digest=content_md5, length=len(content))
-  success, error = attach_nuxeo_blob(config, uid, content_blob, [attachment_blob], req.nuxeo_env)
-  if not success:
-    app.logger.error(error)
-    return Response(StatusResponse(status='Failed', reason='Unable to link email S3 blobs.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-
-  # Create records for each attachment listing the first record as a parent
-  schedule_map = {x.name:x.schedule for x in req.attachment_schedules}
-  close_date_map = {x.name:x.close_date for x in req.attachment_schedules}
-  disposition_date_map = {x.name:x.disposition_date for x in req.attachment_schedules}
-  attachment_uids = []
-
-  for attachment in attachments:
-    # Upload attachments
-    attachment_name = attachment[0]
-    attachment_content = base64.b64decode(attachment[1].encode('ascii'))
-    attachment_md5 = hashlib.md5(attachment_content).hexdigest() 
-    success = upload_nuxeo_file(config, attachment_content, attachment_md5)
-    if not success:
-      return Response(StatusResponse(status='Failed', reason='Unable to upload attachment ' + attachment[0] + '.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-
-    # Create Nuxeo records for each
-    metadata = ECMSMetadata(
-      file_path = req.metadata.file_path,
-      custodian = req.metadata.custodian,
-      title = attachment[0],
-      record_schedule = schedule_map.get(attachment[0], req.metadata.record_schedule),
-      sensitivity = req.metadata.sensitivity,
-      description = req.metadata.description,
-      creator = req.metadata.creator,
-      creation_date = req.metadata.creation_date,
-      close_date = close_date_map.get(attachment[0], req.metadata.close_date),
-      disposition_date = disposition_date_map.get(attachment[0], req.metadata.disposition_date),
-      rights = req.metadata.rights,
-      coverage = req.metadata.coverage,
-      relationships = req.metadata.relationships,
-      tags = req.metadata.tags
-    )
-
-    success, error, attachment_uid = create_nuxeo_record(config, user_info, metadata, req.nuxeo_env, parent_id=uid)
-    if not success:
-      app.logger.error('Failed to create attachment record for attachment ' + str(attachment[0] + '. ' + error))
-      return Response(StatusResponse(status='Failed', reason='Unable to create attachment record.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-    
-    # Link attachment blob
-    mimetype_guess = mimetypes.guess_type(attachment_name)[0]
-    if mimetype_guess is None:
-      mimetype_guess = 'application/octet-stream'
-    attachment_blob = NuxeoBlob(filename=attachment_name, mimetype=mimetype_guess, digest=attachment_md5, length=len(attachment_content))
-    success, error = attach_nuxeo_blob(config, attachment_uid, attachment_blob, [], req.nuxeo_env)
-    if not success:
-      app.logger.error('Failed to link attachment blob for attachment ' + str(attachment[0] + '. ' + error))
-      return Response(StatusResponse(status='Failed', reason='Unable to create attachment record.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-    
-    attachment_uids.append(attachment_uid)
-
-  # Step 5: Update parent record to contain attachment links as children
-  if len(attachment_uids) > 0:
-    properties = {'arms:relation_has_part': attachment_uids}
-    success = update_nuxeo_metadata(uid, properties, config, req.nuxeo_env)
-    if not success:
-      return Response(StatusResponse(status='Failed', reason='Failed to update document relationships.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-
-  # Step 6: Mark record saved in Outlook
-  save_req = MarkSavedRequestGraph(email_id = req.email_id, sensitivity=req.metadata.sensitivity, mailbox=req.mailbox)
-  save_resp = mark_saved(save_req, g.access_token, source, config)
-  if save_resp.status != '200 OK':
-    return save_resp
-  
-  # Step 6: Store submission analytics
-  success, response = add_submission_analytics(req.user_activity, req.metadata.record_schedule, user_info.lan_id, None, uid)
-  if not success:
-    return response
-  
-  upload_resp = UploadResponse(record_id=req.metadata.record_id, uid=uid)
-
-  return Response(upload_resp.to_json(), status=200, mimetype='application/json')
 
 def upload_nuxeo_email_v2(config, req, source, user_info):
 
@@ -1437,8 +1165,7 @@ def upload_nuxeo_email_v2(config, req, source, user_info):
       rights_holder = req.metadata.rights_holder,
       description = req.metadata.description,
       cui_pii_categories = req.metadata.cui_pii_categories,
-      epa_contact = req.metadata.epa_contact,
-      non_epa_contact = req.metadata.non_epa_contact,
+      creators = req.metadata.creators,
       subjects = req.metadata.subjects,
       spatial_extent = req.metadata.spatial_extent,
       temporal_extent = req.metadata.temporal_extent,
@@ -1595,7 +1322,7 @@ def upload_sems_email(config, req: UploadSEMSEmail, source, user_info):
       custodian=user_info.employee_number,
       title=attachment_name,
       record_schedule=schedule_map.get(attachment_name, req.metadata.record_schedule),
-      sensitivity="1",
+      sensitivity=arms_metadata.sensitivity,
       access_restriction_status="",
       use_restriction_status="",
       essential_records="",
@@ -1638,7 +1365,7 @@ def upload_sems_email(config, req: UploadSEMSEmail, source, user_info):
       return Response(StatusResponse(status='Failed', reason='Unable to create SEMS record.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
     
   # Step 7: Mark record saved in Outlook
-  save_req = MarkSavedRequestGraph(email_id = req.email_id, sensitivity=req.metadata.sensitivity, mailbox=req.mailbox)
+  save_req = MarkSavedRequestGraph(email_id = req.email_id, sensitivity=arms_metadata.sensitivity, mailbox=req.mailbox)
   save_resp = mark_saved(save_req, g.access_token, source, config, saved_cat="Saved to SEMS")
   if save_resp.status != '200 OK':
     return save_resp
@@ -1747,13 +1474,6 @@ def update_help_items():
   except:
     return Response(StatusResponse(status='Failed', reason='Help item cache update failed.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
 
-def submit_sems_email(req: SEMSEmailUploadRequest, config):
-  data = req.to_json()
-  r = requests.post('https://' + config.sems_host + '/sems-ws/outlook/saveMails', data=data, timeout=10)
-  if r.status_code != 200:
-    return Response(StatusResponse(status='Failed', reason='Failed to send email to SEMS.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-  return Response(r.json(), status=200, mimetype='application/json')
-
 def log_upload_activity(user_info, user_activity, metadata, config, count=1):
   safe_user_activity_request(user_info.employee_number, user_info.lan_id, user_info.parent_org_code, '3', config, count)
   if user_activity is not None and not user_activity.used_default_schedule or user_activity.used_schedule_dropdown or user_activity.used_recommended_schedule:
@@ -1846,7 +1566,8 @@ def create_batch(req: BatchUploadRequest, user_info):
       return Response(StatusResponse(status='Failed', reason='User not found.', request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
   else:
       user = user[0]
-  batch = BatchUpload(status=BatchUploadStatus.PENDING, source=BatchUploadSource[req.source], email=user_info.email, mailbox=req.mailbox, upload_metadata=req.metadata.to_dict(), user_id=user.id)
+  aa_ship = user_info.parent_org_code[0] + '0000000'
+  batch = BatchUpload(status=BatchUploadStatus.PENDING, source=BatchUploadSource[req.source], email=user_info.email, mailbox=req.mailbox, upload_metadata=req.metadata.to_dict(), user_id=user.id, employee_number=user_info.employee_number, program_office=user_info.manager_parent_org_code, aa_ship=aa_ship)
   db.session.add(batch)
   try:
     db.session.commit()
