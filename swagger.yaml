@@ -396,53 +396,6 @@ paths:
             '*/*':
               schema:
                 $ref: '#/components/schemas/StatusResponse'
-  /upload_email/v2/{emailsource}:
-    post:
-      tags:
-      - email
-      summary: Upload email to ARMS with metadata.
-      security:
-        - Authorization: [] 
-        - AccessToken: []
-      parameters:
-      - name: emailsource
-        in: path
-        description: Options are regular and archive.
-        required: true
-        schema:
-          type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UploadEmailRequestV2'
-        required: false
-      responses:
-        200:
-          description: Email successfully uploaded.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/UploadResponse'
-        400:
-          description: Invalid request - description in response.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-        401:
-          description: Unauthorized - description in response.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-        500:
-          description: Server side error - description in response.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-      x-codegen-request-body-name: upload_request
   /upload_email/v3/{emailsource}:
     post:
       tags:
@@ -1294,47 +1247,6 @@ paths:
             '*/*':
               schema:
                 $ref: '#/components/schemas/UploadResponse'
-        400:
-          description: Invalid request - description in response.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-        401:
-          description: Unauthorized - description in response.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-        500:
-          description: Server side error - description in response.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-      x-codegen-request-body-name: data
-  /upload_sharepoint_batch:
-    post:
-      tags:
-      - sharepoint
-      summary: Upload Sharepoint batch to be processed later.
-      security:
-        - Authorization: [] 
-        - AccessToken: []
-      requestBody:
-        description: ID fields and metadata needed to specify the batch.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SharepointBatchUploadRequest'
-        required: false
-      responses:
-        200:
-          description: Record successfully uploaded.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
         400:
           description: Invalid request - description in response.
           content:

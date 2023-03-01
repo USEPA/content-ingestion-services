@@ -121,42 +121,6 @@ def email_metadata_prediction_graph(emailsource):
     prediction = MetadataPrediction(predicted_schedules=predicted_schedules, title=predicted_title, description=predicted_description, default_schedule=default_schedule, subjects=subjects, identifiers=identifiers, is_encrypted=is_encrypted, spatial_extent=spatial_extent, temporal_extent=temporal_extent)
     return Response(prediction.to_json(), status=200, mimetype='application/json')
 
-@app.route('/upload_file/v2', methods=['POST'])
-def upload_file_v2():
-    success, message, user_info = get_user_info(c, g.token_data)
-    if not success:
-        return Response(StatusResponse(status='Failed', reason=message, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-    file = request.files.get('file')
-    try:
-        metadata = ECMSMetadata.from_json(request.form['metadata'])
-    except:
-        return Response(StatusResponse(status='Failed', reason="Metadata is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
-    try:
-        user_activity = SubmissionAnalyticsMetadata.from_json(request.form['user_activity'])
-    except:
-        return Response(StatusResponse(status='Failed', reason="User activity data is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
-    # Default to dev environment
-    env = request.form.get('nuxeo_env', 'dev')
-    if metadata.custodian != user_info.lan_id:
-        return Response(StatusResponse(status='Failed', reason="Custodian must match authorized user's lan_id.", request_id=g.get('request_id', None)).to_json(), status=401, mimetype='application/json')
-    if file is None:
-        return Response(StatusResponse(status='Failed', reason="No file found.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype="application/json")
-    # This is where we need to upload record to ARMS
-    file.stream.seek(0)
-    data = file.read()
-    success, error, uid = submit_nuxeo_file(c, data, user_info, metadata, env)
-    if not success:
-        return Response(StatusResponse(status='Failed', reason=error, request_id=g.get('request_id', None)).to_json(), status=500, mimetype="application/json")
-
-    # Add submission analytics
-    success, response = add_submission_analytics(user_activity, metadata.record_schedule, user_info.lan_id, None, uid)
-    if not success:
-        return response
-    else:
-        log_upload_activity(user_info, user_activity, metadata, c)
-        upload_resp = UploadResponse(record_id=metadata.record_id, uid=uid)
-        return Response(upload_resp.to_json(), status=200, mimetype='application/json')
-
 @app.route('/upload_file/v3', methods=['POST'])
 def upload_file_v3():
     success, message, user_info = get_user_info(c, g.token_data)
@@ -224,24 +188,6 @@ def get_emails_graph(emailsource):
     if not mailbox_manager.validate_mailbox(g.token_data['email'], req.mailbox):
         return Response(StatusResponse(status='Failed', reason="User is not authorized to access selected mailbox.", request_id=g.get('request_id', None)).to_json(), status=401, mimetype='application/json')
     return list_email_metadata_graph(req, g.token_data['email'], g.access_token, c)
-
-@app.route('/upload_email/v2/<emailsource>', methods=['POST'])
-def upload_email_v2(emailsource):
-    success, message, user_info = get_user_info(c, g.token_data)
-    if not success:
-        return Response(StatusResponse(status='Failed', reason=message, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-    if g.access_token is None:
-        return Response(StatusResponse(status='Failed', reason="X-Access-Token is required.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
-    req = request.json
-    try:
-        req = UploadEmailRequestV2.from_dict(req)
-    except:
-        return Response(StatusResponse(status='Failed', reason="Request is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
-    # TODO: Improve custodian validation based on role
-    if req.metadata.custodian != user_info.lan_id:
-        return Response(StatusResponse(status='Failed', reason="Custodian must match authorized user's lan_id.", request_id=g.get('request_id', None)).to_json(), status=401, mimetype='application/json')
-    
-    return upload_nuxeo_email(c, req, emailsource, user_info)
 
 @app.route('/upload_email/v3/<emailsource>', methods=['POST'])
 def upload_email_v3(emailsource):
@@ -486,20 +432,6 @@ def sharepoint_prediction():
         return Response(StatusResponse(status='Failed', reason="Request is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
     return sharepoint_record_prediction(req, g.access_token, c)
 
-@app.route('/upload_sharepoint_record/v2', methods=['POST'])
-def sharepoint_upload_v2():
-    req = request.json
-    try:
-        req = SharepointUploadRequestV2.from_dict(req)
-    except:
-        return Response(StatusResponse(status='Failed', reason="Request is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
-    success, message, user_info = get_user_info(c, g.token_data)
-    if req.metadata.custodian != user_info.lan_id:
-        return Response(StatusResponse(status='Failed', reason="Custodian must match authorized user's lan_id.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
-    if not success:
-        return Response(StatusResponse(status='Failed', reason=message, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-    return upload_sharepoint_record_v2(req, g.access_token, user_info, c)
-
 @app.route('/upload_sharepoint_record/v3', methods=['POST'])
 def sharepoint_upload_v3():
     req = request.json
@@ -513,21 +445,6 @@ def sharepoint_upload_v3():
     if not success:
         return Response(StatusResponse(status='Failed', reason=message, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
     return upload_sharepoint_record_v3(req, g.access_token, user_info, c)      
-
-@app.route('/upload_sharepoint_batch', methods=['POST'])
-def sharepoint_batch_upload():
-    req = request.json
-    try:
-        req = SharepointBatchUploadRequest.from_dict(req)
-    except:
-        return Response(StatusResponse(status='Failed', reason="Request is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
-    success, message, user_info = get_user_info(c, g.token_data)
-    for item in req.sharepoint_items:
-        if item.metadata.custodian != user_info.lan_id:
-            return Response(StatusResponse(status='Failed', reason="Custodian must match authorized user's lan_id.", request_id=g.get('request_id', None)).to_json(), status=401, mimetype='application/json')
-    if not success:
-        return Response(StatusResponse(status='Failed', reason=message, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-    return upload_sharepoint_batch(req, user_info, c, g.access_token)
 
 @app.route('/upload_batch', methods=['POST'])
 def upload_batch():

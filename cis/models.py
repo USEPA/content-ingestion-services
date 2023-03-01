@@ -7,6 +7,12 @@ class BatchUploadStatus(enum.Enum):
     PENDING = 2
     ERROR = 3
 
+class BatchRecordStatus(enum.Enum):
+  COMPLETE = 1
+  FAILED_TO_DOWNLOAD_CONTENT = 2
+  NUXEO_UPLOAD_FAILED = 3
+  FAILED_TO_UPDATE_SHAREPOINT = 4
+
 class BatchUploadSource(enum.Enum):
     ONEDRIVE = 1
     OUTLOOK = 2
@@ -34,11 +40,26 @@ class BatchUpload(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     status = db.Column(db.Enum(BatchUploadStatus))
     source = db.Column(db.Enum(BatchUploadSource))
+    employee_number = db.Column(db.String(200))
+    program_office = db.Column(db.String(200))
+    aa_ship = db.Column(db.String(200))
     email = db.Column(db.String(200))
     mailbox = db.Column(db.String(200))
     completion_date = db.Column(db.DateTime(), nullable=True)
     upload_metadata = db.Column(JSON)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), index=True)
+    records = db.relationship("BatchUploadRecords", backref="batch")
+
+class BatchUploadRecords(db.Model):
+    __tablename__ = 'batch_upload_records'
+    id = db.Column(db.Integer, primary_key=True)
+    drive_item_id = db.Column(db.String(200), nullable=True)
+    email_id = db.Column(db.String(200), nullable=True)
+    nuxeo_id = db.Column(db.String(200), nullable=True)
+    sems_id = db.Column(db.String(200), nullable=True)
+    upload_date = db.Column(db.DateTime(), nullable=True)
+    status = db.Column(db.Enum(BatchRecordStatus))
+    batch_upload_id = db.Column(db.Integer, db.ForeignKey('batch_upload.id'), index=True)
 
 class RecordSubmission(db.Model):
     __tablename__ = 'record_submission'
