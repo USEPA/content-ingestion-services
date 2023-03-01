@@ -1052,7 +1052,7 @@ def convert_sems_metadata(user_info, sems_metadata: SEMSMetadata):
     essential_records="",
     description=sems_metadata.description,
     tags=sems_metadata.tags,
-    identifiers={'SEMS EPA ID': sems_metadata.sems_uid}
+    identifiers={'SEMS EPA ID': [sems_metadata.sems_uid]}
   )
 
 def create_nuxeo_email_record_v2(config, user_info, metadata, env, source_system="ARMS_UPLOADER"):
