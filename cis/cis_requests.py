@@ -216,6 +216,9 @@ def list_email_metadata_graph(req: GetEmailRequest, user_email, access_token, co
     url = "https://graph.microsoft.com/v1.0/" + mailbox + "/messages?$filter=categories/any(a:a+eq+'Record')&$top="+ str(req.items_per_page) + "&$skip=" + str((req.page_number -1)*req.items_per_page) + "&$count=true" 
     p = requests.get(url, headers=headers, timeout=60)
     
+    if p.status_code == 404:
+      app.logger.info("Graph API returned 404 for mailbox " + req.mailbox + ". " + p.text)
+      return Response(StatusResponse(status='Failed', reason="Unable to retrieve records for regular " + req.mailbox, request_id=g.get('request_id', None)).to_json(), status=404, mimetype='application/json')
     if p.status_code != 200:
       app.logger.info("Regular getrecords graph request failed for mailbox " + req.mailbox + " with status " + str(p.status_code) + ". " + p.text)
       return Response(StatusResponse(status='Failed', reason="Unable to retrieve records for regular " + req.mailbox, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')

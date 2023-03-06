@@ -185,8 +185,6 @@ def get_emails_graph(emailsource):
     if 'mailbox' not in req:
         req['mailbox'] = g.token_data['email']
     req = GetEmailRequest(items_per_page=int(req['items_per_page']), page_number=int(req['page_number']), mailbox=req['mailbox'], emailsource=emailsource)
-    if not mailbox_manager.validate_mailbox(g.token_data['email'], req.mailbox):
-        return Response(StatusResponse(status='Failed', reason="User is not authorized to access selected mailbox.", request_id=g.get('request_id', None)).to_json(), status=401, mimetype='application/json')
     return list_email_metadata_graph(req, g.token_data['email'], g.access_token, c)
 
 @app.route('/upload_email/v3/<emailsource>', methods=['POST'])
