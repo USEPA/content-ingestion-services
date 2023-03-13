@@ -999,7 +999,7 @@ def convert_metadata_for_nuxeo_v2(user_info, metadata, doc_type, parent_id=None,
     "dc:description": metadata.description,
     "dc:title": metadata.title,
     ## TODO: Switch this to employee_number when Nuxeo changes schema
-    "dc:creator": user_info.lan_id, 
+    "dc:creator": user_info.lan_id.upper(), 
     "nxtag:tags": [{"label": tag,"username": metadata.custodian} for tag in metadata.tags],
     }
   if metadata.identifiers is not None:
