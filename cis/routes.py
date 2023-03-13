@@ -202,7 +202,6 @@ def upload_email_v3(emailsource):
     # TODO: Improve custodian validation based on role
     if req.metadata.custodian != user_info.lan_id:
         return Response(StatusResponse(status='Failed', reason="Custodian must match authorized user's lan_id.", request_id=g.get('request_id', None)).to_json(), status=401, mimetype='application/json')
-    
     return upload_nuxeo_email_v2(c, req, emailsource, user_info)
 
 @app.route('/upload_sems_email/<emailsource>', methods=['POST'])

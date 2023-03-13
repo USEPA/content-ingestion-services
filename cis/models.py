@@ -12,6 +12,7 @@ class BatchRecordStatus(enum.Enum):
   FAILED_TO_DOWNLOAD_CONTENT = 2
   NUXEO_UPLOAD_FAILED = 3
   FAILED_TO_UPDATE_SHAREPOINT = 4
+  UNKNOWN_ERROR = 5
 
 class BatchUploadSource(enum.Enum):
     ONEDRIVE = 1
