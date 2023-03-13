@@ -21,6 +21,7 @@ from dateutil.relativedelta import relativedelta
 import boto3
 import mimetypes
 from bs4 import BeautifulSoup
+import traceback
 
 TIKA_CUTOFF = 20
 TIKA_TEXT_UPPER_LIMIT = 10000
@@ -36,6 +37,7 @@ def tika(file, config):
   try:
     r = requests.put(server, data=file, headers=headers, timeout=30)
   except:
+    app.logger.error(traceback.format_exc())
     return False, None, Response(StatusResponse(status='Failed', reason='Could not connect to Tika server', request_id=g.get('request_id', None)).to_json(), 500, mimetype='application/json')
 
   print(r.status_code)
@@ -60,6 +62,7 @@ def tika(file, config):
         cui_categories.append(v)
     tika_result = TikaResult(text=text, is_encrypted=is_encrypted, cui_categories=cui_categories)
   except:
+    app.logger.error(traceback.format_exc())
     return False, None, Response(StatusResponse(status='Failed', reason='Failed to parse Tika result.', request_id=g.get('request_id', None)).to_json(), 500, mimetype='application/json')
 
   return True, tika_result, None
@@ -93,6 +96,7 @@ def create_outlook_record_category(access_token, user_email):
     if r.status_code != 201 and r.status_code != 409:
       app.logger.error('Failed to create Outlook Record category for user ' + user_email)
   except:
+    app.logger.error(traceback.format_exc())
     app.logger.error('Failed to create Outlook Record category for user ' + user_email)
 
 def eml_to_pdf(eml):    
@@ -364,6 +368,7 @@ def validate_by_uid(c, uid, env, employee_number):
     else:
       return True, None, False
   except:
+    app.logger.error(traceback.format_exc())
     return False, 'Failed to find record metadata for validation', None
   
 def download_nuxeo_record(c, user_info, req):
@@ -479,6 +484,7 @@ def get_disposition_date(req):
   try:
     close_date = datetime.datetime.strptime(req.close_date, '%Y-%m-%d').date()
   except:
+    app.logger.error(traceback.format_exc())
     return Response(StatusResponse(status='Failed', reason="Incorrect date format, should be YYYY-MM-DD", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
 
   # Determine Cutoff (9/30 or 12/31)
@@ -600,6 +606,7 @@ def get_user_info(config, token_data, access_token=None):
         else:
           app.logger.error('Manager lookup data empty for manager name ' + str(manager_name))
     except:
+      app.logger.error(traceback.format_exc())
       app.logger.error('Manager lookup failed for manager name ' + str(manager_name))
 
     if enterprise_department is None:
@@ -608,6 +615,7 @@ def get_user_info(config, token_data, access_token=None):
     if not active:
       return False, 'User is not active.', None
   except:
+    app.logger.error(traceback.format_exc())
     return False, 'WAM request failed.', None
   try:
     badges = get_badges(config, employee_number)
@@ -615,12 +623,14 @@ def get_user_info(config, token_data, access_token=None):
     if profile is None:
       profile = ProfileInfo(points="0", level="Beginner", office_rank="1000", overall_rank="10000")
   except:
+    app.logger.error(traceback.format_exc())
     badges = []
     profile = ProfileInfo(points="0", level="Beginner", office_rank="1000", overall_rank="10000")
     app.logger.info('Profile requests failed for ' + token_data['email'])
   try:
     user_settings = get_user_settings(lan_id)
   except:
+    app.logger.error(traceback.format_exc())
     user_settings = default_settings
     app.logger.info('Preferred system database read failed for ' + token_data['email'])
   if access_token is not None:
@@ -636,6 +646,7 @@ def get_gamification_data(config, employee_number):
     data = GamificationDataResponse(badges, profile)
     return Response(data.to_json(), status=200, mimetype='application/json')
   except:
+    app.logger.error(traceback.format_exc())
     badges=[]
     profile=None
     app.logger.info('Profile requests failed for ' + employee_number)
@@ -654,6 +665,7 @@ def get_sems_sites(req: SemsSiteRequest, config):
   try:
     sites = requests.get('https://' + config.sems_host + '/sems-ws/outlook/getSites', params=params, timeout=120)
   except:
+    app.logger.error(traceback.format_exc())
     return Response(StatusResponse(status='Failed', reason="Request to SEMS server failed.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
   if sites.status_code == 200:
     app.logger.info(sites.url)
@@ -882,6 +894,7 @@ def upload_nuxeo_file(config, file, file_md5):
     client.put_object(Body=file, Bucket=config.arms_upload_bucket, Key=config.arms_upload_prefix + '/' + file_md5, ACL='bucket-owner-full-control')
     return True
   except:
+    app.logger.error(traceback.format_exc())
     return False
 
 def update_nuxeo_metadata(uid, properties, config, env):
@@ -895,6 +908,7 @@ def update_nuxeo_metadata(uid, properties, config, env):
       app.logger.error('Nuxeo metadata update failed for UID: ' + uid + ' with status ' + str(r.status_code) + '. ' + r.text)
       return False
   except:
+    app.logger.error(traceback.format_exc())
     app.logger.error('Nuxeo metadata update failed.')
     return False
 
@@ -906,6 +920,7 @@ def get_nuxeo_metadata(uid, config, env, property_string="*"):
     properties = r.json()['entries'][0]['properties']
     return True, properties
   except:
+    app.logger.error(traceback.format_exc())
     return False, None
 
 def add_relationship(req: AddParentChildRequest, user_info, config, env):
@@ -1011,6 +1026,7 @@ def create_nuxeo_record_v2(config, user_info, metadata, env, parent_id=None):
       app.logger.error(r.text)
       return False, "Record creation request returned " + str(r.status_code) + ' response.', None
   except:
+    app.logger.error(traceback.format_exc())
     return False, "Failed to complete record creation request.", None
 
 def attach_nuxeo_blob(config, uid, content_blob: NuxeoBlob, attachment_blobs: list[NuxeoBlob], env):
@@ -1036,6 +1052,7 @@ def attach_nuxeo_blob(config, uid, content_blob: NuxeoBlob, attachment_blobs: li
       app.logger.error('Request body that failed: ' + json.dumps(body))
       return False, "Link blobs request returned " + str(r.status_code) + ' response.'
   except:
+    app.logger.error(traceback.format_exc())
     app.logger.error(r.text)
     return False, "Failed to link S3 blobs."
   
@@ -1073,6 +1090,7 @@ def create_nuxeo_email_record_v2(config, user_info, metadata, env, source_system
       app.logger.error(r.text)
       return False, "Record creation request returned " + str(r.status_code) + ' response.', None
   except:
+    app.logger.error(traceback.format_exc())
     app.logger.error(r.text)
     return False, "Failed to complete record creation request.", None
 
@@ -1265,6 +1283,7 @@ def create_sems_record(config, req: UploadSEMSEmail, user_info: UserInfo, nuxeo_
       app.logger.error(r.text)
       return False, "SEMS record creation request returned " + str(r.status_code) + ' response.'
   except:
+    app.logger.error(traceback.format_exc())
     return False, "Failed to complete record creation request."
 
 def upload_sems_email(config, req: UploadSEMSEmail, source, user_info):
@@ -1448,6 +1467,7 @@ def add_submission_analytics(data: SubmissionAnalyticsMetadata, selected_schedul
     db.session.commit()
     return True, None
   except:
+    app.logger.error(traceback.format_exc())
     return False, Response(StatusResponse(status='Failed', reason="Error committing submission analytics.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype="application/json")
 
 def update_sharepoint_record_status(site_id, list_id, item_id, status, access_token):
@@ -1477,6 +1497,7 @@ def update_help_items():
     help_item_cache.update_help_items()
     return Response(StatusResponse(status='Success', reason='Help items cache updated.', request_id=g.get('request_id', None)).to_json(), status=200, mimetype='application/json')
   except:
+    app.logger.error(traceback.format_exc())
     return Response(StatusResponse(status='Failed', reason='Help item cache update failed.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
 
 def log_upload_activity(user_info, user_activity, metadata, config, count=1):
@@ -1500,6 +1521,7 @@ def safe_user_activity_request(employee_id, lan_id, office_code, event_id, confi
     if not success:
         app.logger.info('Failed to log user activity for ' + lan_id + '. Activity request failed with status ' + str(error_status))
   except:
+    app.logger.error(traceback.format_exc())
     app.logger.info('Failed to log user activity for ' + lan_id)
 
 def user_activity_request(req: LogActivityRequest, config):
@@ -1578,4 +1600,5 @@ def create_batch(req: BatchUploadRequest, user_info):
     db.session.commit()
     return Response(StatusResponse(status='OK', reason='Successfully added batch.', request_id=g.get('request_id', None)).to_json(), status=200, mimetype='application/json')
   except:
+    app.logger.error(traceback.format_exc())
     return Response(StatusResponse(status='Failed', reason='Failed to add batch.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
