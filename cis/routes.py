@@ -90,7 +90,7 @@ def email_metadata_prediction_graph(emailsource):
         req = EmailPredictionRequestGraph.from_dict(req)
     except:
         return Response(StatusResponse(status='Failed', reason='Missing required parameters.', request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
-    eml_file = get_eml_file(req.email_id, "default_file_name", emailsource, req.mailbox, g.access_token, c)
+    eml_file = get_eml_file(req.email_id, emailsource, req.mailbox, g.access_token)
     if eml_file is None:
         return Response(StatusResponse(status='Failed', reason="Could not retrieve eml file.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
     success, tika_result, response = tika(eml_file, c)
