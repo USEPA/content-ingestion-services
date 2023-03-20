@@ -538,53 +538,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/StatusResponse'
       x-codegen-request-body-name: MarkSavedRequestGraph
-  /untag_email/{emailsource}:
-    post:
-      tags:
-      - email
-      summary: Remove record tag in Outlook.
-      security:
-        - Authorization: [] 
-        - AccessToken: []
-      parameters:
-      - name: emailsource
-        in: path
-        description: Options are regular and archive.
-        required: true
-        schema:
-          type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UntagRequestGraph'
-        required: false
-      responses:
-        200:
-          description: Record tag for email has been removed.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-        400:
-          description: Invalid request - description in response.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-        401:
-          description: Unauthorized - description in response.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-        500:
-          description: Server side error - description in response.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-      x-codegen-request-body-name: UntagRequestGraph
   /get_favorites:
     get:
       tags:
@@ -1903,13 +1856,6 @@ components:
           enum:
           - shared
           - private
-        mailbox:
-          type: string
-    UntagRequestGraph:
-      type: object
-      properties:
-        email_id:
-          type: string
         mailbox:
           type: string
     ECMSMetadata:
