@@ -185,7 +185,7 @@ def get_emails_graph(emailsource):
     if 'mailbox' not in req:
         req['mailbox'] = g.token_data['email']
     req = GetEmailRequest(items_per_page=int(req['items_per_page']), page_number=int(req['page_number']), mailbox=req['mailbox'], emailsource=emailsource)
-    return list_email_metadata_graph(req, g.token_data['email'], g.access_token, c)
+    return list_email_metadata_graph(req, g.access_token)
 
 @app.route('/upload_email/v3/<emailsource>', methods=['POST'])
 def upload_email_v3(emailsource):
@@ -229,7 +229,7 @@ def mark_email_saved_graph(emailsource):
         req = MarkSavedRequestGraph.from_dict(req)
     except:
         return Response(StatusResponse(status='Failed', reason="Request is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
-    return mark_saved(req, g.access_token, emailsource, c)
+    return mark_saved(req, g.access_token, emailsource)
 
 @app.route('/disposition_calc', methods=['GET'])
 def disposition_calc():
@@ -266,17 +266,6 @@ def office_leaderboard():
     except:
         return Response(StatusResponse(status='Failed', reason="Request is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
     return get_office_leaderboard(c, req.parent_org_code)
-
-@app.route('/untag_email/<emailsource>', methods=['POST'])
-def untag_email_graph(emailsource):
-    if g.access_token is None:
-        return Response(StatusResponse(status='Failed', reason="X-Access-Token is required.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
-    req = request.json
-    try:
-        req = UntagRequestGraph.from_dict(req)
-    except:
-        return Response(StatusResponse(status='Failed', reason="Request is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
-    return untag(req, g.access_token, c, emailsource)
 
 @app.route('/get_favorites', methods=['GET'])
 def get_favorites():

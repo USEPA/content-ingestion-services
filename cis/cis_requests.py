@@ -22,6 +22,9 @@ import boto3
 import mimetypes
 from bs4 import BeautifulSoup
 import traceback
+from exchangelib import Account, OAuth2Credentials, Credentials, Configuration, DELEGATE, Folder, IMPERSONATION, OAUTH2, Identity
+from oauthlib.oauth2 import OAuth2Token
+import pytz
 
 TIKA_CUTOFF = 20
 TIKA_TEXT_UPPER_LIMIT = 10000
@@ -67,17 +70,21 @@ def tika(file, config):
 
   return True, tika_result, None
 
-def get_eml_file(email_id, file_name, emailsource, mailbox, access_token, config):
+def get_eml_file_archive(email_id, mailbox, access_token):
+  token = OAuth2Token({'access_token':access_token})
+  creds = OAuth2Credentials(
+    '','', access_token=token,
+  )
+  config = Configuration(server='outlook.office.com', credentials=creds, auth_type=OAUTH2)
+  account = Account(primary_smtp_address=mailbox, config=config, autodiscover=False, access_type=DELEGATE, default_timezone=pytz.UTC)
+  inbox = account.archive_root / 'Top of Information Store'
+  email = inbox.get(id=email_id)
+  return email.mime_content
+
+def get_eml_file(email_id, emailsource, mailbox, access_token):
 
   if emailsource.lower() == 'archive':
-    headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}
-    body = {"filename":file_name, "emailid":email_id}
-    r = requests.get("http://" + config.ezemail_server + "/ezemail/v1/getemlfile", data=json.dumps(body), headers=headers, timeout=30)
-    if r.status_code == 200:
-      return r.content
-    else:
-      app.logger.error('Get EML file request ended with status ' + str(r.status_code) + '. Response: ' + r.text)
-      return None
+    return get_eml_file_archive(email_id, mailbox, access_token)
   else:
     headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}
     url = "https://graph.microsoft.com/v1.0/users/" + mailbox + "/messages/" + email_id + "/$value"
@@ -175,44 +182,42 @@ def parse_email_metadata(graph_email_value, mailbox, access_token, emailsource):
       categories = filtered_cats
     )
 
-def list_email_metadata_graph(req: GetEmailRequest, user_email, access_token, config):
+def list_email_metadata_archive(req: GetEmailRequest, access_token, category_name='Record'):
+  offset = req.items_per_page * (req.page_number -1)
+  upper_bound = offset + req.items_per_page
+
+  token = OAuth2Token({'access_token':access_token})
+  creds = OAuth2Credentials(
+    '','', access_token=token,
+  )
+  config = Configuration(server='outlook.office.com', credentials=creds, auth_type=OAUTH2)
+  account = Account(primary_smtp_address=req.mailbox, config=config, autodiscover=False, access_type=DELEGATE, default_timezone=pytz.UTC)
+  inbox = account.archive_root / 'Top of Information Store'
+
+  emails = inbox.filter(categories__contains=[category_name])
+  total_count = emails.count()
+
+  email_info = [EmailMetadata(
+        unid=x.message_id, 
+        subject=x.subject, 
+        email_id=x.id, 
+        received=str(x.datetime_received), 
+        _from=x.sender.email_address, 
+        to=[e.email_address for e in (x.to_recipients or [])], 
+        cc = [e.email_address for e in (x.cc_recipients or [])],
+        sent=str(x.datetime_sent),
+        attachments=[EmailAttachment(name=attachment.name, attachment_id=attachment.attachment_id.id) for attachment in (x.attachments or [])],
+        mailbox_source='archive',
+        categories = x.categories
+      ) for x in emails[offset:upper_bound]]
+  
+  return total_count, email_info
+
+def list_email_metadata_graph(req: GetEmailRequest, access_token):
 
   #get records from archive
   if req.emailsource.lower() == 'archive':
-    headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}
-    body = {"mailbox": 'Archive', 'pageSize': req.items_per_page, "offset": req.items_per_page * (req.page_number -1)}
-    if req.mailbox != user_email:
-      body['shared_mailbox'] = req.mailbox
-    p = requests.get(
-        "http://" + config.ezemail_server + "/ezemail/v1/getrecords/", 
-        data=json.dumps(body), 
-        headers=headers,
-        timeout=60
-      )
-    if p.status_code != 200:
-        app.logger.info("Archive getrecords request failed for mailbox " + req.mailbox + " with status " + str(p.status_code) + ". " + p.text)
-        return Response(StatusResponse(status='Failed', reason="Unable to retrieve records for archive " + req.mailbox, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-    
-    resp = p.json()    
-    
-    for count in resp["total_count"]:
-      if 'archive' in count:
-        total_count = int(count['archive'])
-
-    if total_count == 0: emails = []
-    
-    else:
-      emails = [EmailMetadata(
-        unid=x['unid'], 
-        subject=x['subject'], 
-        email_id=x['emailid'], 
-        received=x['received'], 
-        _from=x['from'], 
-        to=x['to'], 
-        sent=x['sent'],
-        attachments=extract_attachments_from_response(x),
-        mailbox_source='archive'
-      ) for x in resp['email_items']]
+    total_count, emails = list_email_metadata_archive(req, access_token)
 
   else:
     mailbox = 'users/' + req.mailbox
@@ -251,31 +256,31 @@ def extract_attachments_from_response_graph(messageId, hasAttachments, mailbox, 
     return attachments
   else: 
     return []
-  
-def extract_attachments_from_response(ezemail_response):
-  if 'attachments' not in ezemail_response:
-    return []
-  else:
-    return [EmailAttachment(name=attachment['name'], attachment_id=attachment['attachment_id']) for attachment in ezemail_response['attachments']]
 
 #combined untag and mark_saved
-def mark_saved(req: MarkSavedRequestGraph, access_token, emailsource, config, saved_cat="Saved to ARMS"):
-  if emailsource.lower() == 'archive':
-    headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}
-    body = {"emailid": req.email_id}
-    if req.sensitivity.lower() == 'private':
-      body['sensitivityid'] = 3
-    p = requests.post(
-      "http://" + config.ezemail_server + "/ezemail/v1/setcategory", 
-      json=body, 
-      headers=headers,
-      timeout=30
+def mark_saved_archive(req: MarkSavedRequestGraph, access_token, saved_cat="Saved to ARMS"):
+  try:
+    token = OAuth2Token({'access_token':access_token})
+    creds = OAuth2Credentials(
+      '','', access_token=token,
     )
-    if p.status_code != 204:
-      return Response(StatusResponse(status='Failed', reason="Unable to mark as saved.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-    else:
-      return Response(StatusResponse(status="OK", reason="Email with id " + req.email_id + " was marked saved.", request_id=g.get('request_id', None)).to_json(), status=200, mimetype="application/json")
+    config = Configuration(server='outlook.office.com', credentials=creds, auth_type=OAUTH2)
+    account = Account(primary_smtp_address=req.mailbox, config=config, autodiscover=False, access_type=DELEGATE, default_timezone=pytz.UTC)
+    inbox = account.archive_root / 'Top of Information Store'
+    email = inbox.get(id=req.email_id)
+    cats = email.categories
+    if 'Record' in cats: 
+      cats.remove('Record')
+    cats.append(saved_cat)
+    email.categories = cats
+    email.save()      
+    return Response(StatusResponse(status="OK", reason="Email was marked saved.", request_id=g.get('request_id', None)).to_json(), status=200, mimetype="application/json")
+  except:
+    return Response(StatusResponse(status='Failed', reason="Unable to mark as saved.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
 
+def mark_saved(req: MarkSavedRequestGraph, access_token, emailsource, saved_cat="Saved to ARMS"):
+  if emailsource.lower() == 'archive':
+    return mark_saved_archive(req, access_token, saved_cat)
   else:
     headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}
     #TODO: Make this work for shared email boxes
@@ -293,41 +298,8 @@ def mark_saved(req: MarkSavedRequestGraph, access_token, emailsource, config, sa
     if p.status_code != 200:
       return Response(StatusResponse(status='Failed', reason="Unable to mark as saved.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
     else:
-      return Response(StatusResponse(status="OK", reason="Email with id " + req.email_id + " was marked saved.", request_id=g.get('request_id', None)).to_json(), status=200, mimetype="application/json")
+      return Response(StatusResponse(status="OK", reason="Email was marked saved.", request_id=g.get('request_id', None)).to_json(), status=200, mimetype="application/json")
     
-#not used, mark_saved already untag the message
-def untag(req: UntagRequestGraph, access_token, config, emailsource):
-  headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}
-
-  if emailsource.lower() == 'archive':
-    body = {"emailid": req.email_id}
-    p = requests.post(
-      "http://" + config.ezemail_server + "/ezemail/v1/removecategory", 
-      json=body, 
-      headers=headers,
-      timeout=30
-    )
-    if p.status_code != 204:
-      return Response(StatusResponse(status='Failed', reason="Unable to remove Record category.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-    else:
-      return Response(StatusResponse(status="OK", reason="Email with id " + req.email_id + " is no longer categorized as a record.", request_id=g.get('request_id', None)).to_json(), status=200, mimetype="application/json")
-  else:
-    #TODO: Make this work for shared email boxes
-    #get current categories for message to mark_saved without removing other categories
-    urlo =  "https://graph.microsoft.com/v1.0/users/" + req.mailbox + "/messages/" + req.email_id + '?$select=categories'
-    p = requests.get(urlo, headers=headers)
-    cats = p.json()['categories']
-    if 'Record' in cats: 
-      cats.remove('Record')
-    #update categories
-    url = "https://graph.microsoft.com/v1.0/users/" + req.mailbox + "/messages/" + req.email_id
-    body = json.dumps({'categories':cats})
-    p = requests.patch(url, headers=headers, data=body, timeout=30)
-    if p.status_code != 200:
-      return Response(StatusResponse(status='Failed', reason="Unable to remove Record category.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-    else:
-      return Response(StatusResponse(status="OK", reason="Email with id " + req.email_id + " is no longer categorized as a record.", request_id=g.get('request_id', None)).to_json(), status=200, mimetype="application/json")
-
 def get_badge_info(config):
   params={'api_key':config.patt_api_key, 'table':'rewards'}
   url = 'https://' + config.patt_host + '/app/mu-plugins/pattracking/includes/admin/pages/games/get_data.php'
@@ -1121,7 +1093,7 @@ def submit_nuxeo_file_v2(config, file, user_info, metadata, env):
 def upload_nuxeo_email_v2(config, req, source, user_info):
 
   # Step 0: Get EML file from graph
-  content = get_eml_file(req.email_id, req.metadata.title, source, req.mailbox, g.access_token, config)
+  content = get_eml_file(req.email_id, source, req.mailbox, g.access_token)
   if content is None:
     return Response(StatusResponse(status='Failed', reason='Unable to retrieve email.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
 
@@ -1223,7 +1195,7 @@ def upload_nuxeo_email_v2(config, req, source, user_info):
 
   # Step 6: Mark record saved in Outlook
   save_req = MarkSavedRequestGraph(email_id = req.email_id, sensitivity=req.metadata.sensitivity, mailbox=req.mailbox)
-  save_resp = mark_saved(save_req, g.access_token, source, config)
+  save_resp = mark_saved(save_req, g.access_token, source)
   if save_resp.status != '200 OK':
     return save_resp
   
@@ -1288,7 +1260,7 @@ def create_sems_record(config, req: UploadSEMSEmail, user_info: UserInfo, nuxeo_
 
 def upload_sems_email(config, req: UploadSEMSEmail, source, user_info):
    # Step 0: Get EML file from graph
-  content = get_eml_file(req.email_id, req.metadata.file_name, source, req.mailbox, g.access_token, config)
+  content = get_eml_file(req.email_id, source, req.mailbox, g.access_token)
   if content is None:
     return Response(StatusResponse(status='Failed', reason='Unable to retrieve email.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
 
@@ -1390,7 +1362,7 @@ def upload_sems_email(config, req: UploadSEMSEmail, source, user_info):
     
   # Step 7: Mark record saved in Outlook
   save_req = MarkSavedRequestGraph(email_id = req.email_id, sensitivity=arms_metadata.sensitivity, mailbox=req.mailbox)
-  save_resp = mark_saved(save_req, g.access_token, source, config, saved_cat="Saved to SEMS")
+  save_resp = mark_saved(save_req, g.access_token, source, saved_cat="Saved to SEMS")
   if save_resp.status != '200 OK':
     return save_resp
   

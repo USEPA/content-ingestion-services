@@ -497,17 +497,6 @@ class AttachmentSchedule:
 
 @dataclass_json
 @dataclass 
-class UploadEmailRequestV2:
-    metadata: ECMSMetadata
-    mailbox: str
-    email_id: str
-    email_unid: str
-    user_activity: SubmissionAnalyticsMetadata
-    nuxeo_env: Optional[str] = 'dev'
-    attachment_schedules: Optional[list[AttachmentSchedule]] = field(default_factory=list)
-
-@dataclass_json
-@dataclass 
 class UploadEmailRequestV3:
     metadata: ECMSMetadataV2
     mailbox: str
@@ -582,12 +571,6 @@ class AddParentChildRequest:
 @dataclass 
 class MarkSavedRequestGraph:
     sensitivity: str 
-    email_id: str
-    mailbox: str
-
-@dataclass_json
-@dataclass 
-class UntagRequestGraph:
     email_id: str
     mailbox: str
 

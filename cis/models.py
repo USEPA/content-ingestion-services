@@ -45,6 +45,7 @@ class BatchUpload(db.Model):
     program_office = db.Column(db.String(200))
     aa_ship = db.Column(db.String(200))
     email = db.Column(db.String(200))
+    email_source = db.Column(db.String(200))
     mailbox = db.Column(db.String(200))
     completion_date = db.Column(db.DateTime(), nullable=True)
     upload_metadata = db.Column(JSON)
