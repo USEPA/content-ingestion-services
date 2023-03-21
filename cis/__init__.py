@@ -30,7 +30,7 @@ SWAGGER_PATH = 'swagger.yaml'
 swagger_yml = load(open(SWAGGER_PATH, 'r'), Loader=Loader)
 
 
-def create_app(env, region_name, patt_host, patt_api_key, model_path, capstone_path, label_mapping_path, office_info_mapping_path, config_path, mailbox_data_path, vocab_path, keyword_idf_path, database_uri, wam_username, wam_password, bucket_name, priority_categories_path, cities_path, water_bodies_path, db_schema_change=False, tika_server=None, cis_server=None, ezemail_server=None, upgrade_db=False, wam_host=None):
+def create_app(env, region_name, patt_host, patt_api_key, model_path, capstone_path, label_mapping_path, office_info_mapping_path, config_path, mailbox_data_path, vocab_path, keyword_idf_path, database_uri, wam_username, wam_password, bucket_name, priority_categories_path, cities_path, water_bodies_path, db_schema_change=False, tika_server=None, cis_server=None, upgrade_db=False, wam_host=None):
     """Construct the core application."""
     app = Flask(__name__, instance_relative_config=False)
     app.config.from_object("flask_config.Config")
@@ -62,8 +62,6 @@ def create_app(env, region_name, patt_host, patt_api_key, model_path, capstone_p
             c.tika_server = tika_server
         if cis_server:
             c.cis_server = cis_server
-        if ezemail_server:
-            c.ezemail_server = ezemail_server
         if wam_username:
             c.wam_username = wam_username
         if wam_password:

@@ -11,7 +11,6 @@ class CISConfig:
         self, 
         cis_server, 
         tika_server, 
-        ezemail_server, 
         client_id, 
         database_uri, 
         record_schedules_server, 
@@ -34,7 +33,6 @@ class CISConfig:
         ):
         self.cis_server = cis_server
         self.tika_server = tika_server
-        self.ezemail_server = ezemail_server
         self.client_id = client_id
         self.database_uri = database_uri
         self.record_schedules_server = record_schedules_server

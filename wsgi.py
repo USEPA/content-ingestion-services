@@ -27,8 +27,6 @@ if __name__ == "__main__":
                     help='Host for tika service.')
     parser.add_argument('--cis_server', default=None,
                     help='Host for this (CIS) service.')
-    parser.add_argument('--ezemail_server', default=None,
-                    help='Host for ezemail service.')
     parser.add_argument('--database_uri', default=None,
                     help='Database connection string.')
     parser.add_argument('--upgrade_db', default=False, action="store_true", 
