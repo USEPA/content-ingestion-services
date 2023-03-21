@@ -1151,6 +1151,7 @@ def upload_nuxeo_email_v2(config, req, source, user_info):
       file_path = req.metadata.file_path,
       custodian = req.metadata.custodian,
       title = attachment[0],
+      essential_records="",
       record_schedule = schedule_map.get(attachment[0], req.metadata.record_schedule),
       sensitivity = req.metadata.sensitivity,
       access_restriction_status = req.metadata.access_restriction_status,
