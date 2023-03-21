@@ -1,9 +1,9 @@
 requests==2.25.0
 Flask==2.0.3
 waitress==2.1.2
-transformers==4.27.2
 numpy==1.24.2
 torch==2.0.0 --index-url https://download.pytorch.org/whl/cpu
+transformers[torch]==4.27.2
 flask-swagger-ui==4.11.1
 dataclasses-json==0.5.2
 PyYAML==5.4
