@@ -41,6 +41,7 @@ class BatchUpload(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     status = db.Column(db.Enum(BatchUploadStatus))
     source = db.Column(db.Enum(BatchUploadSource))
+    system = db.Column(db.String(50), nullable=True)
     employee_number = db.Column(db.String(200))
     program_office = db.Column(db.String(200))
     aa_ship = db.Column(db.String(200))
@@ -48,7 +49,8 @@ class BatchUpload(db.Model):
     email_source = db.Column(db.String(200))
     mailbox = db.Column(db.String(200))
     completion_date = db.Column(db.DateTime(), nullable=True)
-    upload_metadata = db.Column(JSON)
+    upload_metadata = db.Column(JSON, nullable=True)
+    sems_metadata = db.Column(JSON, nullable=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), index=True)
     records = db.relationship("BatchUploadRecords", backref="batch")
 

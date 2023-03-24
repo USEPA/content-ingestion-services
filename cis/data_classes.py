@@ -415,23 +415,6 @@ class UserInfo:
 @dataclass 
 class GamificationDataRequest:
     employee_number: str
-
-@dataclass_json
-@dataclass 
-class BatchUploadData:
-    id: str
-    status: str
-    source: str
-    email: str
-    upload_metadata: ECMSMetadataV2
-    user_id: str
-    mailbox: Optional[str] = None
-    completion_date: Optional[str] = None
-
-@dataclass_json
-@dataclass 
-class BatchUploadResponse:
-    batches: list[BatchUploadData]
     
 @dataclass_json
 @dataclass 
@@ -531,8 +514,25 @@ class SEMSMetadata:
     description: str
     tags: list[str]
     file_name: str
-    
 
+@dataclass_json
+@dataclass 
+class BatchUploadData:
+    id: str
+    status: str
+    source: str
+    email: str
+    user_id: str
+    sems_metadata: Optional[SEMSMetadata] = None
+    upload_metadata: Optional[ECMSMetadataV2] = None
+    mailbox: Optional[str] = None
+    completion_date: Optional[str] = None
+
+@dataclass_json
+@dataclass 
+class BatchUploadResponse:
+    batches: list[BatchUploadData]
+    
 @dataclass_json
 @dataclass 
 class EmailInfo:
@@ -665,8 +665,10 @@ class SharepointBatchUploadData:
 @dataclass 
 class BatchUploadRequest:
     source: str
-    metadata: ECMSMetadataV2
-    email_source: Optional[str] = None
+    system: Optional[str] = 'ARMS'
+    metadata: Optional[ECMSMetadataV2] = None
+    sems_metadata: Optional[SEMSMetadata] = None
+    email_source: Optional[str] = 'regular'
     mailbox: Optional[str] = None
 
 @dataclass_json
