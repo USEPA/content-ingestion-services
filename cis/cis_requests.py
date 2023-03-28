@@ -1567,7 +1567,7 @@ def create_batch(req: BatchUploadRequest, user_info):
   else:
       user = user[0]
   aa_ship = user_info.parent_org_code[0] + '0000000'
-  batch = BatchUpload(status=BatchUploadStatus.PENDING, source=BatchUploadSource[req.source], email_source=req.email_source, email=user_info.email, mailbox=req.mailbox, upload_metadata=req.metadata.to_dict(), user_id=user.id, employee_number=user_info.employee_number, program_office=user_info.manager_parent_org_code, aa_ship=aa_ship)
+  batch = BatchUpload(status=BatchUploadStatus.PENDING, source=BatchUploadSource[req.source], system=req.system, email_source=req.email_source, email=user_info.email, mailbox=req.mailbox, upload_metadata=req.metadata.to_dict(), user_id=user.id, employee_number=user_info.employee_number, program_office=user_info.manager_parent_org_code, aa_ship=aa_ship)
   db.session.add(batch)
   try:
     db.session.commit()
