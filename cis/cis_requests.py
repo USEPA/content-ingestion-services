@@ -1254,7 +1254,7 @@ def create_sems_record(config, req: UploadSEMSEmail, user_info: UserInfo, nuxeo_
   }
 
   try:
-    r = requests.post("https://" + config.sems_host + '/sems-ws/outlook/submissions/email', json=sems_request, timeout=30)
+    r = requests.post("https://" + config.sems_host + '/sems-ws/outlook/submissions/email', json=sems_request, timeout=60)
     if r.status_code == 200:
       return True, None
     else:
