@@ -554,7 +554,7 @@ def get_user_info(config, token_data, access_token=None):
   # Handle service accounts separately
   if token_data['email'][:4].lower() == 'svc_' or 'java_review' in token_data['email'].lower():
     return True, None, UserInfo(token_data['email'], token_data['email'], token_data['email'].split('@')[0], 'SERVICE_ACCOUNT', '', None, None, '', [], None, default_settings)
-  url = 'https://' + config.wam_host + '/iam/governance/scim/v1/Users?attributes=urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:manager&attributes=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:Department&attributes=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:Company&attributes=urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:department&attributes=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:PARENTORGCODE&attributes=urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:employeeNumber&attributes=userName&attributes=Active&attributes=displayName&filter=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:Upn eq "' + token_data['email'] + '"'
+  url = 'https://' + config.wam_host + '/iam/governance/scim/v1/Users?attributes=urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:manager&attributes=name&attributes=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:Department&attributes=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:Company&attributes=urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:department&attributes=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:PARENTORGCODE&attributes=urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:employeeNumber&attributes=userName&attributes=Active&attributes=displayName&filter=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:Upn eq "' + token_data['email'] + '"'
   try:
     wam = requests.get(url, auth=(config.wam_username, config.wam_password), timeout=30)
     if wam.status_code != 200:
@@ -567,6 +567,8 @@ def get_user_info(config, token_data, access_token=None):
     employee_number = user_data.get('urn:ietf:params:scim:schemas:extension:enterprise:2.0:User', {}).get('employeeNumber', None)
     company = user_data.get('urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User', {}).get('Company', None)
     manager_name = user_data.get('urn:ietf:params:scim:schemas:extension:enterprise:2.0:User', {}).get('manager', {}).get('displayName', None)
+    first_name = user_data.get('name', {}).get('givenName', None)
+    last_name = user_data.get('name', {}).get('familyName', None)
     manager_department = None
     manager_enterprise_department = None
     try:
@@ -609,7 +611,7 @@ def get_user_info(config, token_data, access_token=None):
     direct_reports = get_direct_reports(token_data, access_token)
   else:
     direct_reports = []
-  return True, None, UserInfo(token_data['email'], display_name, lan_id, department, enterprise_department, manager_department, manager_enterprise_department, employee_number, badges, profile, user_settings, direct_reports)
+  return True, None, UserInfo(token_data['email'], display_name, lan_id, department, enterprise_department, manager_department, manager_enterprise_department, employee_number, badges, profile, user_settings, direct_reports, first_name=first_name, last_name=last_name)
 
 def get_gamification_data(config, employee_number):
   try:
@@ -1211,7 +1213,7 @@ def upload_nuxeo_email_v2(config, req, source, user_info):
 
   return Response(upload_resp.to_json(), status=200, mimetype='application/json')
 
-def create_sems_record(config, req: UploadSEMSEmail, user_info: UserInfo, nuxeo_uid, sems_children):
+def create_sems_record(config, req: UploadSEMSEmail, user_info: UserInfo, nuxeo_uid, doc_md5, sems_children):
   sems_request = {
     "metadata": {
       "region": req.metadata.region,
@@ -1231,11 +1233,14 @@ def create_sems_record(config, req: UploadSEMSEmail, user_info: UserInfo, nuxeo_
       "semsUid": req.metadata.sems_uid,
       "fileName": req.metadata.file_name,
       "nuxeoUid": nuxeo_uid,
+      "md5Hash": doc_md5,
       "children": sems_children
     },
     "submitter": {
       "email": user_info.email,
-      "lanId": user_info.lan_id
+      "lanId": user_info.lan_id,
+      "firstName": user_info.first_name,
+      "lastName": user_info.last_name
     },
     "emailMetadata": {
       "to": req.email_info.to,
@@ -1346,7 +1351,7 @@ def upload_sems_email(config, req: UploadSEMSEmail, source, user_info):
 
     for sems_attachment in req.attachment_info:
       if sems_attachment.name == attachment_name:
-        sems_children.append({"semsUid": sems_attachment.sems_uid, "fileName": attachment_name, "nuxeoUid": attachment_uid})
+        sems_children.append({"semsUid": sems_attachment.sems_uid, "fileName": attachment_name, "nuxeoUid": attachment_uid, "md5Hash": attachment_md5})
 
   # Step 5: Update parent record to contain attachment links as children
   if len(attachment_uids) > 0:
@@ -1356,7 +1361,7 @@ def upload_sems_email(config, req: UploadSEMSEmail, source, user_info):
       return Response(StatusResponse(status='Failed', reason='Failed to update document relationships.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
 
   # Step 6: Submit record to SEMS
-  success, error = create_sems_record(config, req, user_info, uid, sems_children)
+  success, error = create_sems_record(config, req, user_info, uid, content_md5, sems_children)
   if not success:
       app.logger.error('Failed to create SEMS record for Nuxeo UID ' + str(uid) + '. ' + error)
       return Response(StatusResponse(status='Failed', reason='Unable to create SEMS record.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')

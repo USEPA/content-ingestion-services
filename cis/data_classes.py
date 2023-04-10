@@ -410,6 +410,8 @@ class UserInfo:
     profile: Optional[ProfileInfo]
     user_settings: UserSettings
     direct_reports: list[str]
+    first_name: Optional[str]
+    last_name: Optional[str]
 
 @dataclass_json
 @dataclass 
