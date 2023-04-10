@@ -110,30 +110,37 @@ def eml_to_pdf(eml):
     msg = BytesParser(policy=policy.default).parsebytes(eml)
     emb_img = {} 
     attachments = []
+    html = ""
     
     for part in msg.walk():
-        if part.get_content_maintype() == 'multipart' and part.is_multipart():
-            continue
-        
-        if 'html' in part.get_content_type():
-            html = part.get_content()
+      if part.get_content_maintype() == 'multipart' and part.is_multipart():
+        continue
+      
+      if 'html' in part.get_content_type():
+        html = part.get_content()
 
-        if ('image' in part.get_content_type()) and (not part.is_attachment()):
-            a=part.get_payload()
-            emb_img['src="cid:' + part['Content-ID'].replace('<','').replace('>','')] = 'src="data:image/' + part.get_filename()[-3:] + ';base64, ' + a +'"'
-            
-        if part.is_attachment():
-            attachments.append((part.get_filename(), part.get_payload()))
+      if ('image' in part.get_content_type()) and (not part.is_attachment()):
+        a=part.get_payload()
+        emb_img['src="cid:' + part['Content-ID'].replace('<','').replace('>','')] = 'src="data:image/' + part.get_filename()[-3:] + ';base64, ' + a +'"'
+          
+      if part.is_attachment():
+        attachments.append((part.get_filename(), part.get_payload()))
+      
+      if part.get_content_type() == 'text/plain':
+        content = part.get_content()
+        lines = content.split('\n')
+        for line in lines:
+          html += "<p>" + line + "</p>"
         
     for i in emb_img.keys():
-        html = html.replace(i,emb_img[i])
+      html = html.replace(i,emb_img[i])
                 
     #need to check each field
     field = ['To','From','Cc','Bcc'] #subject as name if name not provided
     final_text = ''
     for i in field:
-        if msg[i] is not None:
-            final_text += "<strong>" + i +": </strong>" + msg[i].replace("<", "&#60;").replace(">", "&#62;") + "</br>"
+      if msg[i] is not None:
+        final_text += "<strong>" + i +": </strong>" + msg[i].replace("<", "&#60;").replace(">", "&#62;") + "</br>"
 
     final_text += "<strong>Subject: </strong>" + msg['subject'] + "</br>" + "<strong>Date: </strong>" + msg['date'] + "</br></br></br>"
     # Only keep attachments with names
