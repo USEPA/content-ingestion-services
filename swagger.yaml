@@ -2163,24 +2163,6 @@ components:
           type: string
         metadata:
           $ref: '#/components/schemas/ECMSMetadata'
-    SharepointItem:
-      type: object
-      properties:
-        drive_item_id:
-          type: string
-        list_item_id:
-          type: string
-        metadata:
-          $ref: '#/components/schemas/ECMSMetadata'
-    SharepointBatchUploadRequest:
-      type: object
-      properties:
-        sharepoint_items:
-          type: array
-          items:
-            $ref: '#/components/schemas/SharepointItem'
-        documentum_env:
-          type: string
     SharepointRecord:
       type: object
       properties:

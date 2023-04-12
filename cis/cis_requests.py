@@ -731,7 +731,7 @@ def read_sharepoint_folder(relative_path, access_token, depth, link = None, max_
     return False, Response(StatusResponse(status='Failed', reason='Failed to retrieve shared OneDrive items for folder ' + relative_path, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
   shared_items = shared.json()['value']
   # Process records in this folder
-  all_records = [simplify_sharepoint_record(doc, 'Shared') for doc in shared_items]
+  all_records = [simplify_sharepoint_record(doc, 'Shared') for doc in shared_items if "folder" not in doc]
   # Process subfolders
   folders = list(filter(lambda x: "folder" in x, shared_items))
   for folder in folders:
