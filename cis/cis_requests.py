@@ -671,7 +671,7 @@ def detect_schedule_from_string(text, schedule_mapping):
 def simplify_sharepoint_record(raw_rec, sensitivity):
   default_schedule = None
   mapping = schedule_cache.get_schedule_mapping()
-  for item in raw_rec['webUrl'].split('/'):
+  for item in raw_rec['parentReference']['path'].split('/'):
     detected_schedule = detect_schedule_from_string(item.replace('%20', ' '), mapping)
     if detected_schedule is not None:
       default_schedule = detected_schedule
