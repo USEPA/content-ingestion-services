@@ -2186,8 +2186,6 @@ components:
       properties:
         web_url:
           type: string
-        records_status:
-          type: string
         sensitivity:
           type: string
         drive_item_id:
@@ -2197,8 +2195,6 @@ components:
         created_date:
           type: string
         last_modified_date:
-          type: string
-        list_item_id:
           type: string
         detected_schedule:
           $ref: '#/components/schemas/RecordSchedule'

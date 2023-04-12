@@ -600,7 +600,6 @@ class SharepointRecord:
     drive_item_id: str
     created_date: str
     last_modified_date: str
-    list_item_id: str
     size: int
     detected_schedule: Optional[RecordSchedule]
 
@@ -639,28 +638,6 @@ class SharepointUploadRequestV3:
     metadata: ECMSMetadataV2
     user_activity: SubmissionAnalyticsMetadata
     nuxeo_env: Optional[str] = 'dev'
-
-@dataclass_json
-@dataclass 
-class SharepointItem:
-    drive_item_id: str
-    list_item_id: str
-    metadata: ECMSMetadata
-
-@dataclass_json
-@dataclass 
-class SharepointBatchUploadRequest:
-    sharepoint_items: list[SharepointItem]
-    documentum_env: Optional[str] = 'dev'
-
-@dataclass_json
-@dataclass 
-class SharepointBatchUploadData:
-    request: SharepointBatchUploadRequest
-    drive_id: str
-    site_id: str
-    list_id: str
-    user: UserInfo
 
 @dataclass_json
 @dataclass 
