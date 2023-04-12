@@ -595,7 +595,6 @@ class SharepointIdsResponse:
 @dataclass 
 class SharepointRecord:
     web_url: str
-    records_status: str
     sensitivity: str
     name: str
     drive_item_id: str

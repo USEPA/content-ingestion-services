@@ -679,7 +679,6 @@ def simplify_sharepoint_record(raw_rec, sensitivity):
         
   return SharepointRecord(
     web_url = raw_rec['webUrl'],
-    records_status = raw_rec['listItem']['fields'].get('Records_x0020_Status', None),
     sensitivity = sensitivity,
     name = raw_rec['name'],
     drive_item_id = raw_rec['id'],
@@ -721,37 +720,36 @@ def check_or_create_folder(access_token, folder_name):
     return True, None
 
 # Note: Depth increases when passing to a subfolder, or to a next page of results
-def read_sharepoint_folder(relative_path, access_token, filter_status, depth, link = None, max_depth=3):
+def read_sharepoint_folder(relative_path, access_token, depth, link = None, max_depth=3):
   if depth > max_depth:
     return True, []
   headers = {'Authorization': 'Bearer ' + access_token}
   if link:
     shared = requests.get(link, headers=headers, timeout=10)
   else: 
-    shared = requests.get("https://graph.microsoft.com/v1.0/me/drive/root:/" + relative_path + ":/children/?$expand=listItem&$top=1000", headers=headers, timeout=10)
+    shared = requests.get("https://graph.microsoft.com/v1.0/me/drive/root:/" + relative_path + ":/children/?$top=1000", headers=headers, timeout=10)
   if shared.status_code != 200:
     return False, Response(StatusResponse(status='Failed', reason='Failed to retrieve shared OneDrive items for folder ' + relative_path, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
   shared_items = shared.json()['value']
   # Process records in this folder
   all_records = [simplify_sharepoint_record(doc, 'Shared') for doc in shared_items]
-  filtered_records = list(filter(lambda x: x.records_status == filter_status, all_records))
   # Process subfolders
   folders = list(filter(lambda x: "folder" in x, shared_items))
   for folder in folders:
-    read_successful, data = read_sharepoint_folder(relative_path + "/" + folder["name"], access_token, filter_status, depth + 1, link=None, max_depth=max_depth)
+    read_successful, data = read_sharepoint_folder(relative_path + "/" + folder["name"], access_token, depth + 1, link=None, max_depth=max_depth)
     if not read_successful:
       return False, data
     else:
-      filtered_records = filtered_records + data
+      all_records = all_records + data
   # If number of items in this folder is too large, process the rest of the items in the folder
   if "@odata.nextLink" in shared.json():
     next_link = shared.json()['@odata.nextLink']
-    read_successful, recursive_data = read_sharepoint_folder(relative_path, access_token, filter_status, depth + 1, link=next_link, max_depth=max_depth)
+    read_successful, recursive_data = read_sharepoint_folder(relative_path, access_token, depth + 1, link=next_link, max_depth=max_depth)
     if not read_successful:
       return False, recursive_data
     else:
-      filtered_records = filtered_records + recursive_data
-  return True, filtered_records
+      all_records = all_records + recursive_data
+  return True, all_records
 
 def list_sharepoint_records(req: GetSharepointRecordsRequest, access_token):
   page_number = int(req.page_number)
@@ -761,11 +759,7 @@ def list_sharepoint_records(req: GetSharepointRecordsRequest, access_token):
   if items_per_page <= 0:
     return Response(StatusResponse(status='Failed', reason='Items per page must be > 0.', request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
   # Get shared records
-  if req.filter_type == 'in_batch':
-    filter_status = 'Pending Batch Submission'
-  else:
-    filter_status = 'Pending'
-  read_successful, data = read_sharepoint_folder('EPA Records', access_token, filter_status, 0)
+  read_successful, data = read_sharepoint_folder('EPA Records', access_token, 0)
   if not read_successful:
     return data
   else:
@@ -820,18 +814,27 @@ def upload_sharepoint_record_v3(req: SharepointUploadRequestV3, access_token, us
     app.logger.error('Content request failed: ' + r.text)
     return Response(StatusResponse(status='Failed', reason='Content request failed with status ' + str(content_req.status_code), request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
   content = content_req.content
-  success, error, uid = submit_nuxeo_file_v2(c, content, user_info, req.metadata, req.nuxeo_env)
+  metadata = req.metadata
+  identifiers = metadata.identifiers
+  identifiers['onedrive_id'] = [req.drive_item_id]
+  metadata.identifiers = identifiers
+  success, error, uid = submit_nuxeo_file_v2(c, content, user_info, metadata, req.nuxeo_env)
   if not success:
     return Response(StatusResponse(status='Failed', reason='Nuxeo upload for sharepoint file failed with error ' + error, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+  
+  # Get ID for Archived Records folder
+  archived_folder_req = requests.get("https://graph.microsoft.com/v1.0/me/drive/root:/Archived Records:", headers=headers, timeout=30)
+  if archived_folder_req.status_code != 200:
+    app.logger.error('Unable to find Archived Records folder: ' + archived_folder_req.text)
+    return Response('Unable to find Archived Records folder: ' + str(archived_folder_req.text), status=400, mimetype='application/json')
+  archived_folder_id = archived_folder_req.json()['id']
 
-  ## If successful, update Sharepoint metadata
-  site_id = drive_item['sharepointIds']['siteId']
-  list_id = drive_item['sharepointIds']['listId']
-  list_item_id = drive_item['sharepointIds']['listItemId']
-  status = "Saved to ARMS"
-  success, response = update_sharepoint_record_status(site_id, list_id, list_item_id, status, access_token)
-  if not success:
-    return response 
+  # Move file to Archived Records folder
+  body = {"parentReference": {"id": archived_folder_id}}
+  move_req = requests.patch(f"https://graph.microsoft.com/v1.0/me/drive/items/{req.drive_item_id}", json=body, headers=headers, timeout=30)
+  if move_req.status_code != 200:
+    app.logger.error('Unable to move OneDrive item: ' + move_req.text)
+    return Response('Unable to move OneDrive item: ' + str(move_req.text), status=400, mimetype='application/json')
   
   ## Add submission analytics to table
   success, response = add_submission_analytics(req.user_activity, req.metadata.record_schedule, user_info.lan_id, None, uid)
@@ -846,25 +849,6 @@ def batch(iterable, n=1):
     l = len(iterable)
     for ndx in range(0, l, n):
         yield iterable[ndx:min(ndx + n, l)]
-
-def batch_update_status(req: SharepointBatchUploadRequest, site_id, list_id, access_token):
-  batches = batch(req.sharepoint_items, 20)
-  headers = {'Authorization': 'Bearer ' + access_token}
-  data = {"Records_x0020_Status": 'Pending Batch Submission'}
-  for _batch in batches:
-    batch_requests = [
-      {
-        "id": i,
-        "method": "PATCH",
-        "url": 'https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{list_id}/items/{item_id}/fields'.format(site_id = site_id, list_id = list_id, item_id = x.list_item_id),
-        "body": data,
-        "headers": headers
-      } for i, x in enumerate(_batch)
-    ]
-    batch_req = requests.post('https://graph.microsoft.com/v1.0/$batch', data=json.dumps(batch_requests))
-    for x in batch_req.json()['responses']:
-      if x['status'] != 200:
-        raise Exception('Batch metadata update failed.')
 
 def sched_to_string(sched):
   return '-'.join([sched.function_number, sched.schedule_number, sched.disposition_number])
@@ -1126,7 +1110,12 @@ def upload_nuxeo_email_v2(config, req, source, user_info):
   # Step 3: Create Nuxeo record
   
   # Create record for PDF rendition with EML as Nuxeo attachment
-  success, error, uid = create_nuxeo_email_record_v2(config, user_info, req.metadata, req.nuxeo_env)
+  # TODO: Ask NRMP if this should be added to attachments
+  metadata = req.metadata
+  identifiers = metadata.identifiers
+  identifiers['email_id'] = [req.email_id]
+  metadata.identifiers = identifiers
+  success, error, uid = create_nuxeo_email_record_v2(config, user_info, metadata, req.nuxeo_env)
 
   if not success:
     app.logger.error(error)
@@ -1298,6 +1287,9 @@ def upload_sems_email(config, req: UploadSEMSEmail, source, user_info):
   
   # Create record for PDF rendition with EML as Nuxeo attachment
   arms_metadata = convert_sems_metadata(user_info, req.metadata)
+  identifiers = arms_metadata.identifiers
+  identifiers['email_id'] = [req.email_id]
+  arms_metadata.identifiers = identifiers
   success, error, uid = create_nuxeo_email_record_v2(config, user_info, arms_metadata, req.nuxeo_env, source_system="SEMS")
 
   if not success:
