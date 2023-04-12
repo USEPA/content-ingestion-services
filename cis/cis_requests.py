@@ -43,7 +43,6 @@ def tika(file, config):
     app.logger.error(traceback.format_exc())
     return False, None, Response(StatusResponse(status='Failed', reason='Could not connect to Tika server', request_id=g.get('request_id', None)).to_json(), 500, mimetype='application/json')
 
-  print(r.status_code)
   if r.status_code != 200 or len(r.json()[0].get('X-TIKA:content','')) < TIKA_CUTOFF:
       headers = {
           "X-Tika-PDFOcrStrategy": "ocr_only",
@@ -436,7 +435,6 @@ def get_nuxeo_records(c, req, employee_number):
     app.logger.error(r.text)
     return Response(StatusResponse(status='Failed', reason='Failed to access Nuxeo find API.', request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
   data = r.json()
-  app.logger.info(r.json())
   records = [convert_nuxeo_record(x) for x in r.json()['entries']]
   response = NuxeoRecordList(total=data['resultsCount'], records=records)
   return Response(response.to_json(), status=200, mimetype='application/json')
@@ -616,6 +614,12 @@ def get_user_info(config, token_data, access_token=None):
     app.logger.info('Preferred system database read failed for ' + token_data['email'])
   if access_token is not None:
     direct_reports = get_direct_reports(token_data, access_token)
+    success, response = check_or_create_folder(access_token, 'EPA Records')
+    if not success:
+      return response
+    success, response = check_or_create_folder(access_token, 'Archived Records')
+    if not success:
+      return response
   else:
     direct_reports = []
   return True, None, UserInfo(token_data['email'], display_name, lan_id, department, enterprise_department, manager_department, manager_enterprise_department, employee_number, badges, profile, user_settings, direct_reports, first_name=first_name, last_name=last_name)
@@ -649,7 +653,6 @@ def get_sems_sites(req: SemsSiteRequest, config):
     app.logger.error(traceback.format_exc())
     return Response(StatusResponse(status='Failed', reason="Request to SEMS server failed.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
   if sites.status_code == 200:
-    app.logger.info(sites.url)
     response_object = SemsSiteResponse.from_dict(sites.json())
     return Response(response_object.to_json(), status=200, mimetype='application/json')
   else:
@@ -687,16 +690,16 @@ def simplify_sharepoint_record(raw_rec, sensitivity):
     size = raw_rec["size"]
   )
 
-def check_or_create_records_folder(access_token):
+def check_or_create_folder(access_token, folder_name):
   headers = {'Authorization': 'Bearer ' + access_token, 'Content-Type':'application/json'}
-  r = requests.get("https://graph.microsoft.com/v1.0/me/drive/root/children/?$filter=name eq 'EPA Records'", headers=headers, timeout=10)
+  r = requests.get(f"https://graph.microsoft.com/v1.0/me/drive/root/children/?$filter=name eq '{folder_name}'", headers=headers, timeout=10)
   if r.status_code != 200:
     return False, Response(StatusResponse(status='Failed', reason='Records folder request failed. ' + r.text, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
   values = r.json().get('value', [])
   if len(values) == 0:
     # If folder is not present, create it
     body = {
-      "name": "EPA Records",
+      "name": folder_name,
       "folder": {},
       "@microsoft.graph.conflictBehavior": "fail"
     }
@@ -707,13 +710,13 @@ def check_or_create_records_folder(access_token):
       if r.json().get('error', {}).get('code', '') == 'nameAlreadyExists':
         return True, None
       else:
-        app.logger.error('Failed to create EPA Records folder with status ' + str(r.status_code))
+        app.logger.error('Failed to create folder with status ' + str(r.status_code))
         app.logger.error(r.text)
-        return False, Response(StatusResponse(status='Failed', reason='Failed to create EPA Records folder.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+        return False, Response(StatusResponse(status='Failed', reason='Failed to create folder.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
     else:
-      app.logger.error('Failed to create EPA Records folder with status ' + str(r.status_code))
+      app.logger.error('Failed to create folder with status ' + str(r.status_code))
       app.logger.error(r.text)
-      return False, Response(StatusResponse(status='Failed', reason='Failed to create EPA Records folder.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+      return False, Response(StatusResponse(status='Failed', reason='Failed to create folder.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
   else:
     return True, None
 
@@ -751,9 +754,6 @@ def read_sharepoint_folder(relative_path, access_token, filter_status, depth, li
   return True, filtered_records
 
 def list_sharepoint_records(req: GetSharepointRecordsRequest, access_token):
-  success, response = check_or_create_records_folder(access_token)
-  if not success:
-    return response
   page_number = int(req.page_number)
   items_per_page = int(req.items_per_page)
   if page_number <= 0:
