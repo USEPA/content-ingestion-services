@@ -160,14 +160,21 @@ def eml_to_pdf(eml):
       if 'style' in tr.attrs:
         del tr.attrs['style']
     
-    html = html.prettify()
-    final_text += html
+    try:
+      pdf_text = final_text + html.prettify()
+      result = io.BytesIO()
+      pisa_status = pisa.CreatePDF(pdf_text,dest=result)
+      success = pisa_status.err == 0
+      result.seek(0)
+    except:
+      pdf_text = final_text + html.get_text()
+      result = io.BytesIO()
+      pisa_status = pisa.CreatePDF(pdf_text,dest=result)
+      success = pisa_status.err == 0
+      result.seek(0)
 
     #conversion --return as bytes
-    result = io.BytesIO()
-    pisa_status = pisa.CreatePDF(final_text,dest=result)
-    success = pisa_status.err == 0
-    result.seek(0)
+    
 
     return success, result, attachments
 
