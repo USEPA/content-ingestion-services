@@ -199,7 +199,7 @@ class MyRecordsRequestV2:
     page_number: int = 0
     query: Optional[str] = None
     nuxeo_env: Optional[str] = "dev"
-
+    shared_private_filter: Optional[str] = 'NONE'
 
 @dataclass_json
 @dataclass 

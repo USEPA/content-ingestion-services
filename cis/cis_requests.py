@@ -383,7 +383,7 @@ def convert_nuxeo_metadata(nuxeo_dict):
   title = nuxeo_dict.get('title', '')
   nuxeo_sched = properties.get('arms:record_schedule', None)
   record_schedule = schedule_cache.get_schedule_mapping().get(nuxeo_sched, None)
-  if properties.get('sensitivity', '1') == '0':
+  if properties.get('arms:sensitivity', '1') == '0':
     sensitivity = 'Shared'
   else:
     sensitivity = 'Private'
@@ -418,7 +418,7 @@ def convert_nuxeo_metadata(nuxeo_dict):
 def convert_nuxeo_record(nuxeo_dict):
   metadata = convert_nuxeo_metadata(nuxeo_dict)
   properties = nuxeo_dict['properties']
-  if properties.get('sensitivity', '1') == '0':
+  if properties.get('arms:sensitivity', '1') == '0':
     sensitivity = 'Shared'
   else:
     sensitivity = 'Private'
@@ -435,11 +435,16 @@ def convert_nuxeo_record(nuxeo_dict):
 def get_nuxeo_records(c, req, employee_number):
   nuxeo_url, nuxeo_username, nuxeo_password = get_nuxeo_creds(c, req.nuxeo_env)
   headers = {'Content-Type':'application/json', 'X-NXproperties':'*'}
+  nuxeo_query = nuxeo_url + '/nuxeo/api/v1/search/lang/NXQL/execute?query=select * from epa_record where arms:epa_contact="' + employee_number + '" and ecm:versionLabel <> "0.0" and NOT ecm:path STARTSWITH "/EPA%20Organization/ThirdParty" and NOT ecm:path STARTSWITH "/EPA%20Organization/ThirdParty-Queue" and NOT ecm:path STARTSWITH "/EPA%20Organization/UnPublished"'
   if req.query is not None:
-    r = requests.get(nuxeo_url + '/nuxeo/api/v1/search/lang/NXQL/execute?query=select * from epa_record where arms:epa_contact="' + employee_number + '" and ecm:versionLabel <> "0.0" and NOT ecm:path STARTSWITH "/EPA%20Organization/ThirdParty" and NOT ecm:path STARTSWITH "/EPA%20Organization/ThirdParty-Queue" and NOT ecm:path STARTSWITH "/EPA%20Organization/UnPublished" and dc:title LIKE "%' + req.query + '%" order by dc:created desc&pageSize=' + str(req.items_per_page) + '&currentPageIndex=' + str(req.page_number), headers=headers, auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))
-  else:
-    r = requests.get(nuxeo_url + '/nuxeo/api/v1/search/lang/NXQL/execute?query=select * from epa_record where arms:epa_contact="' + employee_number + '" and ecm:versionLabel <> "0.0" and NOT ecm:path STARTSWITH "/EPA%20Organization/ThirdParty" and NOT ecm:path STARTSWITH "/EPA%20Organization/ThirdParty-Queue" and NOT ecm:path STARTSWITH "/EPA%20Organization/UnPublished" order by dc:created desc&pageSize=' + str(req.items_per_page) + '&currentPageIndex=' + str(req.page_number), headers=headers, auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))
-
+    nuxeo_query += 'and dc:title LIKE "%' + req.query + '%"'
+  if req.shared_private_filter is not None:
+    if req.shared_private_filter.lower() == 'shared':
+      nuxeo_query += ' and arms:sensitivity="0"'
+    if req.shared_private_filter.lower() == 'private':
+      nuxeo_query += ' and arms:sensitivity="1"'
+  nuxeo_query += ' order by dc:created desc&pageSize=' + str(req.items_per_page) + '&currentPageIndex=' + str(req.page_number)
+  r = requests.get(nuxeo_query, headers=headers, auth=HTTPBasicAuth(nuxeo_username, nuxeo_password))
   if r.status_code != 200:
     app.logger.error(r.text)
     return Response(StatusResponse(status='Failed', reason='Failed to access Nuxeo find API.', request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')

@@ -851,6 +851,15 @@ paths:
         in: query
         schema:
           type: string
+      - name: shared_private_filter
+        in: query
+        schema:
+          type: string
+          default: none
+          enum:
+          - shared
+          - private
+          - none
       - name: items_per_page
         in: query
         required: true
