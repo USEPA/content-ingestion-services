@@ -220,7 +220,7 @@ def get_user_drive_id(user, token):
 
 def user_has_pending_onedrive_file(user, service_token):
     drive_id = get_user_drive_id(user, service_token)
-    return read_sharepoint_folder(drive_id, 'EPA Records', service_token, 'Pending', 0)
+    return read_sharepoint_folder(drive_id, 'ARMS File Sync', service_token, 'Pending', 0)
 
 def send_notifications(username, password, client_id, client_secret, wam_username, wam_password, wam_host, tenant_id, user_batch_size, full_run):
     test_users = set(['Kreisel.Michael@epa.gov', 'Yuen.Andrew@epa.gov', 'Schouw.Stephanie@epa.gov'])

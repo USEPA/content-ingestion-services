@@ -28,6 +28,8 @@ import pytz
 
 TIKA_CUTOFF = 20
 TIKA_TEXT_UPPER_LIMIT = 10000
+ARMS_ARCHIVE_FOLDER_NAME = 'ARMS Archive'
+ARMS_SYNC_FOLDER_NAME = 'ARMS File Sync'
 
 def tika(file, config):
   headers = {
@@ -561,7 +563,26 @@ def get_direct_reports(token_data, access_token):
     return []
   else:
     return [x['userPrincipalName'] for x in r.json()['value']]
-  
+
+def get_folder_id(access_token, folder_name):
+  # Get ID for ARMS Archive folder
+  headers = {'Authorization': 'Bearer ' + access_token}
+  folder_req = requests.get(f"https://graph.microsoft.com/v1.0/me/drive/root:/{folder_name}:", headers=headers, timeout=30)
+  if folder_req.status_code != 200:
+    app.logger.error(f'Unable to find {folder_name} folder: ' + folder_req.text)
+    return False, None, Response(f'Unable to find {folder_name} folder: ' + str(folder_req.text), status=400, mimetype='application/json')
+  return True, folder_req.json()['id'], None
+
+def create_arms_readme(access_token):
+  file_name = 'ARMS Instructions.txt'
+  file_content = 'The files in this folder are convenience copies of records that you uploaded to the Agency Records Management System (ARMS). These files do not contain metadata and will be dispositioned (deleted) according to the records schedule that was assigned to the record during its upload into ARMS.'
+  encoded_content = base64.b64encode(file_content.encode()).decode()
+  url = f'https://graph.microsoft.com/v1.0/me/drive/root:/{ARMS_ARCHIVE_FOLDER_NAME}/{file_name}'
+  headers = {'Authorization': 'Bearer ' + access_token, 'Content-Type': 'application/json'}
+  data = {'file': {}, '@microsoft.graph.sourceUrl': f'data:text/plain;base64,{encoded_content}'}
+  r = requests.put(url, json=data, headers=headers)
+  return r.status_code == 201 or r.status_code == 409
+
 def get_user_info(config, token_data, access_token=None):
   # Handle service accounts separately
   if token_data['email'][:4].lower() == 'svc_' or 'java_review' in token_data['email'].lower():
@@ -621,12 +642,18 @@ def get_user_info(config, token_data, access_token=None):
     app.logger.info('Preferred system database read failed for ' + token_data['email'])
   if access_token is not None:
     direct_reports = get_direct_reports(token_data, access_token)
-    success, response = check_or_create_folder(access_token, 'EPA Records')
+    success, response = check_or_create_folder(access_token, ARMS_SYNC_FOLDER_NAME)
     if not success:
       return response
-    success, response = check_or_create_folder(access_token, 'Archived Records')
+    success, response = check_or_create_folder(access_token, ARMS_ARCHIVE_FOLDER_NAME)
     if not success:
       return response
+    try:
+      success = create_arms_readme(access_token)
+      if not success:
+        app.logger.info('Did not create ARMS README for ' + token_data['email'])
+    except:
+      app.logger.info('Did not create ARMS README for ' + token_data['email'])
   else:
     direct_reports = []
   return True, None, UserInfo(token_data['email'], display_name, lan_id, department, enterprise_department, manager_department, manager_enterprise_department, employee_number, badges, profile, user_settings, direct_reports, first_name=first_name, last_name=last_name)
@@ -765,7 +792,7 @@ def list_sharepoint_records(req: GetSharepointRecordsRequest, access_token):
   if items_per_page <= 0:
     return Response(StatusResponse(status='Failed', reason='Items per page must be > 0.', request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
   # Get shared records
-  read_successful, data = read_sharepoint_folder('EPA Records', access_token, 0)
+  read_successful, data = read_sharepoint_folder(ARMS_SYNC_FOLDER_NAME, access_token, 0)
   if not read_successful:
     return data
   else:
@@ -828,14 +855,12 @@ def upload_sharepoint_record_v3(req: SharepointUploadRequestV3, access_token, us
   if not success:
     return Response(StatusResponse(status='Failed', reason='Nuxeo upload for sharepoint file failed with error ' + error, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
   
-  # Get ID for Archived Records folder
-  archived_folder_req = requests.get("https://graph.microsoft.com/v1.0/me/drive/root:/Archived Records:", headers=headers, timeout=30)
-  if archived_folder_req.status_code != 200:
-    app.logger.error('Unable to find Archived Records folder: ' + archived_folder_req.text)
-    return Response('Unable to find Archived Records folder: ' + str(archived_folder_req.text), status=400, mimetype='application/json')
-  archived_folder_id = archived_folder_req.json()['id']
+  # Get ID for ARMS Archive folder
+  success, archived_folder_id, response = get_folder_id(access_token, ARMS_ARCHIVE_FOLDER_NAME)
+  if not success:
+    return response
 
-  # Move file to Archived Records folder
+  # Move file to ARMS Archive folder
   body = {"parentReference": {"id": archived_folder_id}}
   move_req = requests.patch(f"https://graph.microsoft.com/v1.0/me/drive/items/{req.drive_item_id}", json=body, headers=headers, timeout=30)
   if move_req.status_code != 200:
