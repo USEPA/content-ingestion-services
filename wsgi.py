@@ -49,7 +49,6 @@ if __name__ == "__main__":
                     help='Username for WAM service.')
     parser.add_argument('--wam_password', default=None, 
                     help='Password for WAM service.')
-    parser.add_argument('--bucket_name', help='Bucket name for uploads.')
     args = parser.parse_args()
     app = create_app(**vars(args))
     serve(app, host='0.0.0.0', port=8000)

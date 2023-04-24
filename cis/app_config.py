@@ -20,7 +20,6 @@ class CISConfig:
         sems_host,
         patt_host,
         patt_api_key,
-        bucket_name,
         nuxeo_dev_url,
         nuxeo_dev_username, 
         nuxeo_dev_password,
@@ -41,7 +40,6 @@ class CISConfig:
         self.sems_host = sems_host
         self.patt_host = patt_host
         self.patt_api_key = patt_api_key
-        self.bucket_name = bucket_name
         self.nuxeo_dev_url = nuxeo_dev_url
         self.nuxeo_dev_username = nuxeo_dev_username
         self.nuxeo_dev_password = nuxeo_dev_password
