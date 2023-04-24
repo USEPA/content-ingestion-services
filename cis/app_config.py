@@ -17,7 +17,6 @@ class CISConfig:
         wam_host, 
         wam_username, 
         wam_password,
-        records_repository_id,
         sems_host,
         patt_host,
         patt_api_key,
@@ -39,7 +38,6 @@ class CISConfig:
         self.wam_host = wam_host
         self.wam_username = wam_username
         self.wam_password = wam_password
-        self.records_repository_id = records_repository_id
         self.sems_host = sems_host
         self.patt_host = patt_host
         self.patt_api_key = patt_api_key
