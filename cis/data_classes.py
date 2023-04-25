@@ -601,6 +601,7 @@ class SharepointRecord:
     created_date: str
     last_modified_date: str
     size: int
+    path_tags: list[str]
     detected_schedule: Optional[RecordSchedule]
 
 @dataclass_json

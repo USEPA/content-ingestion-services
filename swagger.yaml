@@ -2191,6 +2191,10 @@ components:
           $ref: '#/components/schemas/RecordSchedule'
         size:
           type: number
+        path_tags:
+          type: array
+          items:
+            type: string
     SharepointListResponse:
       type: object
       properties:

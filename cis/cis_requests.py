@@ -709,12 +709,17 @@ def detect_schedule_from_string(text, schedule_mapping):
 
 def simplify_sharepoint_record(raw_rec, sensitivity):
   default_schedule = None
+  schedule_found = False
   mapping = schedule_cache.get_schedule_mapping()
+  path_tags = set()
   for item in raw_rec['parentReference']['path'].split('/'):
-    detected_schedule = detect_schedule_from_string(item.replace('%20', ' '), mapping)
-    if detected_schedule is not None:
-      default_schedule = detected_schedule
-      break
+    if item.strip() not in set(['drive', 'root:', ARMS_SYNC_FOLDER_NAME, '']):
+      path_tags.add(item.strip())
+    if not schedule_found:
+      detected_schedule = detect_schedule_from_string(item.replace('%20', ' '), mapping)
+      if detected_schedule is not None:
+        default_schedule = detected_schedule
+        schedule_found = True
         
   return SharepointRecord(
     web_url = raw_rec['webUrl'],
@@ -724,7 +729,8 @@ def simplify_sharepoint_record(raw_rec, sensitivity):
     created_date = raw_rec['createdDateTime'],
     last_modified_date = raw_rec['lastModifiedDateTime'],
     detected_schedule = default_schedule,
-    size = raw_rec["size"]
+    size = raw_rec["size"],
+    path_tags = list(path_tags)
   )
 
 def check_or_create_folder(access_token, folder_name):
