@@ -1146,47 +1146,6 @@ paths:
             '*/*':
               schema:
                 $ref: '#/components/schemas/StatusResponse'
-  /upload_sharepoint_record/v2:
-    post:
-      tags:
-      - sharepoint
-      summary: Upload Sharepoint record to ECMS.
-      security:
-        - Authorization: [] 
-        - AccessToken: []
-      requestBody:
-        description: ID fields and metadata needed to upload the record.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SharepointUploadRequestV2'
-        required: false
-      responses:
-        200:
-          description: Record successfully uploaded.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/UploadResponse'
-        400:
-          description: Invalid request - description in response.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-        401:
-          description: Unauthorized - description in response.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-        500:
-          description: Server side error - description in response.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-      x-codegen-request-body-name: data
   /upload_sharepoint_record/v3:
     post:
       tags:

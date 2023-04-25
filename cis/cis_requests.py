@@ -96,6 +96,30 @@ def get_eml_file(email_id, emailsource, mailbox, access_token):
       app.logger.error('Get EML file request with graph, ended with status ' + str(r.status_code) + '. Response: ' + r.text)
       return None
 
+def get_email_text_archive(email_id, mailbox, access_token):
+  token = OAuth2Token({'access_token':access_token})
+  creds = OAuth2Credentials(
+    '','', access_token=token,
+  )
+  config = Configuration(server='outlook.office.com', credentials=creds, auth_type=OAUTH2)
+  account = Account(primary_smtp_address=mailbox, config=config, autodiscover=False, access_type=DELEGATE, default_timezone=pytz.UTC)
+  inbox = account.archive_root / 'Top of Information Store'
+  email = inbox.get(id=email_id)
+  return email.text_body
+
+def get_email_text(email_id, emailsource, mailbox, access_token):
+   if emailsource.lower() == 'archive':
+    return get_email_text_archive(email_id, mailbox, access_token)
+   else:
+    headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token, "Prefer": 'outlook.body-content-type="text"'}
+    url = "https://graph.microsoft.com/v1.0/users/" + mailbox + "/messages/" + email_id
+    r = requests.get(url, headers=headers, timeout=30)
+    if r.status_code == 200:
+        return r.json()['body']['content']
+    else:
+      app.logger.error('Get email text request with graph, ended with status ' + str(r.status_code) + '. Response: ' + r.text)
+      return None
+
 def create_outlook_record_category(access_token, user_email):
   body = {"displayName": "Record", "color": "preset22"}
   headers = {"Content-Type": "application/json", "Authorization": "Bearer " + access_token}
@@ -437,7 +461,7 @@ def get_nuxeo_records(c, req, employee_number):
   headers = {'Content-Type':'application/json', 'X-NXproperties':'*'}
   nuxeo_query = nuxeo_url + '/nuxeo/api/v1/search/lang/NXQL/execute?query=select * from epa_record where arms:epa_contact="' + employee_number + '" and ecm:versionLabel <> "0.0" and NOT ecm:path STARTSWITH "/EPA%20Organization/ThirdParty" and NOT ecm:path STARTSWITH "/EPA%20Organization/ThirdParty-Queue" and NOT ecm:path STARTSWITH "/EPA%20Organization/UnPublished"'
   if req.query is not None:
-    nuxeo_query += 'and dc:title LIKE "%' + req.query + '%"'
+    nuxeo_query += 'and dc:title ILIKE "%' + req.query.lower() + '%"'
   if req.shared_private_filter is not None:
     if req.shared_private_filter.lower() == 'shared':
       nuxeo_query += ' and arms:sensitivity="0"'
