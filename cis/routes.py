@@ -101,9 +101,9 @@ def email_metadata_prediction_graph(emailsource):
         prediction = MetadataPrediction(predicted_schedules=[], title=mock_prediction_with_explanation, is_encrypted=True, description=mock_prediction_with_explanation, default_schedule=None, subjects=[], identifiers={}, cui_categories=[])
         return Response(prediction.to_json(), status=200, mimetype='application/json')
     ## Get email text
-    success, email_text, response = get_email_text(req.email_id, emailsource, req.mailbox, g.access_token)
-    if not success:
-        return response
+    email_text = get_email_text(req.email_id, emailsource, req.mailbox, g.access_token)
+    if email_text is None:
+        return Response(StatusResponse(status='Failed', reason="Could not retrieve email text.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
     schedules = schedule_cache.get_schedules().schedules
     valid_schedules = list(filter(lambda x: x.ten_year, schedules))
     valid_schedules = ["{fn}-{sn}-{dn}".format(fn=x.function_number, sn=x.schedule_number, dn=x.disposition_number) for x in valid_schedules]
