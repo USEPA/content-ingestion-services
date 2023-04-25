@@ -461,7 +461,7 @@ def get_nuxeo_records(c, req, employee_number):
   headers = {'Content-Type':'application/json', 'X-NXproperties':'*'}
   nuxeo_query = nuxeo_url + '/nuxeo/api/v1/search/lang/NXQL/execute?query=select * from epa_record where arms:epa_contact="' + employee_number + '" and ecm:versionLabel <> "0.0" and NOT ecm:path STARTSWITH "/EPA%20Organization/ThirdParty" and NOT ecm:path STARTSWITH "/EPA%20Organization/ThirdParty-Queue" and NOT ecm:path STARTSWITH "/EPA%20Organization/UnPublished"'
   if req.query is not None:
-    nuxeo_query += ' and ecm:fulltext.dc:title = "' + req.query.lower() + '"'
+    nuxeo_query += ' and ecm:fulltext.dc:title = "' + req.query + '"'
   if req.shared_private_filter is not None:
     if req.shared_private_filter.lower() == 'shared':
       nuxeo_query += ' and arms:sensitivity="0"'
