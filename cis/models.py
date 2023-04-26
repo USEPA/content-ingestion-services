@@ -1,6 +1,7 @@
 from . import db
 import enum
 from sqlalchemy.dialects.mysql import JSON
+from sqlalchemy import DateTime
 
 class BatchUploadStatus(enum.Enum):
     COMPLETE = 1
@@ -17,6 +18,11 @@ class BatchRecordStatus(enum.Enum):
 class BatchUploadSource(enum.Enum):
     ONEDRIVE = 1
     OUTLOOK = 2
+
+class DelegationRequestStatus(enum.Enum):
+    PENDING = 1
+    ACCEPTED = 2
+    REJECTED = 3
 
 class User(db.Model):
     __tablename__ = 'user'
@@ -92,3 +98,26 @@ class AppSettings(db.Model):
     default_edit_mode = db.Column(db.String(10))
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), index=True)
     __table_args__ = (db.UniqueConstraint('user_id', name='_user_settings_uc'),)
+
+class DelegationRequest(db.Model):
+    __tablename__ = 'delegation_request'
+    id = db.Column(db.Integer, primary_key=True)
+    uuid = db.Column(db.String(36), unique=True, nullable=False, index=True)
+    date_sent = db.Column(DateTime(timezone=False), nullable=False)
+    status_date = db.Column(DateTime(timezone=False))
+    status = db.Column(db.Enum(DelegationRequestStatus), default=DelegationRequestStatus.PENDING)
+    requesting_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), index=True, nullable=False)
+    requesting_user = db.relationship('User', backref=db.backref('delegation_requests', lazy=True),)
+    target_user_employee_id = db.Column(db.String(36), nullable=False, index=True)
+
+class DelegationRule(db.Model):
+    __tablename__ = 'delegation_rule'
+    id = db.Column(db.Integer, primary_key=True)
+    submitting_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), index=True, nullable=False)
+    submitting_user = db.relationship('User', backref=db.backref('delegation_rules', lazy=True),)
+    target_user_employee_id = db.Column(db.String(36), nullable=False, index=True)
+    delegation_request_id = db.Column(db.Integer, db.ForeignKey('delegation_request.id'), index=True, nullable=False)
+    delegation_request = db.relationship('DelegationRequest')
+
+
+

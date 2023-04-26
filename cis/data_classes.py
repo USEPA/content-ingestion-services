@@ -615,6 +615,7 @@ class SearchUsersRequest:
 class WAMUserInfo:
     employee_number: str
     email: str
+    display_name: str
 
 @dataclass_json
 @dataclass 

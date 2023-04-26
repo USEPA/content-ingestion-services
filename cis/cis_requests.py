@@ -1647,13 +1647,14 @@ def create_batch(req: BatchUploadRequest, user_info):
     return Response(StatusResponse(status='Failed', reason='Failed to add batch.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
 
 def get_users(req: SearchUsersRequest, c):
-  url = "https://" + c.wam_host + "/iam/governance/scim/v1/Users?filter=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:Upn sw " + req.prefix + "&attributes=active&attributes=urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:employeeNumber&attributes=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:Upn&count=" + str(req.count)
+  url = "https://" + c.wam_host + "/iam/governance/scim/v1/Users?filter=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:Upn sw " + req.prefix + "&attributes=active&attributes=displayName&attributes=urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:employeeNumber&attributes=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:Upn&count=" + str(req.count)
   wam = requests.get(url, auth=(c.wam_username, c.wam_password), timeout=30)
   users = []
   for user_data in wam.json()['Resources']:
     employee_number = user_data.get('urn:ietf:params:scim:schemas:extension:enterprise:2.0:User', {}).get('employeeNumber', None)
     email = user_data.get('urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User', {}).get('Upn', None)
-    user_info = WAMUserInfo(employee_number=employee_number, email=email)
+    display_name = user_data.get('displayName', None)
+    user_info = WAMUserInfo(employee_number=employee_number, email=email, display_name=display_name)
     if email.lower() != g.token_data['email'].lower():
       users.append(user_info)
   return Response(UserSearchResponse(users=users).to_json(), status=200, mimetype='application/json')
