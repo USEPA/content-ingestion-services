@@ -25,6 +25,8 @@ tags:
   description: All APIs that provide record schedule recommendations.
 - name: user_info
   description: APIs to give information about the user.
+- name: delegated_submission
+  description: APIs to allow users to submit on behalf of other users.
 - name: sems
   description: APIs for integration with SEMS.
 - name: help
@@ -159,6 +161,47 @@ paths:
             '*/*':
               schema:
                 $ref: '#/components/schemas/MetadataPrediction'
+        400:
+          description: Invalid request - description in response.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        401:
+          description: Unauthorized - description in response.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        500:
+          description: Server side error - description in response.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+  /search_users:
+    get:
+      tags:
+      - delegated_submission
+      summary: Search users by prefix.
+      security:
+        - Authorization: [] 
+      parameters:
+      - name: prefix
+        in: query
+        schema:
+          type: string
+      - name: count
+        in: query
+        schema:
+          type: integer
+      responses:
+        200:
+          description: Recommendations were successfully given.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/UserSearchResponse'
         400:
           description: Invalid request - description in response.
           content:
@@ -2375,6 +2418,21 @@ components:
           type: string
         email_source:
           type: string
+    WAMUserInfo:
+      type: object
+      properties:
+        employee_number:
+          type: string
+        email:
+          type: string
+    UserSearchResponse:
+      type: object
+      properties:
+        users:
+          type: array
+          items:
+            type: object
+            $ref: '#/components/schemas/WAMUserInfo'
     BatchUploadData:
       type: object
       properties:

@@ -606,6 +606,23 @@ class SharepointRecord:
 
 @dataclass_json
 @dataclass 
+class SearchUsersRequest:
+    prefix: str
+    count: int
+
+@dataclass_json
+@dataclass 
+class WAMUserInfo:
+    employee_number: str
+    email: str
+
+@dataclass_json
+@dataclass 
+class UserSearchResponse:
+    users: list[WAMUserInfo]
+
+@dataclass_json
+@dataclass 
 class SharepointListResponse:
     records: list[SharepointRecord]
     total_count: int
