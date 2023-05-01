@@ -23,6 +23,7 @@ class DelegationRequestStatus(enum.Enum):
     PENDING = 1
     ACCEPTED = 2
     REJECTED = 3
+    EXPIRED = 4
 
 class User(db.Model):
     __tablename__ = 'user'
@@ -103,19 +104,23 @@ class DelegationRequest(db.Model):
     __tablename__ = 'delegation_request'
     id = db.Column(db.Integer, primary_key=True)
     uuid = db.Column(db.String(36), unique=True, nullable=False, index=True)
+    requesting_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), index=True, nullable=False)
+    requesting_user = db.relationship('User', backref=db.backref('delegation_requests', lazy=True),)
+    requesting_user_employee_number = db.Column(db.String(36), index=True)
+    requesting_user_display_name = db.Column(db.String(100))
+    target_user_employee_number = db.Column(db.String(36), index=True)
+    target_user_display_name = db.Column(db.String(100),)
     date_sent = db.Column(DateTime(timezone=False), nullable=False)
     status_date = db.Column(DateTime(timezone=False))
     status = db.Column(db.Enum(DelegationRequestStatus), default=DelegationRequestStatus.PENDING)
-    requesting_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), index=True, nullable=False)
-    requesting_user = db.relationship('User', backref=db.backref('delegation_requests', lazy=True),)
-    target_user_employee_id = db.Column(db.String(36), nullable=False, index=True)
-
+    expiration_email_sent = db.Column(db.Boolean, default=False)
+    
 class DelegationRule(db.Model):
     __tablename__ = 'delegation_rule'
     id = db.Column(db.Integer, primary_key=True)
     submitting_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), index=True, nullable=False)
     submitting_user = db.relationship('User', backref=db.backref('delegation_rules', lazy=True),)
-    target_user_employee_id = db.Column(db.String(36), nullable=False, index=True)
+    target_user_employee_number = db.Column(db.String(36), nullable=False, index=True)
     delegation_request_id = db.Column(db.Integer, db.ForeignKey('delegation_request.id'), index=True, nullable=False)
     delegation_request = db.relationship('DelegationRequest')
 

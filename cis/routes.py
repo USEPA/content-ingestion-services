@@ -3,10 +3,12 @@ from flask import current_app as app
 from .cis_requests import *
 from .data_classes import * 
 from io import BytesIO
-from .models import User, Favorite, AppSettings, db
+from .models import User, Favorite, AppSettings, DelegationRequest, DelegationRequestStatus, DelegationRule, db
 import uuid
 from . import key_cache, c, model, mailbox_manager, schedule_cache, keyword_extractor, identifier_extractor, capstone_detector
 import json
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
 
 @app.before_request
 def log_request_info():
@@ -599,3 +601,100 @@ def search_users():
     except:
         return Response(StatusResponse(status='Failed', reason="Request is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
     return get_users(req, c)
+
+@app.route('/create_delegation_request', methods=['POST'])
+def create_delegation_request():
+    req = request.json
+    try:
+        req = CreateDelegationRequest.from_dict(req)
+    except:
+        return Response(StatusResponse(status='Failed', reason="Request is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
+    success, message, user_info = get_user_info(c, g.token_data)
+    if not success:
+        return Response(StatusResponse(status='Failed', reason=message, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+    target_display_name = get_display_name_by_employee_number(c, req.target_employee_number)
+    if target_display_name is None:
+        return Response(StatusResponse(status='Failed', reason="Could not find target in WAM.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+    user = User.query.filter_by(lan_id = user_info.lan_id).all()
+    if len(user) == 0:
+        user = User(lan_id = user_info.lan_id)
+        db.session.add(user)
+        db.session.flush()
+        db.session.refresh(user)
+    else:
+        user = user[0]
+    request_uuid = str(uuid.uuid4())
+    delegation_request = DelegationRequest(uuid=request_uuid, 
+                                           requesting_user_id=user.id,
+                                           requesting_user_employee_number=user_info.employee_number, 
+                                           requesting_user_display_name=user_info.display_name, 
+                                           target_user_employee_number=req.target_employee_number, 
+                                           target_user_display_name=target_display_name,
+                                           date_sent=datetime.now())
+    db.session.add(delegation_request)
+    db.session.commit()
+    return Response(StatusResponse(status="OK", reason="Delegation request created.", request_id=g.get('request_id', None)).to_json(), status=200, mimetype="application/json")
+
+def process_delegation_request(req: DelegationRequest):
+    status_date = None
+    if req.status_date is not None:
+        status_date=req.status_date.strftime('%Y-%m-%d')
+    return DelegationRequestData(request_id=req.uuid, 
+                                 requesting_user_employee_number=req.requesting_user_employee_number, 
+                                 requesting_user_display_name=req.requesting_user_display_name, 
+                                 target_user_employee_number=req.target_user_employee_number,
+                                 target_user_display_name=req.target_user_display_name,
+                                 date_sent=req.date_sent.strftime('%Y-%m-%d'),
+                                 request_status=req.status.name,
+                                 status_date=status_date,
+                                 expiration_email_sent=req.expiration_email_sent
+                                 )
+
+@app.route('/get_delegation_requests', methods=['GET'])
+def get_delegation_requests():
+    success, message, user_info = get_user_info(c, g.token_data)
+    if not success:
+        return Response(StatusResponse(status='Failed', reason=message, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+    user = User.query.filter_by(lan_id = user_info.lan_id).all()
+    if len(user) == 0:
+        return Response(StatusResponse(status='Failed', reason="User not found.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+    else:
+        user = user[0]
+    delegation_requests = [process_delegation_request(x) for x in user.delegation_requests]
+    incoming_requests = [process_delegation_request(x) for x in DelegationRequest.query.filter_by(target_user_employee_number=user_info.employee_number).all()]
+    response = ListDelegationRequestResponse(delegation_requests=delegation_requests, incoming_requests=incoming_requests)
+    return Response(response.to_json(), status=200, mimetype='application/json')
+
+@app.route('/delegation_response', methods=['GET'])
+def delegation_response():
+    success, message, user_info = get_user_info(c, g.token_data)
+    if not success:
+        return Response(StatusResponse(status='Failed', reason=message, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+    req = request.args
+    try:
+        req = DelegationResponse.from_dict(req)
+    except:
+        return Response(StatusResponse(status='Failed', reason='Missing required parameters.', request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
+    delegation_request = DelegationRequest.query.filter_by(uuid=req.request_id, target_user_employee_number=user_info.employee_number, status=DelegationRequestStatus.PENDING).first_or_404()
+    if datetime.now() > delegation_request.date_sent + relativedelta(days=30):
+        delegation_request.status = DelegationRequestStatus.EXPIRED
+        delegation_request.status_date = datetime.now()
+        try:
+            db.session.commit()
+            return Response(StatusResponse(status="EXPIRED", reason="Delegation request is over 30 days old. Please submit a new request.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype="application/json")
+        except:
+            return Response(StatusResponse(status='Failed', reason="Failed to update database.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+    if req.is_accepted:
+        delegation_request.status = DelegationRequestStatus.ACCEPTED
+        delegation_request.status_date = datetime.now()
+        rule = DelegationRule(submitting_user_id=delegation_request.requesting_user_id, target_user_employee_number=delegation_request.target_user_employee_number, delegation_request_id=delegation_request.id)
+        db.session.add(rule)
+    else:
+        delegation_request.status = DelegationRequestStatus.REJECTED
+        delegation_request.status_date = datetime.now()
+    try:
+        db.session.commit()
+        return Response(StatusResponse(status="OK", reason="Delegation request updated.", request_id=g.get('request_id', None)).to_json(), status=200, mimetype="application/json")
+    except:
+        return Response(StatusResponse(status='Failed', reason="Failed to update database.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+

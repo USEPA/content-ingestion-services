@@ -187,7 +187,7 @@ def user_has_pending_email(user, service_token):
     return 'value' in r.json() and len(r.json()['value']) > 0
 
 # Note: Depth increases when passing to a subfolder, or to a next page of results
-def read_sharepoint_folder(drive_id, relative_path, access_token, filter_status, depth, link = None, max_depth=3):
+def read_sharepoint_folder(drive_id, relative_path, access_token, filter_status, depth, link = None, max_depth=5):
   if depth > max_depth:
     return False
   headers = {'Authorization': 'Bearer ' + access_token}

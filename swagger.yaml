@@ -253,6 +253,39 @@ paths:
             '*/*':
               schema:
                 $ref: '#/components/schemas/StatusResponse'
+  /get_delegation_requests:
+    get:
+      tags:
+      - delegated_submission
+      summary: Gets information about delegated submission requests made by and to the user.
+      security:
+        - Authorization: [] 
+        - AccessToken: []
+      responses:
+        200:
+          description: Delegation request information retrieved.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ListDelegationRequestResponse'
+        400:
+          description: Invalid request - description in response.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        401:
+          description: Unauthorized - description in response.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        500:
+          description: Server side error - description in response.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
   /upload_file/v2:
     post:
       tags:
@@ -423,6 +456,48 @@ paths:
                 $ref: '#/components/schemas/GetEmailResponse'
         400:
           description: Invalid request - description in response.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        401:
+          description: Unauthorized - description in response.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        500:
+          description: Server side error - description in response.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+  /delegation_response:
+    get:
+      tags:
+      - delegated_submission
+      summary: Respond to a delegation request.
+      security:
+        - Authorization: [] 
+        - AccessToken: []
+      parameters:
+      - name: is_accepted
+        in: query
+        schema:
+          type: boolean
+      - name: request_id
+        in: query
+        schema:
+          type: string
+      responses:
+        200:
+          description: Emails successfully retrieved.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/GetEmailResponse'
+        400:
+          description: Invalid request or delegation request is expired.
           content:
             '*/*':
               schema:
@@ -775,6 +850,46 @@ paths:
               schema:
                 $ref: '#/components/schemas/StatusResponse'
       x-codegen-request-body-name: edit_mode
+  /create_delegation_request:
+    post:
+      tags:
+      - delegated_submission
+      summary: Create delegation request for the current user to aubmit on behalf of the target user.
+      security:
+        - Authorization: [] 
+      requestBody:
+        description: Target user id.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDelegationRequest'
+        required: false
+      responses:
+        200:
+          description: Delegation request created.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        400:
+          description: Invalid request - description in response.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        401:
+          description: Unauthorized - description in response.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        500:
+          description: Server side error - description in response.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+      x-codegen-request-body-name: delegation_request
   /upload_batch:
     post:
       tags:
@@ -2469,5 +2584,47 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/BatchUploadData'
+    CreateDelegationRequest:
+      type: object
+      properties:
+        target_employee_number: 
+          type: string
+    DelegationRequestData:
+      type: object
+      properties:
+        request_id: 
+          type: string
+        requesting_user_employee_number: 
+          type: string
+        requesting_user_display_name: 
+          type: string
+        target_user_employee_number: 
+          type: string
+        target_user_display_name: 
+          type: string
+        date_sent: 
+          type: string
+        request_status: 
+          type: string
+          enum:
+          - PENDING
+          - ACCEPTED
+          - REJECTED
+          - EXPIRED
+        status_date: 
+          type: string
+        expiration_email_sent: 
+          type: boolean
+    ListDelegationRequestResponse:
+      type: object
+      properties:
+        delegation_requests:
+          type: array
+          items:
+            $ref: '#/components/schemas/DelegationRequestData'
+        incoming_requests:
+          type: array
+          items:
+            $ref: '#/components/schemas/DelegationRequestData'
 
 

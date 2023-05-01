@@ -583,6 +583,21 @@ def get_wam_info_by_display_name(config, display_name):
   else:
     app.logger.error('User data empty for display_name ' + display_name)
     return None
+
+def get_display_name_by_employee_number(config, employee_number):
+  url = 'https://' + config.wam_host + '/iam/governance/scim/v1/Users?attributes=displayName&filter=urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:employeeNumber eq "' + employee_number + '"'
+  wam = requests.get(url, auth=(config.wam_username, config.wam_password), timeout=30)
+  if wam.status_code != 200:
+    app.logger.error('WAM request by display_name failed for display_name ' + display_name)
+    return None
+  user_data = wam.json()
+  if 'Resources' in user_data and len(user_data['Resources']) > 0:
+    user_data = user_data['Resources'][0]
+    display_name = user_data.get('displayName', None)
+    return display_name
+  else:
+    app.logger.error('User data empty for display_name ' + display_name)
+    return None
   
 def get_direct_reports(token_data, access_token):
   headers = {'Authorization': 'Bearer ' + access_token, 'Content-Type':'application/json'}
@@ -788,7 +803,7 @@ def check_or_create_folder(access_token, folder_name):
     return True, None
 
 # Note: Depth increases when passing to a subfolder, or to a next page of results
-def read_sharepoint_folder(relative_path, access_token, depth, link = None, max_depth=3):
+def read_sharepoint_folder(relative_path, access_token, depth, link = None, max_depth=5):
   if depth > max_depth:
     return True, []
   headers = {'Authorization': 'Bearer ' + access_token}

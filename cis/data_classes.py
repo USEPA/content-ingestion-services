@@ -606,6 +606,11 @@ class SharepointRecord:
 
 @dataclass_json
 @dataclass 
+class CreateDelegationRequest:
+    target_employee_number: str
+    
+@dataclass_json
+@dataclass 
 class SearchUsersRequest:
     prefix: str
     count: int
@@ -727,3 +732,29 @@ class UpdatePreferredSystemRequest:
 @dataclass
 class UpdateEditModeRequest:
     default_edit_mode: str
+
+@dataclass_json
+@dataclass
+class DelegationRequestData:
+    request_id: str
+    requesting_user_employee_number: str
+    requesting_user_display_name: str
+    target_user_employee_number: str
+    target_user_display_name: str
+    date_sent: str
+    request_status: str
+    status_date: Optional[str]
+    expiration_email_sent: bool
+
+@dataclass_json
+@dataclass
+class ListDelegationRequestResponse:
+    delegation_requests: list[DelegationRequestData]
+    incoming_requests: list[DelegationRequestData]
+
+@dataclass_json
+@dataclass
+class DelegationResponse:
+    request_id: str
+    is_accepted: bool
+
