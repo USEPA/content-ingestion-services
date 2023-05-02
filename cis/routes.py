@@ -140,8 +140,12 @@ def upload_file_v3():
         return Response(StatusResponse(status='Failed', reason="User activity data is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
     # Default to dev environment
     env = request.form.get('nuxeo_env', 'dev')
-    if metadata.custodian != user_info.lan_id:
-        return Response(StatusResponse(status='Failed', reason="Custodian must match authorized user's lan_id.", request_id=g.get('request_id', None)).to_json(), status=401, mimetype='application/json')
+    if metadata.custodian != user_info.lan_id and metadata.custodian != user_info.employee_number:
+        success, response = validate_custodian(metadata, user_info)
+        if not success:
+            return response
+        if user_info.employee_number not in metadata.epa_contacts:
+            metadata.epa_contacts.append(user_info.employee_number)
     if file is None:
         return Response(StatusResponse(status='Failed', reason="No file found.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype="application/json")
     # This is where we need to upload record to ARMS
@@ -203,8 +207,12 @@ def upload_email_v3(emailsource):
     except:
         return Response(StatusResponse(status='Failed', reason="Request is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
     # TODO: Improve custodian validation based on role
-    if req.metadata.custodian != user_info.lan_id:
-        return Response(StatusResponse(status='Failed', reason="Custodian must match authorized user's lan_id.", request_id=g.get('request_id', None)).to_json(), status=401, mimetype='application/json')
+    if req.metadata.custodian != user_info.lan_id and req.metadata.custodian != user_info.employee_number:
+        success, response = validate_custodian(req.metadata, user_info)
+        if not success:
+            return response
+        if user_info.employee_number not in req.metadata.epa_contacts:
+            req.metadata.epa_contacts.append(user_info.employee_number)
     return upload_nuxeo_email_v2(c, req, emailsource, user_info)
 
 @app.route('/upload_sems_email/<emailsource>', methods=['POST'])
@@ -429,8 +437,12 @@ def sharepoint_upload_v3():
     except:
         return Response(StatusResponse(status='Failed', reason="Request is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
     success, message, user_info = get_user_info(c, g.token_data)
-    if req.metadata.custodian != user_info.lan_id:
-        return Response(StatusResponse(status='Failed', reason="Custodian must match authorized user's lan_id.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
+    if req.metadata.custodian != user_info.lan_id and req.metadata.custodian != user_info.employee_number:
+        success, response = validate_custodian(req.metadata, user_info)
+        if not success:
+            return response
+        if user_info.employee_number not in req.metadata.epa_contacts:
+            req.metadata.epa_contacts.append(user_info.employee_number)
     if not success:
         return Response(StatusResponse(status='Failed', reason=message, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
     return upload_sharepoint_record_v3(req, g.access_token, user_info, c)      
@@ -445,8 +457,12 @@ def upload_batch():
     success, message, user_info = get_user_info(c, g.token_data)
     if not success:
         return Response(StatusResponse(status='Failed', reason=message, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-    if req.metadata.custodian != user_info.lan_id:
-        return Response(StatusResponse(status='Failed', reason="Custodian must match authorized user's lan_id.", request_id=g.get('request_id', None)).to_json(), status=401, mimetype='application/json')
+    if req.metadata.custodian != user_info.lan_id and req.metadata.custodian != user_info.employee_number:
+        success, response = validate_custodian(req.metadata, user_info)
+        if not success:
+            return response
+        if user_info.employee_number not in req.metadata.epa_contacts:
+            req.metadata.epa_contacts.append(user_info.employee_number)
     return create_batch(req, user_info)
 
 def format_batch(batch: BatchUpload):

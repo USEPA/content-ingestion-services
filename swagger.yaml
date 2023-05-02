@@ -2102,6 +2102,10 @@ components:
           type: array
           items:
             type: string
+        epa_contacts:
+          type: array
+          items:
+            type: string
         specific_access_restriction:
           type: array
           items:

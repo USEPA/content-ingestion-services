@@ -7,7 +7,7 @@ import urllib
 import io
 import re
 import uuid
-from .models import User, RecordSubmission, BatchUpload, BatchUploadStatus, BatchUploadSource, db
+from .models import User, RecordSubmission, BatchUpload, BatchUploadStatus, BatchUploadSource, DelegationRule, db
 from sqlalchemy import null
 from . import model, help_item_cache, schedule_cache, keyword_extractor, identifier_extractor, capstone_detector
 from xhtml2pdf import pisa
@@ -1673,3 +1673,10 @@ def get_users(req: SearchUsersRequest, c):
     if email.lower() != g.token_data['email'].lower():
       users.append(user_info)
   return Response(UserSearchResponse(users=users).to_json(), status=200, mimetype='application/json')
+
+def validate_custodian(metadata: ECMSMetadataV2, user_info: UserInfo):
+  rules = DelegationRule.query.filter_by(submitting_user_employee_number=user_info.employee_number, target_user_employee_number=metadata.custodian).all()
+  if len(rules) > 0:
+    return True, None
+  else:
+    return False, Response(StatusResponse(status='Failed', reason='User is not authorized to submit on behlaf of this custodian.', request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
