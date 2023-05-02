@@ -687,7 +687,11 @@ def delegation_response():
     if req.is_accepted:
         delegation_request.status = DelegationRequestStatus.ACCEPTED
         delegation_request.status_date = datetime.now()
-        rule = DelegationRule(submitting_user_id=delegation_request.requesting_user_id, target_user_employee_number=delegation_request.target_user_employee_number, delegation_request_id=delegation_request.id)
+        rule = DelegationRule(submitting_user_id=delegation_request.requesting_user_id, 
+                              submitting_user_employee_number=delegation_request.requesting_user_employee_number, 
+                              target_user_display_name=delegation_request.target_user_display_name, 
+                              target_user_employee_number=delegation_request.target_user_employee_number, 
+                              delegation_request_id=delegation_request.id)
         db.session.add(rule)
     else:
         delegation_request.status = DelegationRequestStatus.REJECTED
@@ -698,3 +702,19 @@ def delegation_response():
     except:
         return Response(StatusResponse(status='Failed', reason="Failed to update database.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
 
+def process_rule(rule):
+    return DelegationRuleData(submitting_user_employee_number=rule.submitting_user_employee_number, target_user_employee_number=rule.target_user_employee_number, target_user_display_name=rule.target_user_display_name)
+
+@app.route('/get_delegation_rules', methods=['GET'])
+def get_delegation_rules():
+    success, message, user_info = get_user_info(c, g.token_data)
+    if not success:
+        return Response(StatusResponse(status='Failed', reason=message, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+    user = User.query.filter_by(lan_id = user_info.lan_id).all()
+    if len(user) == 0:
+        return Response(StatusResponse(status='Failed', reason="User not found.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+    else:
+        user = user[0]
+    rules = [process_rule(x) for x in user.delegation_rules]
+    response = DelegationRuleResponse(rules=rules)
+    return Response(response.to_json(), status=200, mimetype='application/json')

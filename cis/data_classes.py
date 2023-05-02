@@ -758,3 +758,15 @@ class DelegationResponse:
     request_id: str
     is_accepted: bool
 
+@dataclass_json
+@dataclass
+class DelegationRuleData:
+    submitting_user_employee_number: str
+    target_user_employee_number: str
+    target_user_display_name: str
+
+@dataclass_json
+@dataclass
+class DelegationRuleResponse:
+    rules: list[DelegationRuleData]
+
