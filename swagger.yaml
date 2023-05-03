@@ -506,22 +506,19 @@ paths:
               schema:
                 $ref: '#/components/schemas/StatusResponse'
   /delegation_response:
-    get:
+    post:
       tags:
       - delegated_submission
       summary: Respond to a delegation request.
       security:
         - Authorization: [] 
         - AccessToken: []
-      parameters:
-      - name: is_accepted
-        in: query
-        schema:
-          type: boolean
-      - name: request_id
-        in: query
-        schema:
-          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DelegationResponse'
+        required: false
       responses:
         200:
           description: Emails successfully retrieved.
@@ -923,6 +920,47 @@ paths:
               schema:
                 $ref: '#/components/schemas/StatusResponse'
       x-codegen-request-body-name: delegation_request
+  /delete_delegation_rule:
+    post:
+      tags:
+      - delegated_submission
+      summary: Deletes a delegation rule where the user is either the submitter or the target. 
+      security:
+        - Authorization: [] 
+        - AccessToken: []
+      requestBody:
+        description: Rule id of the rule to delete.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeleteDelegationRuleRequest'
+        required: false
+      responses:
+        200:
+          description: Delegation request created.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        400:
+          description: Invalid request - description in response.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        401:
+          description: Unauthorized - description in response.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        500:
+          description: Server side error - description in response.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+      x-codegen-request-body-name: delete_delegation_rule
   /upload_batch:
     post:
       tags:
@@ -2666,7 +2704,11 @@ components:
     DelegationRuleData:
       type: object
       properties:
+        rule_id:
+          type: number
         submitting_user_employee_number: 
+          type: string
+        submitting_user_display_name: 
           type: string
         target_user_employee_number: 
           type: string
@@ -2675,10 +2717,27 @@ components:
     DelegationRuleResponse:
       type: object
       properties:
-        rules:
+        submitting_rules:
           type: array
           items:
             $ref: '#/components/schemas/DelegationRuleData'
+        target_rules:
+          type: array
+          items:
+            $ref: '#/components/schemas/DelegationRuleData'
+    DelegationResponse:
+      type: object
+      properties:
+        is_accepted:
+          type: boolean
+        request_id:
+          type: string
+    DeleteDelegationRuleRequest:
+      type: object
+      properties:
+        rule_id:
+          type: number
+        
 
 
 

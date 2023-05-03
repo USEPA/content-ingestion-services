@@ -146,6 +146,7 @@ class ECMSMetadata:
 @dataclass
 class ECMSMetadataV2:
     file_path: str
+    ## Remove creator field once FE does
     ## TODO: We are not using this field for now - we will use it when the FE implements the ability to change the custodian
     custodian: str
     title: str
@@ -762,12 +763,20 @@ class DelegationResponse:
 @dataclass_json
 @dataclass
 class DelegationRuleData:
+    rule_id: int
     submitting_user_employee_number: str
+    submitting_user_display_name: str
     target_user_employee_number: str
     target_user_display_name: str
 
 @dataclass_json
 @dataclass
 class DelegationRuleResponse:
-    rules: list[DelegationRuleData]
+    submitting_rules: list[DelegationRuleData]
+    target_rules: list[DelegationRuleData]
+
+@dataclass_json
+@dataclass
+class DeleteDelegationRuleRequest:
+    rule_id: int
 

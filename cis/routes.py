@@ -681,12 +681,12 @@ def get_delegation_requests():
     response = ListDelegationRequestResponse(delegation_requests=delegation_requests, incoming_requests=incoming_requests)
     return Response(response.to_json(), status=200, mimetype='application/json')
 
-@app.route('/delegation_response', methods=['GET'])
+@app.route('/delegation_response', methods=['POST'])
 def delegation_response():
     success, message, user_info = get_user_info(c, g.token_data)
     if not success:
         return Response(StatusResponse(status='Failed', reason=message, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-    req = request.args
+    req = request.json
     try:
         req = DelegationResponse.from_dict(req)
     except:
@@ -704,6 +704,7 @@ def delegation_response():
         delegation_request.status = DelegationRequestStatus.ACCEPTED
         delegation_request.status_date = datetime.now()
         rule = DelegationRule(submitting_user_id=delegation_request.requesting_user_id, 
+                              submitting_user_display_name=delegation_request.requesting_user_display_name,
                               submitting_user_employee_number=delegation_request.requesting_user_employee_number, 
                               target_user_display_name=delegation_request.target_user_display_name, 
                               target_user_employee_number=delegation_request.target_user_employee_number, 
@@ -719,7 +720,7 @@ def delegation_response():
         return Response(StatusResponse(status='Failed', reason="Failed to update database.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
 
 def process_rule(rule):
-    return DelegationRuleData(submitting_user_employee_number=rule.submitting_user_employee_number, target_user_employee_number=rule.target_user_employee_number, target_user_display_name=rule.target_user_display_name)
+    return DelegationRuleData(rule_id=rule.id, submitting_user_employee_number=rule.submitting_user_employee_number, submitting_user_display_name=rule.submitting_user_display_name, target_user_employee_number=rule.target_user_employee_number, target_user_display_name=rule.target_user_display_name)
 
 @app.route('/get_delegation_rules', methods=['GET'])
 def get_delegation_rules():
@@ -731,6 +732,25 @@ def get_delegation_rules():
         return Response(StatusResponse(status='Failed', reason="User not found.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
     else:
         user = user[0]
-    rules = [process_rule(x) for x in user.delegation_rules]
-    response = DelegationRuleResponse(rules=rules)
+    submitting_rules = [process_rule(x) for x in user.delegation_rules]
+    target_rules = DelegationRule.query.filter_by(target_user_employee_number=user_info.employee_number).all()
+    target_rules = [process_rule(x) for x in target_rules]
+    response = DelegationRuleResponse(submitting_rules=submitting_rules, target_rules=target_rules)
     return Response(response.to_json(), status=200, mimetype='application/json')
+
+@app.route('/delete_delegation_rule', methods=['POST'])
+def delete_delegation_rule():
+    req = request.json
+    try:
+        req = DeleteDelegationRuleRequest.from_dict(req)
+    except:
+        return Response(StatusResponse(status='Failed', reason="Request is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
+    success, message, user_info = get_user_info(c, g.token_data)
+    if not success:
+        return Response(StatusResponse(status='Failed', reason=message, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
+    rule = DelegationRule.query.filter_by(id=req.rule_id).first_or_404()
+    if rule.submitting_user_employee_number != user_info.employee_number and rule.target_user_employee_number != user_info.employee_number:
+        return Response(StatusResponse(status='Failed', reason="User is not authorized to remove this rule.", request_id=g.get('request_id', None)).to_json(), status=401, mimetype='application/json')
+    db.session.delete(rule)
+    db.session.commit()
+    return Response(StatusResponse(status="OK", reason="Delegation rule removed.", request_id=g.get('request_id', None)).to_json(), status=200, mimetype="application/json")

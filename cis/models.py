@@ -121,6 +121,7 @@ class DelegationRule(db.Model):
     submitting_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), index=True, nullable=False)
     submitting_user = db.relationship('User', backref=db.backref('delegation_rules', lazy=True),)
     submitting_user_employee_number = db.Column(db.String(36), index=True)
+    submitting_user_display_name = db.Column(db.String(100),)
     target_user_employee_number = db.Column(db.String(36), nullable=False, index=True)
     target_user_display_name = db.Column(db.String(100),)
     delegation_request_id = db.Column(db.Integer, db.ForeignKey('delegation_request.id'), index=True, nullable=False)
