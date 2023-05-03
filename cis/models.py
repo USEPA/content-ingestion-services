@@ -28,7 +28,8 @@ class DelegationRequestStatus(enum.Enum):
 class User(db.Model):
     __tablename__ = 'user'
     id = db.Column(db.Integer, primary_key=True)
-    lan_id = db.Column(db.String(50), unique=True, index=True)
+    lan_id = db.Column(db.String(50), index=True)
+    employee_number = db.Column(db.String(50), unique=True, index=True)
     favorites = db.relationship("Favorite", backref="user")
     submissions = db.relationship("RecordSubmission", backref="user")
     user_settings = db.relationship("AppSettings", backref="user")

@@ -553,7 +553,7 @@ def get_profile(config, employee_number):
     return ProfileInfo(points=profile['points'], level=profile['level'], office_rank=profile['office_rank'], overall_rank=profile['overall_rank'])
     
 def get_user_settings(lan_id):
-    user = User.query.filter_by(lan_id = lan_id).all()
+    user = User.query.filter_by(employee_number = user_info.employee_number).all()
     if len(user) == 0:
         return default_settings
     else:
@@ -1473,7 +1473,7 @@ def add_submission_analytics(data: SubmissionAnalyticsMetadata, selected_schedul
     default_schedule = sched_to_string(data.default_schedule)
 
   # Find user in DB or add user
-  user = User.query.filter_by(lan_id = lan_id).all()
+  user = User.query.filter_by(employee_number = user_info.employee_number).all()
   if len(user) == 0:
       user = User(lan_id = lan_id)
       db.session.add(user)
@@ -1646,7 +1646,7 @@ def get_file_metadata_prediction(config, file, prediction_metadata: PredictionMe
   return Response(prediction.to_json(), status=200, mimetype='application/json')
 
 def create_batch(req: BatchUploadRequest, user_info):
-  user = User.query.filter_by(lan_id = user_info.lan_id).all()
+  user = User.query.filter_by(employee_number = user_info.employee_number).all()
   if len(user) == 0:
       return Response(StatusResponse(status='Failed', reason='User not found.', request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
   else:

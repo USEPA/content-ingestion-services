@@ -283,7 +283,7 @@ def get_favorites():
     success, message, user_info = get_user_info(c, g.token_data)
     if not success:
         return Response(StatusResponse(status='Failed', reason=message, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-    user = User.query.filter_by(lan_id = user_info.lan_id).all()
+    user = User.query.filter_by(employee_number = user_info.employee_number).all()
     if len(user) == 0:
         get_favorites_response = GetFavoritesResponse(favorites = [])
     else:
@@ -302,9 +302,9 @@ def add_favorites():
     success, message, user_info = get_user_info(c, g.token_data)
     if not success:
         return Response(StatusResponse(status='Failed', reason=message, request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
-    user = User.query.filter_by(lan_id = user_info.lan_id).all()
+    user = User.query.filter_by(employee_number = user_info.employee_number).all()
     if len(user) == 0:
-        user = User(lan_id = user_info.lan_id)
+        user = User(lan_id = user_info.lan_id, employee_number=user_info.employee_number)
         db.session.add(user)
     else:
         user = user[0]
@@ -338,9 +338,9 @@ def remove_favorites():
         req = RemoveFavoritesRequest.from_dict(req)
     except:
         return Response(StatusResponse(status='Failed', reason="Request is not formatted correctly.", request_id=g.get('request_id', None)).to_json(), status=400, mimetype='application/json')
-    user = User.query.filter_by(lan_id = user_info.lan_id).all()
+    user = User.query.filter_by(employee_number = user_info.employee_number).all()
     if len(user) == 0:
-        user = User(lan_id = user_info.lan_id)
+        user = User(lan_id = user_info.lan_id, employee_number=user_info.employee_number)
     else:
         user = user[0]
 
@@ -378,9 +378,9 @@ def user_info():
     success, message, user_info = get_user_info(c, g.token_data, g.access_token)
     if not success:
         return Response(StatusResponse(status='Failed', reason=message, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-    user = User.query.filter_by(lan_id = user_info.lan_id).all()
+    user = User.query.filter_by(employee_number = user_info.employee_number).all()
     if len(user) == 0:
-        user = User(lan_id = user_info.lan_id)
+        user = User(lan_id = user_info.lan_id, employee_number=user_info.employee_number)
         db.session.add(user)
         try:
             db.session.commit()
@@ -476,7 +476,7 @@ def get_batch_uploads():
     success, message, user_info = get_user_info(c, g.token_data)
     if not success:
         return Response(StatusResponse(status='Failed', reason=message, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-    user = User.query.filter_by(lan_id = user_info.lan_id).all()
+    user = User.query.filter_by(employee_number = user_info.employee_number).all()
     if len(user) > 0:
         user = user[0]
     else:
@@ -551,9 +551,9 @@ def update_preferred_system():
     success, message, user_info = get_user_info(c, g.token_data)
     if not success:
         return Response(StatusResponse(status='Failed', reason=message, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-    user = User.query.filter_by(lan_id = user_info.lan_id).all()
+    user = User.query.filter_by(employee_number = user_info.employee_number).all()
     if len(user) == 0:
-        user = User(lan_id = user_info.lan_id)
+        user = User(lan_id = user_info.lan_id, employee_number=user_info.employee_number)
         db.session.add(user)
     else:
         user = user[0]
@@ -579,9 +579,9 @@ def update_default_edit_mode():
     success, message, user_info = get_user_info(c, g.token_data)
     if not success:
         return Response(StatusResponse(status='Failed', reason=message, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-    user = User.query.filter_by(lan_id = user_info.lan_id).all()
+    user = User.query.filter_by(employee_number = user_info.employee_number).all()
     if len(user) == 0:
-        user = User(lan_id = user_info.lan_id)
+        user = User(lan_id = user_info.lan_id, employee_number=user_info.employee_number)
         db.session.add(user)
     else:
         user = user[0]
@@ -631,9 +631,9 @@ def create_delegation_request():
     target_display_name = get_display_name_by_employee_number(c, req.target_employee_number)
     if target_display_name is None:
         return Response(StatusResponse(status='Failed', reason="Could not find target in WAM.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-    user = User.query.filter_by(lan_id = user_info.lan_id).all()
+    user = User.query.filter_by(employee_number = user_info.employee_number).all()
     if len(user) == 0:
-        user = User(lan_id = user_info.lan_id)
+        user = User(lan_id = user_info.lan_id, employee_number=user_info.employee_number)
         db.session.add(user)
         db.session.flush()
         db.session.refresh(user)
@@ -671,7 +671,7 @@ def get_delegation_requests():
     success, message, user_info = get_user_info(c, g.token_data)
     if not success:
         return Response(StatusResponse(status='Failed', reason=message, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-    user = User.query.filter_by(lan_id = user_info.lan_id).all()
+    user = User.query.filter_by(employee_number = user_info.employee_number).all()
     if len(user) == 0:
         return Response(StatusResponse(status='Failed', reason="User not found.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
     else:
@@ -727,7 +727,7 @@ def get_delegation_rules():
     success, message, user_info = get_user_info(c, g.token_data)
     if not success:
         return Response(StatusResponse(status='Failed', reason=message, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-    user = User.query.filter_by(lan_id = user_info.lan_id).all()
+    user = User.query.filter_by(employee_number = user_info.employee_number).all()
     if len(user) == 0:
         return Response(StatusResponse(status='Failed', reason="User not found.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
     else:
