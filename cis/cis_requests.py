@@ -584,8 +584,107 @@ def get_wam_info_by_display_name(config, display_name):
     app.logger.error('User data empty for display_name ' + display_name)
     return None
 
+def get_email_token(config):
+    try:
+        params = {
+            "client_id": config.client_id,
+            "client_secret": config.client_secret,
+            "scope": "Mail.Send",
+            "grant_type": "password",
+            "username": config.email_username,
+            "password": config.email_password
+        }
+        r = requests.get("https://login.microsoftonline.com/" + config.tenant_id + "/oauth2/v2.0/token", data=params)
+        return r.json()['access_token']
+    except:
+        return None
+
+def create_delegation_email_content(config, submitter_display_name, target_display_name, request_id):
+  return f'''
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Request Email</title>
+      <style>
+          .button {{
+              display: inline-block;
+              padding: 10px 20px;
+              font-size: 16px;
+              text-align: center;
+              text-decoration: none;
+              border-radius: 5px;
+              margin: 5px;
+          }}
+          .accept {{
+              background-color: #4CAF50;
+              color: white;
+              border: none;
+          }}
+          .reject {{
+              background-color: #f44336;
+              color: white;
+              border: none;
+          }}
+      </style>
+  </head>
+  <body>
+      <h1>Request for Approval</h1>
+      <p>Dear {target_display_name},</p>
+      <p>{submitter_display_name} has requested the ability to submit documents to the Agency Records Management System (ARMS) on your behalf. Please accept or reject the request by clicking one of the buttons below.</p>
+      <a href="{config.ui_url}/delegationResponse?request_id={request_id}&is_accepted=true" class="button accept">Accept</a>
+      <a href="{config.ui_url}/delegationResponse?request_id={request_id}&is_accepted=false" class="button reject">Reject</a>
+      <p>If you have any questions or concerns, please feel free to contact us at ARMS@epa.gov.</p>
+      <p>Thank you,</p>
+      <p>ARMS Team</p>
+  </body>
+  </html>
+  '''
+
+def send_delegation_notification(config, email, submitter_display_name, target_display_name, request_id):
+  token = get_email_token(config)
+  email = {
+    'message': {
+        'subject': 'ARMS Delegation Request',
+        'body': {
+            'contentType': 'Html',
+            'content': create_delegation_email_content(config, submitter_display_name, target_display_name, request_id)
+        },
+        'toRecipients': [
+            {
+                'emailAddress': {
+                    'address': email
+                }
+            }
+        ]
+    },
+    'saveToSentItems': 'true'
+  }
+    # Set the request headers
+  headers = {
+      'Authorization': f'Bearer {token}',
+      'Content-Type': 'application/json'
+  }
+
+  # Send the email
+  response = requests.post(
+      'https://graph.microsoft.com/v1.0/me/sendMail',
+      headers=headers,
+      data=json.dumps(email)
+  )
+
+  # Check for a successful response
+  if response.status_code == 202:
+      return True
+  else:
+      return False
+
+
+
+
 def get_display_name_by_employee_number(config, employee_number):
-  url = 'https://' + config.wam_host + '/iam/governance/scim/v1/Users?attributes=displayName&filter=urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:employeeNumber eq "' + employee_number + '"'
+  url = 'https://' + config.wam_host + '/iam/governance/scim/v1/Users?attributes=displayName&attributes=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:Upn&filter=urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:employeeNumber eq "' + employee_number + '"'
   wam = requests.get(url, auth=(config.wam_username, config.wam_password), timeout=30)
   if wam.status_code != 200:
     app.logger.error('WAM request by display_name failed for display_name ' + display_name)
@@ -594,7 +693,8 @@ def get_display_name_by_employee_number(config, employee_number):
   if 'Resources' in user_data and len(user_data['Resources']) > 0:
     user_data = user_data['Resources'][0]
     display_name = user_data.get('displayName', None)
-    return display_name
+    email = user_data.get('urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User', {}).get('Upn', None)
+    return display_name, email
   else:
     app.logger.error('User data empty for display_name ' + display_name)
     return None

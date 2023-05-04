@@ -11,7 +11,9 @@ class CISConfig:
         self, 
         cis_server, 
         tika_server, 
+        tenant_id,
         client_id, 
+        client_secret,
         database_uri, 
         record_schedules_server, 
         wam_host, 
@@ -27,11 +29,16 @@ class CISConfig:
         nuxeo_prod_username, 
         nuxeo_prod_password,
         arms_upload_bucket,
-        arms_upload_prefix
+        arms_upload_prefix,
+        email_username,
+        email_password,
+        ui_url
         ):
         self.cis_server = cis_server
         self.tika_server = tika_server
+        self.tenant_id = tenant_id
         self.client_id = client_id
+        self.client_secret = client_secret
         self.database_uri = database_uri
         self.record_schedules_server = record_schedules_server
         self.wam_host = wam_host
@@ -48,4 +55,7 @@ class CISConfig:
         self.nuxeo_prod_password = nuxeo_prod_password
         self.arms_upload_bucket = arms_upload_bucket
         self.arms_upload_prefix = arms_upload_prefix
+        self.email_username = email_username
+        self.email_password = email_password
+        self.ui_url = ui_url
         

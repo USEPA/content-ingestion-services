@@ -628,7 +628,7 @@ def create_delegation_request():
     success, message, user_info = get_user_info(c, g.token_data)
     if not success:
         return Response(StatusResponse(status='Failed', reason=message, request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
-    target_display_name = get_display_name_by_employee_number(c, req.target_employee_number)
+    target_display_name, target_email = get_display_name_by_employee_number(c, req.target_employee_number)
     if target_display_name is None:
         return Response(StatusResponse(status='Failed', reason="Could not find target in WAM.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype='application/json')
     user = User.query.filter_by(employee_number = user_info.employee_number).all()
@@ -649,6 +649,9 @@ def create_delegation_request():
                                            date_sent=datetime.now())
     db.session.add(delegation_request)
     db.session.commit()
+    success = send_delegation_notification(c, target_email, user_info.display_name, target_display_name, request_uuid)
+    if not success:
+        Response(StatusResponse(status="Email not sent", reason="Delegation request created but email notification could not be sent.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype="application/json")
     return Response(StatusResponse(status="OK", reason="Delegation request created.", request_id=g.get('request_id', None)).to_json(), status=200, mimetype="application/json")
 
 def process_delegation_request(req: DelegationRequest):

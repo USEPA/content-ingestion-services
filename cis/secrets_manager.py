@@ -58,12 +58,18 @@ def load_all_secrets(c, region_name, logger):
     db_creds = json.loads(get_secret('cis-db-credentials', region_name))
     wam = json.loads(get_secret('wam-credentials', region_name))
     nuxeo = json.loads(get_secret('nuxeo-credentials', region_name))
+    service_account = json.loads(get_secret('service-account-credentials', region_name))
     logger.info('Finished loading secrets.')
     c.nuxeo_dev_username = nuxeo['nuxeo_dev_username']
     c.nuxeo_dev_password = nuxeo['nuxeo_dev_password']
     c.wam_username = wam['wam_username']
     c.wam_password = wam['wam_password']
     c.wam_host = wam['wam_host']
+    c.email_username = service_account['username']
+    c.email_password = service_account['password']
+    c.client_id = service_account['client_id']
+    c.client_secret = service_account['client_secret']
+    c.tenant_id = service_account['tenant_id']
     database_user = db_creds['username']
     database_password = db_creds['password']
     database_host = db_creds['host']
