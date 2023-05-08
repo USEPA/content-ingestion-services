@@ -552,8 +552,8 @@ def get_profile(config, employee_number):
     profile = r.json()[0]
     return ProfileInfo(points=profile['points'], level=profile['level'], office_rank=profile['office_rank'], overall_rank=profile['overall_rank'])
     
-def get_user_settings(lan_id):
-    user = User.query.filter_by(employee_number = user_info.employee_number).all()
+def get_user_settings(employee_number):
+    user = User.query.filter_by(employee_number = employee_number).all()
     if len(user) == 0:
         return default_settings
     else:
@@ -680,9 +680,6 @@ def send_delegation_notification(config, email, submitter_display_name, target_d
   else:
       return False
 
-
-
-
 def get_display_name_by_employee_number(config, employee_number):
   url = 'https://' + config.wam_host + '/iam/governance/scim/v1/Users?attributes=displayName&attributes=urn:ietf:params:scim:schemas:extension:oracle:2.0:OIG:User:Upn&filter=urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:employeeNumber eq "' + employee_number + '"'
   wam = requests.get(url, auth=(config.wam_username, config.wam_password), timeout=30)
@@ -779,7 +776,7 @@ def get_user_info(config, token_data, access_token=None):
     profile = ProfileInfo(points="0", level="Beginner", office_rank="1000", overall_rank="10000")
     app.logger.info('Profile requests failed for ' + token_data['email'])
   try:
-    user_settings = get_user_settings(lan_id)
+    user_settings = get_user_settings(employee_number)
   except:
     app.logger.error(traceback.format_exc())
     user_settings = default_settings
@@ -1018,7 +1015,7 @@ def upload_sharepoint_record_v3(req: SharepointUploadRequestV3, access_token, us
     return Response('Unable to move OneDrive item: ' + str(move_req.text), status=400, mimetype='application/json')
   
   ## Add submission analytics to table
-  success, response = add_submission_analytics(req.user_activity, req.metadata.record_schedule, user_info.lan_id, None, uid)
+  success, response = add_submission_analytics(req.user_activity, req.metadata.record_schedule, user_info.employee_number, None, uid)
   if not success:
     return response
   else:
@@ -1380,7 +1377,7 @@ def upload_nuxeo_email_v2(config, req, source, user_info):
     return save_resp
   
   # Step 7: Store submission analytics
-  success, response = add_submission_analytics(req.user_activity, req.metadata.record_schedule, user_info.lan_id, None, uid)
+  success, response = add_submission_analytics(req.user_activity, req.metadata.record_schedule, user_info.employee_number, None, uid)
   if not success:
     return response
   else:
@@ -1556,7 +1553,7 @@ def upload_sems_email(config, req: UploadSEMSEmail, source, user_info):
 
   return Response(upload_resp.to_json(), status=200, mimetype='application/json')
 
-def add_submission_analytics(data: SubmissionAnalyticsMetadata, selected_schedule, lan_id, documentum_id, nuxeo_id):
+def add_submission_analytics(data: SubmissionAnalyticsMetadata, selected_schedule, employee_number, documentum_id, nuxeo_id):
   # Handle nulls for documentum and nuxeo ids
   if documentum_id is None:
     doc_id = null()
@@ -1573,9 +1570,9 @@ def add_submission_analytics(data: SubmissionAnalyticsMetadata, selected_schedul
     default_schedule = sched_to_string(data.default_schedule)
 
   # Find user in DB or add user
-  user = User.query.filter_by(employee_number = user_info.employee_number).all()
+  user = User.query.filter_by(employee_number = employee_number).all()
   if len(user) == 0:
-      user = User(lan_id = lan_id)
+      user = User(employee_number = employee_number)
       db.session.add(user)
   else:
       user = user[0]
