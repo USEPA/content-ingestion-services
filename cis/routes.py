@@ -649,9 +649,9 @@ def create_delegation_request():
                                            date_sent=datetime.now())
     db.session.add(delegation_request)
     db.session.commit()
-    success = send_delegation_notification(c, target_email, user_info.display_name, target_display_name, request_uuid)
-    if not success:
-        Response(StatusResponse(status="Email not sent", reason="Delegation request created but email notification could not be sent.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype="application/json")
+    #success = send_delegation_notification(c, target_email, user_info.display_name, target_display_name, request_uuid)
+    #if not success:
+    #    Response(StatusResponse(status="Email not sent", reason="Delegation request created but email notification could not be sent.", request_id=g.get('request_id', None)).to_json(), status=500, mimetype="application/json")
     return Response(StatusResponse(status="OK", reason="Delegation request created.", request_id=g.get('request_id', None)).to_json(), status=200, mimetype="application/json")
 
 def process_delegation_request(req: DelegationRequest):
