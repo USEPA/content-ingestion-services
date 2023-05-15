@@ -715,8 +715,8 @@ def get_folder_id(access_token, folder_name):
   return True, folder_req.json()['id'], None
 
 def create_arms_readme(access_token):
-  file_name = 'ARMS Instructions.txt'
-  file_content = 'The files in this folder are convenience copies of records that you uploaded to the Agency Records Management System (ARMS). These files do not contain metadata and will be dispositioned (deleted) according to the records schedule that was assigned to the record during its upload into ARMS.'
+  file_name = 'ARMS Archive Guidance.txt'
+  file_content = 'The files in this folder are convenience copies of records that you uploaded to the Agency Records Management System (ARMS) but do not contain metadata. These files will remain in this folder for the duration of the retention period and be dispositioned (deleted) per the records schedule assigned to official record copy in ARMS. If you move a file outside of this folder, you are responsible for managing its disposition according to the appropriate records schedule. If the record is kept beyond its approved disposition, it will be responsive to any litigation holds or FOIA requests in the future.'
   encoded_content = base64.b64encode(file_content.encode()).decode()
   url = f'https://graph.microsoft.com/v1.0/me/drive/root:/{ARMS_ARCHIVE_FOLDER_NAME}/{file_name}'
   headers = {'Authorization': 'Bearer ' + access_token, 'Content-Type': 'application/json'}
